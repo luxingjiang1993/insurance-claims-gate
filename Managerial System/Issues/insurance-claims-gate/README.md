@@ -6,14 +6,16 @@
 
 | NN | 文件 | Blocked by |
 |----|------|------------|
-| 01 | `01-missions-scaffold-claims-api.md` | None |
+| 03 | `03-sc01-one-shot-supplement-approve.md` | 01 |
+| 04 | `04-sc02-exclusion-reject-latch.md` | 01, 02 |
+| 05 | `05-sc03-endorsement-stack-reduction.md` | 01, 02 |
 
 ## 全量任务图
 
 | NN | 标题 | Blocked by | Status |
 |----|------|------------|--------|
 | 01 | Missions 换垂直脚手架 + 理赔 HTTP 空壳 + machine_check 分发器 | — | done |
-| 02 | 条款 KB 最小集 + citation 条款项落库门 | 01 | done |
+| 02 | 条款 KB 最小集 + citation 条款项落库门 | 01 | resolved |
 | 03 | SC-01 一次补件 → 补传 → 通赔建议（轨 A） | 01 | ready-for-agent |
 | 04 | SC-02 除外拒赔草案 + 文书分态 + 人闸 | 01, 02 | ready-for-agent |
 | 05 | SC-03 效力栈减赔 + 理算步骤 | 01, 02 | ready-for-agent |

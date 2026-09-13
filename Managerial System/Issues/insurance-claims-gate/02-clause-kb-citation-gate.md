@@ -1,6 +1,6 @@
 # 02: 条款 KB 最小集 + citation 条款项落库门
 
-**Status:** done
+**Status:** resolved
 
 **Blocked by:** 01
 
@@ -50,3 +50,4 @@
 
 - 2026-09-13：to-tickets 批准 defaults 后落盘。
 - 2026-09-13：Issue 02 实现完成；Rewrote from: REF-CASE-KB, REF-MISSIONS；Status → done。
+- 2026-09-13：关闭本票 Status → resolved；代码已在 main（`5dc6d0d` / `5d8b422`）。
