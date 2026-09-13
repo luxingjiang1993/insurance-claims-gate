@@ -1,6 +1,6 @@
 # 03: SC-01 一次补件 → 补传 → 通赔建议（轨 A）
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** 01
 
@@ -31,14 +31,23 @@
 
 ## Acceptance criteria
 
-- [ ] SC-01 夹具经 HTTP 黑盒：缺发票 → 补件 → 补传 → 通赔建议草案
-- [ ] 补件清单完整且带稳定 `one_shot_hash`；同 hash 拆轮补件 machine_check 失败
-- [ ] 补件通知含缺项中文名、是否必须、示例说明，以及一次性补正法义文案锚点
-- [ ] 裁决含 `decision_type`、`gate_status`、`document_status`、`payout_ready`；未按规定人闸前 `payout_ready=false`
-- [ ] 补件文书可导出为 `DRAFT_EXPORT`（补件默认可自动，不必人闸升对外）
-- [ ] 对应 machine_check 类型注册并在轨 A 下稳定绿；`inference_track=deterministic`
-- [ ] handoff 含 `Rewrote from: REF-MISSIONS, REF-COURSE-03`
+- [x] SC-01 夹具经 HTTP 黑盒：缺发票 → 补件 → 补传 → 通赔建议草案
+- [x] 补件清单完整且带稳定 `one_shot_hash`；同 hash 拆轮补件 machine_check 失败
+- [x] 补件通知含缺项中文名、是否必须、示例说明，以及一次性补正法义文案锚点
+- [x] 裁决含 `decision_type`、`gate_status`、`document_status`、`payout_ready`；未按规定人闸前 `payout_ready=false`
+- [x] 补件文书可导出为 `DRAFT_EXPORT`（补件默认可自动，不必人闸升对外）
+- [x] 对应 machine_check 类型注册并在轨 A 下稳定绿；`inference_track=deterministic`
+- [x] handoff 含 `Rewrote from: REF-MISSIONS, REF-COURSE-03`
+
+## Answer
+
+- HTTP：`POST /claims/{id}/evaluate|materials|supplement/notify|documents/export`；夹具 `CLM-SC01-001` 初缺发票+诊断证明。
+- 裁决：`supplement` / `approve_recommend`；`document_status=DRAFT_EXPORT`；无人闸 `payout_ready=false`。
+- 文书：PRD §11.1 字段齐全；`legal_basis` 锚定《保险法》第二十二条。
+- `machine_check`：`sc01_one_shot_supplement_approve`、`one_shot_split_round_rejected`（断言入口重置夹具）。
+- 验收：`tests/test_sc01_one_shot_supplement.py`；全量 `25 passed`。
 
 ## Comments
 
 - 2026-09-13：to-tickets 批准 defaults 后落盘。
+- 2026-09-13：Issue 03 实现完成；Rewrote from: REF-MISSIONS, REF-COURSE-03。

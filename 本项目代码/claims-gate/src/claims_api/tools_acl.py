@@ -15,12 +15,17 @@ PAYMENT_TOOL_NAMES: frozenset[str] = frozenset(
     }
 )
 
-# 脚手架允许的只读/领域工具
+# 脚手架允许的只读/领域工具（无支付）
 ALLOWED_TOOL_NAMES: frozenset[str] = frozenset(
     {
         "read_claim_header",
         "list_gate_status",
         "validate_citation",
+        "evaluate_claim",
+        "read_decision",
+        "register_materials",
+        "notify_supplement",
+        "export_document",
     }
 )
 

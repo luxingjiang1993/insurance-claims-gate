@@ -36,7 +36,16 @@ class Orchestrator:
         state.writer_lock_held_by = None
         state.locked_paths = []
 
-        chunk = self.kb.get_clause("POL-CLAIM-001")
+        goal_l = goal.strip().lower()
+        is_sc01 = any(
+            key in goal_l or key in goal
+            for key in ("sc-01", "sc01", "一次补件", "通赔建议", "one_shot")
+        )
+        clause_id = "POL-CLAIM-002" if is_sc01 else "POL-CLAIM-001"
+        chunk = self.kb.get_clause(clause_id)
+        if chunk is None:
+            # 回退到脚手架条款，避免 KB 未加载时无法开工
+            chunk = self.kb.get_clause("POL-CLAIM-001")
         if chunk is None:
             raise RuntimeError("知识库缺少 POL-CLAIM-001，无法写出契约")
 
@@ -61,28 +70,73 @@ class Orchestrator:
             role=RoleName.ORCHESTRATOR,
             profile="orchestrator_goal_top5",
             top_k=5,
-            clause_hint="POL-CLAIM-001",
+            clause_hint=chunk.clause_id,
         ):
             if extra.chunk_id != chunk.chunk_id:
                 citations.append(extra)
 
-        assertions = [
-            Assertion(
-                id="A-001",
-                behavior="L1 只读返回案件头且门禁态为 MATERIALS_INTAKE",
-                policy_clause_id="POL-CLAIM-001",
-                acceptance="GET /claims/{case_id} 含最低字段且 gate_status=MATERIALS_INTAKE",
-                machine_check=MachineCheck(
-                    type="claim_header_l1",
-                    params={"case_id": "CLM-SC01-001", "gate_status": "MATERIALS_INTAKE"},
+        if is_sc01:
+            assertions = [
+                Assertion(
+                    id="A-001",
+                    behavior="同 one_shot_hash 拆轮补件必须失败关闭",
+                    policy_clause_id=chunk.clause_id,
+                    acceptance="supplement/notify 子集缺项返回 VALIDATION_FAILED",
+                    machine_check=MachineCheck(
+                        type="one_shot_split_round_rejected",
+                        params={"case_id": "CLM-SC01-001"},
+                    ),
+                    claimed_by_features=["F-001"],
                 ),
-                claimed_by_features=["F-001"],
-            )
-        ]
+                Assertion(
+                    id="A-002",
+                    behavior="SC-01：缺发票一次补件后补传，产出通赔建议且未人闸前不出款就绪",
+                    policy_clause_id=chunk.clause_id,
+                    acceptance="HTTP：evaluate→export→materials→evaluate；payout_ready=false",
+                    machine_check=MachineCheck(
+                        type="sc01_one_shot_supplement_approve",
+                        params={"case_id": "CLM-SC01-001"},
+                    ),
+                    claimed_by_features=["F-001"],
+                ),
+            ]
+            title = "SC-01 一次补件 → 通赔建议（轨 A）"
+            owns = [
+                "src/claims_api/api.py",
+                "src/claims_api/service.py",
+                "src/claims_api/models_domain.py",
+                "src/missions/checks.py",
+            ]
+            feature_title = "实现 SC-01 一次补件与通赔建议确定性轨"
+            milestone = "M1-sc01"
+            rewrote = "REF-MISSIONS, REF-COURSE-03"
+        else:
+            assertions = [
+                Assertion(
+                    id="A-001",
+                    behavior="L1 只读返回案件头且门禁态为 MATERIALS_INTAKE",
+                    policy_clause_id="POL-CLAIM-001",
+                    acceptance="GET /claims/{case_id} 含最低字段且 gate_status=MATERIALS_INTAKE",
+                    machine_check=MachineCheck(
+                        type="claim_header_l1",
+                        params={"case_id": "CLM-SC01-001", "gate_status": "MATERIALS_INTAKE"},
+                    ),
+                    claimed_by_features=["F-001"],
+                )
+            ]
+            title = "条款门禁脚手架：案件头只读"
+            owns = [
+                "src/claims_api/api.py",
+                "src/claims_api/service.py",
+                "src/claims_api/error_codes.py",
+            ]
+            feature_title = "实现 L1 案件头只读与 MATERIALS_INTAKE"
+            milestone = "M0-scaffold"
+            rewrote = "REF-MISSIONS"
 
         contract = ValidationContract(
             mission_id=state.mission_id,
-            title="条款门禁脚手架：案件头只读",
+            title=title,
             goal=goal.strip(),
             broadcast_constraints=[
                 "验收标准以 validation contract.machine_check 为准，不得从实现反推",
@@ -104,16 +158,12 @@ class Orchestrator:
         state.features = [
             MissionFeature(
                 feature_id="F-001",
-                title="实现 L1 案件头只读与 MATERIALS_INTAKE",
-                milestone="M0-scaffold",
+                title=feature_title,
+                milestone=milestone,
                 kind=FeatureKind.IMPLEMENT,
-                claims_assertions=["A-001"],
+                claims_assertions=[a.id for a in assertions],
                 status=FeatureStatus.QUEUED,
-                owns_paths=[
-                    "src/claims_api/api.py",
-                    "src/claims_api/service.py",
-                    "src/claims_api/error_codes.py",
-                ],
+                owns_paths=owns,
             )
         ]
 
@@ -122,7 +172,7 @@ class Orchestrator:
             kind="contract_ready",
             message="validation contract 已外置；inference_track=deterministic",
             role=RoleName.ORCHESTRATOR,
-            extra={"goal": goal, "assertion_count": len(assertions)},
+            extra={"goal": goal, "assertion_count": len(assertions), "sc01": is_sc01},
         )
 
         handoff = HandoffRecord(
@@ -137,9 +187,9 @@ class Orchestrator:
             incomplete=["等待 Worker 串行实现", "等待 Validator 黑盒验收"],
             citations_used=citations[:8],
             process_followed=True,
-            process_notes="编排者不实现代码，不自行最终验收；Rewrote from: REF-MISSIONS",
+            process_notes=f"编排者不实现代码，不自行最终验收；Rewrote from: {rewrote}",
             broadcast_ack=contract.broadcast_constraints,
-            rewrote_from="REF-MISSIONS",
+            rewrote_from=rewrote,
         )
         self.store.append_handoff(state, handoff)
         state.phase = "implementation"

@@ -33,6 +33,17 @@
 - `machine_check` type=`citation_in_kb`
 - `retrieval_profiles`：`clause_v_current` / `endorsement_priority` / `handbook_ops` 配置位
 
+## Issue 03 SC-01 一次补件 → 通赔建议
+
+`Rewrote from: REF-MISSIONS, REF-COURSE-03`
+
+已落地：
+
+- `POST /claims/{id}/evaluate`：缺件→`supplement`/`PENDING_SUPPLEMENT`+`one_shot_hash`；齐件→`approve_recommend` 且 `payout_ready=false`
+- `POST /claims/{id}/materials`、`/supplement/notify`（同 hash 拆轮失败）、`/documents/export`（补件 `DRAFT_EXPORT` 含第22条法义）
+- `machine_check`：`sc01_one_shot_supplement_approve`、`one_shot_split_round_rejected`
+- 默认轨 A `inference_track=deterministic`，不依赖 LLM
+
 ## 运行
 
 ```bash
