@@ -1,6 +1,6 @@
 # 08: L2 出款就绪回写模拟（无人闸禁放行）
 
-**Status:** done
+**Status:** resolved
 
 **Blocked by:** 04, 06
 
@@ -39,7 +39,12 @@
 - [x] 支付类工具在 ACL 下默认拒绝
 - [x] handoff 含 `Rewrote from: REF-MISSIONS, REF-CASE-FC`
 
+## Answer
+
+L2 出款就绪 / 结案回写模拟已落地：`POST /claims/{id}/l2/payout-ready` 须有效人闸令牌 → `PAYOUT_READY` / `payout_ready=true`，不触发银企；无人闸 → `LATCH_REQUIRED` 且 `payout_ready` 保持 false；夹具 `CLM-MISMATCH-001` 主数据不一致 → `MASTER_DATA_MISMATCH` 禁出款就绪；`POST .../l2/close` 可达 `CLOSED` 且载荷不含自动支付指令；支付类工具 ACL 默认拒绝；`machine_check`：`l2_payout_ready_writeback` / `l2_close_without_payment`。Rewrote from: REF-MISSIONS, REF-CASE-FC。交付提交：`60da371`（checks 恢复：`e08c522`）。
+
 ## Comments
 
 - 2026-09-13：to-tickets 批准 defaults 后落盘。
 - 2026-09-13：实现完成 — HTTP `l2/payout-ready` + `l2/close`；夹具 `CLM-MISMATCH-001`；machine_check 两类型。
+- 2026-09-13：正式关闭 — Status=resolved；Answer 已写。

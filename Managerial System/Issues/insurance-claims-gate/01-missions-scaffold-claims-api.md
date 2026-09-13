@@ -1,6 +1,6 @@
 # 01: Missions 换垂直脚手架 + 理赔 HTTP 空壳 + machine_check 分发器
 
-**Status:** done
+**Status:** resolved
 
 **Blocked by:** None (can start immediately)
 
@@ -39,10 +39,13 @@
 - [x] 最小 `error_code` 表已登记（至少含 `VALIDATION_FAILED`、`LATCH_REQUIRED`、`CITATION_NOT_IN_KB`、`DOCUMENT_STATUS_FORBIDDEN`、`MASTER_DATA_MISMATCH` 的占位语义）
 - [x] 实现只写入约定产品代码根；历史参考仓保持只读；handoff 含 `Rewrote from: REF-MISSIONS`
 
+## Answer
 
+Missions 换垂直脚手架已落地于 `本项目代码/claims-gate/`：理赔 HTTP L1 只读（门禁态 `MATERIALS_INTAKE`）；Orchestrator → Worker → Validator 空回路可跑；非法 validation contract JSON Schema 入账前硬停；`machine_check` 仅按 `type` + `params` 分发；默认 `inference_track=deterministic`；支付类工具 ACL 默认拒绝；最小 `error_code` 表含 `VALIDATION_FAILED` / `LATCH_REQUIRED` / `CITATION_NOT_IN_KB` / `DOCUMENT_STATUS_FORBIDDEN` / `MASTER_DATA_MISMATCH`。Rewrote from: REF-MISSIONS。交付提交：`62f7716`。
 
 ## Comments
 
 - 2026-09-13：to-tickets 批准 defaults 后落盘。
 - 2026-09-13：Issue 01 实现完成（`本项目代码/claims-gate/`）；Rewrote from: REF-MISSIONS；评审 Important 已修（artifacts 隔离 + ACL 挂接只读入口）。
+- 2026-09-13：正式关闭 — Status=resolved；Answer 已写。
 
