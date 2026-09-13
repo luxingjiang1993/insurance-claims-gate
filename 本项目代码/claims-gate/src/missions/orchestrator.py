@@ -47,6 +47,7 @@ class Orchestrator:
                 doc_id=chunk.doc_id,
                 chunk_id=chunk.chunk_id,
                 clause_id=chunk.clause_id,
+                clause_item=chunk.clause_item,
                 quote=chunk.text[:120],
                 score=1.0,
                 title=chunk.title,

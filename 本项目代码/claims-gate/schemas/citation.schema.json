@@ -2,13 +2,17 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "citation.schema.json",
   "title": "RagCitation",
-  "description": "RAG 检索引用：合同断言与验收必须能回溯到知识库片段。",
+  "description": "RAG 检索引用：对外可用 citation 须能以 doc_id+clause_item+doc_version 落库。",
   "type": "object",
   "required": ["doc_id", "chunk_id", "clause_id", "quote", "score"],
   "properties": {
     "doc_id": { "type": "string" },
     "chunk_id": { "type": "string" },
     "clause_id": { "type": "string" },
+    "clause_item": {
+      "type": "string",
+      "description": "条款项级标识；落库门与 doc_id、doc_version 三联校验"
+    },
     "title": { "type": "string" },
     "quote": { "type": "string", "minLength": 1 },
     "score": { "type": "number", "minimum": 0, "maximum": 1 },

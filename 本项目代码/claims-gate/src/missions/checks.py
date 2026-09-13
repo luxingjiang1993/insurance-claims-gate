@@ -64,6 +64,45 @@ def _check_claim_header_l1(client: TestClient, params: dict[str, Any]) -> CheckO
     )
 
 
+def _check_citation_in_kb(client: TestClient, params: dict[str, Any]) -> CheckOutcome:
+    """条款项落库门：HTTP 黑盒验收幻觉条款不过门。"""
+    payload = {
+        "doc_id": params.get("doc_id", ""),
+        "clause_item": params.get("clause_item", ""),
+        "doc_version": params.get("doc_version", ""),
+    }
+    if params.get("quote"):
+        payload["quote"] = params["quote"]
+    resp = client.post("/kb/citations/validate", json=payload)
+    body = resp.json() if resp.content else {}
+    if resp.status_code == 200 and body.get("ok") is True:
+        return CheckOutcome(
+            ok=True,
+            detail="citation_in_kb ok",
+            command=CommandResult(
+                cmd="POST /kb/citations/validate",
+                exit_code=0,
+                stdout_tail=str(body)[:400],
+            ),
+        )
+    detail = body.get("detail", body)
+    if isinstance(detail, dict):
+        err = detail.get("error_code", "CITATION_NOT_IN_KB")
+        msg = detail.get("message", str(detail))
+    else:
+        err = "CITATION_NOT_IN_KB"
+        msg = str(detail)
+    return CheckOutcome(
+        ok=False,
+        detail=f"{err}: {msg}",
+        command=CommandResult(
+            cmd="POST /kb/citations/validate",
+            exit_code=1,
+            stdout_tail=str(body)[:400],
+        ),
+    )
+
+
 def run_machine_check(client: TestClient, check: MachineCheck) -> CheckOutcome:
     """仅按 type + params 分发。"""
     t = check.type
@@ -71,6 +110,8 @@ def run_machine_check(client: TestClient, check: MachineCheck) -> CheckOutcome:
 
     if t == "claim_header_l1":
         return _check_claim_header_l1(client, p)
+    if t == "citation_in_kb":
+        return _check_citation_in_kb(client, p)
 
     return CheckOutcome(
         ok=False,

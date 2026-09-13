@@ -112,8 +112,8 @@ class Validator:
             commands=commands,
             citations_used=citations[:8],
             process_followed=True,
-            process_notes="Validator 不修改产品代码；失败交 Orchestrator 开 fix；Rewrote from: REF-MISSIONS",
-            rewrote_from="REF-MISSIONS",
+            process_notes="Validator 不修改产品代码；失败交 Orchestrator 开 fix；Rewrote from: REF-CASE-KB, REF-MISSIONS",
+            rewrote_from="REF-CASE-KB, REF-MISSIONS",
         )
         self.store.append_handoff(state, handoff)
         self.store.emit(

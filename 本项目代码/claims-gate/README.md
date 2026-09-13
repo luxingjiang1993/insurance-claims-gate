@@ -21,6 +21,18 @@
 - 默认 `inference_track=deterministic`；支付工具 ACL 默认拒绝
 - 最小 `error_code` 表骨架
 
+## Issue 02 条款 KB + citation 落库门
+
+`Rewrote from: REF-CASE-KB, REF-MISSIONS`
+
+已落地：
+
+- 版本化主险 / 附加险 / 批单样例（支撑 SC-02 / SC-03）
+- `KnowledgeBase.resolve_clause` / `validate_citation`：doc_id + clause_item + doc_version 三联门
+- `POST /kb/citations/validate`；失败映射 `CITATION_NOT_IN_KB`
+- `machine_check` type=`citation_in_kb`
+- `retrieval_profiles`：`clause_v_current` / `endorsement_priority` / `handbook_ops` 配置位
+
 ## 运行
 
 ```bash

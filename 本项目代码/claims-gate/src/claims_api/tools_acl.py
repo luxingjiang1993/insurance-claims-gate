@@ -20,6 +20,7 @@ ALLOWED_TOOL_NAMES: frozenset[str] = frozenset(
     {
         "read_claim_header",
         "list_gate_status",
+        "validate_citation",
     }
 )
 

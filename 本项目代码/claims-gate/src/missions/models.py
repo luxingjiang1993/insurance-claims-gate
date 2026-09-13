@@ -50,6 +50,8 @@ class RagCitation(BaseModel):
     score: float = Field(ge=0, le=1)
     title: str = ""
     doc_version: str = ""
+    # 条款项级落库键（与 doc_id + doc_version 三联校验）
+    clause_item: str = ""
     retrieved_by: RoleName | str = "orchestrator"
     retrieval_profile: str = "default"
 

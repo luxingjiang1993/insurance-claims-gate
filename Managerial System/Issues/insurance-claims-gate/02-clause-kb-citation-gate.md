@@ -1,6 +1,6 @@
 # 02: 条款 KB 最小集 + citation 条款项落库门
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Blocked by:** 01
 
@@ -31,13 +31,22 @@
 
 ## Acceptance criteria
 
-- [ ] KB 含至少支撑 SC-02/SC-03 的主险与批单样例，带版本/生效日
-- [ ] 合法 citation（doc_id + clause_item + doc_version）可通过存在性门
-- [ ] 库外 doc、错 clause_item、版本不匹配 → machine_check 失败，并映射 `CITATION_NOT_IN_KB`（或等价）
-- [ ] 校验粒度到条款项，不以「文档存在」或「全文最大相似」冒充通过
-- [ ] retrieval_profile 至少可区分 `clause_v_current` 与 `endorsement_priority` 的配置位（内容可在后续票消费）
-- [ ] handoff 含 `Rewrote from: REF-CASE-KB, REF-MISSIONS`
+- [x] KB 含至少支撑 SC-02/SC-03 的主险与批单样例，带版本/生效日
+- [x] 合法 citation（doc_id + clause_item + doc_version）可通过存在性门
+- [x] 库外 doc、错 clause_item、版本不匹配 → machine_check 失败，并映射 `CITATION_NOT_IN_KB`（或等价）
+- [x] 校验粒度到条款项，不以「文档存在」或「全文最大相似」冒充通过
+- [x] retrieval_profile 至少可区分 `clause_v_current` 与 `endorsement_priority` 的配置位（内容可在后续票消费）
+- [x] handoff 含 `Rewrote from: REF-CASE-KB, REF-MISSIONS`
+
+## Answer
+
+- 主险/附加险/批单样例入库：`knowledge_base/policies|riders|endorsements/`，带 `doc_version` / 生效日。
+- `KnowledgeBase.resolve_clause` / `validate_citation` 三联命中；HTTP `POST /kb/citations/validate`；`machine_check` type=`citation_in_kb`。
+- 失败映射 `CITATION_NOT_IN_KB`；不以文档存在或最大相似冒充通过。
+- `retrieval_profiles.py` 配置位：`clause_v_current`、`endorsement_priority`。
+- 验收：`tests/test_citation_kb_gate.py`（7 passed）。
 
 ## Comments
 
 - 2026-09-13：to-tickets 批准 defaults 后落盘。
+- 2026-09-13：Issue 02 实现完成；Rewrote from: REF-CASE-KB, REF-MISSIONS；Status → done。
