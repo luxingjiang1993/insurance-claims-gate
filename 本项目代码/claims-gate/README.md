@@ -113,6 +113,30 @@
 - OCR/客户备注经 `absorb_user_controlled_text` 仅收纳可观察，不得翻转 `human_latch_required` / `payout_ready`
 - `machine_check` type=`threat_inject_ocr_remark_no_latch_flip`
 
+## Issue 10 Eval / 负例旁路（不替代 machine_check）
+
+`Rewrote from: REF-CASE-OPENEVALS, REF-MISSIONS`
+
+**旁路，非合门禁主缝。** 默认 CI 合门禁仍以 `machine_check` 为准；本入口失败可告警，不得改写人闸语义，不得要求 LLM 才能让轨 A 变绿。
+
+已落地：
+
+- `src/missions/eval_entry.py`：OpenEvals 风格评估器注册表 + `run_eval_negatives` / 机读报告
+- 负例类：`hallucination_citation`（库外幻觉条款）、`exgratia_fake_citation`（通融伪通赔）；可选 `one_shot_split_round`
+- `tests/eval/` 契约测试进默认 CI；套件 `-m eval_bypass`（不并入合门禁）
+- 脚本：`python -m missions.eval_entry`（需 PYTHONPATH 含 `src`）
+
+## 当前阶段剩余（进阶段 2 前）
+
+Issues **11–13** 尚未实现。清单与延后项见仓库  
+`docs/agents/current-phase-remaining.md`。
+
+| NN | 主题 | 主 ref |
+|----|------|--------|
+| 11 | 合成 Judge–human 抽检占位 | `REF-CASE-EVAL-ADVISOR` |
+| 12 | 轨 B 最小 RAG | `REF-RAG-CY` |
+| 13 | Solo SC Demo 脚本 | `REF-MISSIONS` |
+
 ## 运行
 
 ```bash
@@ -121,4 +145,7 @@ uvicorn claims_api.api:app --app-dir src --reload
 pytest -q
 # 显式跑轨 B 占位（不并入默认合门禁）：
 pytest -m track_llm_optional -q
+# 显式跑 eval 负例旁路（不替代 machine_check）：
+pytest -m eval_bypass -q
+python -m missions.eval_entry
 ```

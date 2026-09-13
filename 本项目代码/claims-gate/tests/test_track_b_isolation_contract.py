@@ -14,9 +14,7 @@ def test_pytest_ini_excludes_track_llm_optional_from_default() -> None:
     """默认 pytest 配置必须排除 track_llm_optional，轨 B 失败不阻断轨 A。"""
     ini = (ROOT / "pytest.ini").read_text(encoding="utf-8")
     assert "track_llm_optional" in ini
-    assert 'not track_llm_optional' in ini or "not track_llm_optional" in ini.replace(
-        '"', ""
-    )
+    assert "not track_llm_optional" in ini
 
 
 def test_track_llm_optional_isolation_dir_exists() -> None:
