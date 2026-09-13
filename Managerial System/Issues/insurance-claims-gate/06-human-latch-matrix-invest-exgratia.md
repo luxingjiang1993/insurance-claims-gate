@@ -1,6 +1,6 @@
 # 06: 人闸权限矩阵扩展（金额档 / 通融 / 预赔 / 调查冻决）
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** 03, 04, 05
 
@@ -32,13 +32,14 @@
 
 ## Acceptance criteria
 
-- [ ] 通赔/减赔小额档与大额档对人闸要求的差异可经 HTTP + machine_check 区分验收
-- [ ] 通融、预赔无人闸不得 `payout_ready`，通融伪主险通赔 citation 负例失败
-- [ ] 进入调查中自动冻决；解除冻决无人闸失败；冻决期间 `payout_ready=false`
-- [ ] 敏感场景上浮至少一档可机检（夹具或参数化断言）
-- [ ] 峰值降级路径仅允许补件+人审队列，不出现静默通赔
-- [ ] handoff 含 `Rewrote from: REF-MISSIONS`
+- [x] 通赔/减赔小额档与大额档对人闸要求的差异可经 HTTP + machine_check 区分验收
+- [x] 通融、预赔无人闸不得 `payout_ready`，通融伪主险通赔 citation 负例失败
+- [x] 进入调查中自动冻决；解除冻决无人闸失败；冻决期间 `payout_ready=false`
+- [x] 敏感场景上浮至少一档可机检（夹具或参数化断言）
+- [x] 峰值降级路径仅允许补件+人审队列，不出现静默通赔
+- [x] handoff 含 `Rewrote from: REF-MISSIONS`
 
 ## Comments
 
 - 2026-09-13：to-tickets 批准 defaults 后落盘。
+- 2026-09-13：实现落地 — `latch_matrix.py`（PRD §7 表驱动）；金额档夹具 `CLM-AMT-*`；通融/预赔/调查冻决/峰值降级 HTTP；machine_check `latch_*`。Rewrote from: REF-MISSIONS

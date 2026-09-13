@@ -66,6 +66,30 @@
 - `reduction_notice` 导出复用 citations / calc_steps；`payout_ready` 恒 false
 - `machine_check` type=`sc03_endorsement_stack_reduction`
 
+## Issue 06 人闸权限矩阵（金额档 / 通融 / 预赔 / 调查冻决）
+
+`Rewrote from: REF-MISSIONS`
+
+已落地：
+
+- `latch_matrix.py`：PRD §7 金额档 A–D + 决定类型 + 敏感上浮表驱动（不照搬转账限额）
+- 通赔建议小额可直通草案、大额必闸；减赔按金额档且 A 起主管闸；响应含 `amount_tier` / `latch_tier`
+- `POST .../decisions/exgratia|prepay`：必闸；通融伪主险通赔 citation → `VALIDATION_FAILED`
+- `POST .../investigate/enter|unfreeze`：进入自动冻决；解除须人闸令牌；冻决期 `payout_ready=false`
+- `POST .../peak-degrade`：仅补件+人审队列，禁止静默通赔
+- `machine_check`：`latch_amount_tier_approve_diff` / `latch_exgratia_prepay_and_fake_citation` / `latch_investigate_freeze_unfreeze` / `latch_sensitivity_uplift` / `latch_peak_degrade_no_silent_approve`
+
+## Issue 07 Router 确定性策略表 + ledger
+
+`Rewrote from: REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS`
+
+已落地：
+
+- `missions/router.py`：表驱动硬层 Router（非第四 LLM 角色）；冲突优先级 Human > Invest > Rules > RAG > OCR
+- 规则 vs RAG 冲突 → fail-closed + `LATCH_REQUIRED` 进人闸；`handbook_ops` 不得独撑对外拒赔
+- `evaluate` 响应与 `GET /claims/{id}/ledger` 含 `route_id` / `retrieval_profile` / `decision_type` / `validator_score`
+- 轨 A 同夹具复跑可复现；`machine_check` type=`router_ledger_reproducible`
+
 ## 运行
 
 ```bash

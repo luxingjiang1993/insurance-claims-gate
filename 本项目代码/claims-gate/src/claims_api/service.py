@@ -1,7 +1,9 @@
-"""理赔案件服务：材料齐全断言、一次补件、通赔建议、除外拒赔、效力栈减赔。
+"""理赔案件服务：材料齐全断言、一次补件、通赔建议、除外拒赔、效力栈减赔、人闸矩阵、Router/ledger。
 
 Rewrote from: REF-MISSIONS（transfer_api/service.py 换垂直）；补件法义 REF-COURSE-03；
-SC-02 拒赔分态 REF-MISSIONS；效力栈减赔 / calc_steps REF-CASE-KB, REF-COURSE-04
+SC-02 拒赔分态 REF-MISSIONS；效力栈减赔 / calc_steps REF-CASE-KB, REF-COURSE-04；
+金额档/通融/预赔/调查冻决/峰值降级 REF-MISSIONS（limits 表驱动换域，阈值取 PRD §7）；
+Router 策略表 + ledger REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -11,12 +13,19 @@ import re
 import secrets
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
 
 from missions.rag import KnowledgeBase
+from missions.router import (
+    CaseSignals,
+    RouteDecision,
+    assert_reject_not_handbook_alone,
+    route as route_case,
+)
 
 from .error_codes import ErrorCode
-from .models_domain import ClaimCase, DecisionDraft, SupplementItem
+from .latch_matrix import is_fake_exgratia_clause_approve_citation, resolve_latch
+from .models_domain import ClaimCase, DecisionDraft, LedgerEntry, SupplementItem
 
 # 《保险法》第22条一次性补正义务 — 法务审定锚点文案（轨 A 固定常量）
 LEGAL_BASIS_ARTICLE_22 = (
@@ -84,14 +93,21 @@ class ClaimNotFoundError(LookupError):
 class ClaimsDomainError(Exception):
     """领域拒绝：映射到 HTTP 错误码。"""
 
-    def __init__(self, error_code: str, message: str) -> None:
+    def __init__(
+        self,
+        error_code: str,
+        message: str,
+        *,
+        extra: dict[str, Any] | None = None,
+    ) -> None:
         super().__init__(message)
         self.error_code = error_code
         self.message = message
+        self.extra = extra or {}
 
 
 class ClaimsService:
-    """内存案件台账；SC-01 缺发票；SC-02 疾病摔伤除外；SC-03 批单缩责减赔。"""
+    """内存案件台账；SC-01 缺发票；SC-02 疾病摔伤除外；SC-03 批单缩责减赔；人闸矩阵。"""
 
     def __init__(self, kb: KnowledgeBase | None = None) -> None:
         self._kb = kb if kb is not None else KnowledgeBase(_DEFAULT_KB_ROOT)
@@ -102,6 +118,34 @@ class ClaimsService:
     def set_citation_validator(self, validator: CitationValidator) -> None:
         """注入条款落库校验（对外通知失败关闭）。"""
         self._citation_validator = validator
+
+    def _seed_complete_case(
+        self,
+        *,
+        case_id: str,
+        policy_no: str,
+        claim_amount_claimed: int,
+        endorsement_flags: list[str] | None = None,
+        loss_cause: str = "accident",
+    ) -> ClaimCase:
+        """材料齐全夹具。"""
+        all_codes = list(REQUIRED_MATERIALS.keys())
+        case = ClaimCase(
+            case_id=case_id,
+            policy_no=policy_no,
+            product_code="PA-ACCIDENT-MED",
+            clause_version="PA-ACC-2024.1",
+            loss_date="2026-08-15",
+            claim_amount_claimed=claim_amount_claimed,
+            endorsement_flags=list(endorsement_flags or []),
+            image_ids=[f"IMG-{c}" for c in all_codes],
+            material_codes=list(all_codes),
+            loss_cause=loss_cause,
+            gate_status="MATERIALS_INTAKE",
+            inference_track="deterministic",
+        )
+        self._cases[case.case_id] = case
+        return case
 
     def _seed(self) -> None:
         image_ids = ["IMG-ID-CARD", "IMG-CLAIM-FORM"]
@@ -125,39 +169,107 @@ class ClaimsService:
         self._cases[case.case_id] = case
 
         # SC-02：材料齐全 + 疾病摔伤除外
-        all_codes = list(REQUIRED_MATERIALS.keys())
-        sc02 = ClaimCase(
+        self._seed_complete_case(
             case_id="CLM-SC02-001",
             policy_no="PA-2026-000202",
-            product_code="PA-ACCIDENT-MED",
-            clause_version="PA-ACC-2024.1",
-            loss_date="2026-07-20",
             claim_amount_claimed=280000,
-            endorsement_flags=[],
-            image_ids=[f"IMG-{c}" for c in all_codes],
-            material_codes=list(all_codes),
             loss_cause="disease_fall",
-            gate_status="MATERIALS_INTAKE",
-            inference_track="deterministic",
         )
-        self._cases[sc02.case_id] = sc02
 
         # SC-03：材料齐全 + 批单缩责，索赔金额 10000 元（确定性理算）
-        sc03 = ClaimCase(
+        self._seed_complete_case(
             case_id="CLM-SC03-001",
             policy_no="PA-2026-000303",
-            product_code="PA-ACCIDENT-MED",
-            clause_version="PA-ACC-2024.1",
-            loss_date="2026-08-15",
             claim_amount_claimed=10000,
             endorsement_flags=["PA-ACC-END-001"],
-            image_ids=[f"IMG-{c}" for c in all_codes],
-            material_codes=list(all_codes),
-            loss_cause="accident",
-            gate_status="MATERIALS_INTAKE",
-            inference_track="deterministic",
         )
-        self._cases[sc03.case_id] = sc03
+
+        # Issue 06：金额档 / 通融 / 调查夹具
+        self._seed_complete_case(
+            case_id="CLM-AMT-A-001",
+            policy_no="PA-2026-000801",
+            claim_amount_claimed=8000,
+        )
+        self._seed_complete_case(
+            case_id="CLM-AMT-C-001",
+            policy_no="PA-2026-000802",
+            claim_amount_claimed=80000,
+        )
+        self._seed_complete_case(
+            case_id="CLM-AMT-C-REDUCE-001",
+            policy_no="PA-2026-000803",
+            claim_amount_claimed=100000,
+            endorsement_flags=["PA-ACC-END-001"],
+        )
+        self._seed_complete_case(
+            case_id="CLM-LATCH-BASE-001",
+            policy_no="PA-2026-000804",
+            claim_amount_claimed=12000,
+        )
+
+    def _attach_latch_fields(
+        self,
+        decision: DecisionDraft,
+        case: ClaimCase,
+        recommended_amount: int,
+    ) -> DecisionDraft:
+        """按 PRD §7 矩阵写入人闸可观察字段。"""
+        req = resolve_latch(
+            decision.decision_type,
+            recommended_amount,
+            sensitivity_flags=case.sensitivity_flags,
+        )
+        decision.amount_tier = req.amount_tier
+        decision.latch_tier = req.latch_tier
+        decision.human_latch_required = req.human_latch_required
+        decision.dual_token_required = req.dual_token_required
+        decision.latch_level_label = req.latch_level_label
+        decision.recommended_payout_amount = req.recommended_payout_amount
+        decision.freeze_active = case.freeze_active
+        decision.peak_degraded = case.peak_degraded
+        decision.payout_ready = False
+        return decision
+
+    def _append_ledger(
+        self,
+        case: ClaimCase,
+        *,
+        route_id: str,
+        retrieval_profile: str,
+        decision_type: str,
+        validator_score: float,
+        arbitration_winner: str | None = None,
+    ) -> LedgerEntry:
+        """写入每案 ledger（最新在前）。"""
+        entry = LedgerEntry(
+            case_id=case.case_id,
+            route_id=route_id,
+            retrieval_profile=retrieval_profile,
+            decision_type=decision_type,
+            validator_score=validator_score,
+            ts=datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+            arbitration_winner=arbitration_winner,
+        )
+        case.ledger.insert(0, entry)
+        return entry
+
+    def _stamp_route(
+        self,
+        decision: DecisionDraft,
+        routed: RouteDecision,
+        *,
+        validator_score: float = 1.0,
+    ) -> DecisionDraft:
+        """裁决草案挂上 Router 可观察字段。"""
+        decision.route_id = routed.route_id
+        decision.retrieval_profile = routed.retrieval_profile
+        decision.validator_score = validator_score
+        return decision
+
+    def list_ledger(self, case_id: str) -> list[dict[str, Any]]:
+        """查询案件 ledger（最新在前）。"""
+        case = self.get_claim(case_id)
+        return [e.to_dict() for e in case.ledger]
 
     def get_claim(self, case_id: str) -> ClaimCase:
         case = self._cases.get(case_id)
@@ -303,7 +415,12 @@ class ClaimsService:
             },
         ]
 
-    def _evaluate_rejection(self, case: ClaimCase) -> DecisionDraft:
+    def _evaluate_rejection(
+        self,
+        case: ClaimCase,
+        *,
+        routed: RouteDecision | None = None,
+    ) -> DecisionDraft:
         """SC-02：疾病摔伤除外 → 拒赔草案（无人闸前不得 EXTERNAL_NOTIFY）。"""
         doc_id, clause_item, doc_version = _SC02_EXCL
         citation = self._citation_dict(doc_id, clause_item, doc_version)
@@ -326,6 +443,37 @@ class ClaimsService:
             appeal_path=APPEAL_PATH_DEFAULT,
             reason_summary=reason,
         )
+        self._attach_latch_fields(decision, case, recommended_amount=0)
+        if routed is not None:
+            # 真实拒赔路径：按引用实际文档类型校验 handbook_ops 不得独撑
+            doc_types: list[str] = []
+            for c in decision.citations:
+                hit = self._kb.resolve_clause(
+                    str(c.get("doc_id") or ""),
+                    str(c.get("clause_item") or ""),
+                    str(c.get("doc_version") or ""),
+                )
+                if hit is not None:
+                    doc_types.append(hit.doc_type)
+            try:
+                assert_reject_not_handbook_alone(
+                    retrieval_profile=routed.retrieval_profile,
+                    citation_doc_types=doc_types,
+                )
+            except ValueError as exc:
+                raise ClaimsDomainError(
+                    ErrorCode.VALIDATION_FAILED.value,
+                    str(exc),
+                ) from exc
+            self._stamp_route(decision, routed)
+            self._append_ledger(
+                case,
+                route_id=routed.route_id,
+                retrieval_profile=routed.retrieval_profile,
+                decision_type=decision.decision_type,
+                validator_score=1.0,
+                arbitration_winner=routed.arbitration_winner,
+            )
         case.latest_decision = decision
         return decision
 
@@ -335,6 +483,7 @@ class ClaimsService:
         *,
         proposed_deductible: int | None = None,
         proposed_ratio: float | None = None,
+        routed: RouteDecision | None = None,
     ) -> DecisionDraft:
         """批单缩责减赔：效力栈消解 + 可复核 calc_steps。"""
         from missions.models import RoleName
@@ -406,6 +555,7 @@ class ClaimsService:
             win_ratio,
             endo_item,
         )
+        recommended = int(calc_steps[-1]["value"])
         case.gate_status = "ADJUSTING"
         decision = DecisionDraft(
             decision_type="reduce",
@@ -417,6 +567,17 @@ class ClaimsService:
             citations=citations,
             calc_steps=calc_steps,
         )
+        self._attach_latch_fields(decision, case, recommended_amount=recommended)
+        if routed is not None:
+            self._stamp_route(decision, routed)
+            self._append_ledger(
+                case,
+                route_id=routed.route_id,
+                retrieval_profile=routed.retrieval_profile,
+                decision_type=decision.decision_type,
+                validator_score=1.0,
+                arbitration_winner=routed.arbitration_winner,
+            )
         case.latest_decision = decision
         return decision
 
@@ -426,11 +587,86 @@ class ClaimsService:
         *,
         proposed_deductible: int | None = None,
         proposed_ratio: float | None = None,
+        sensitivity_flags: list[str] | None = None,
+        source_decisions: Mapping[str, str] | None = None,
+        retrieval_profile: str | None = None,
+        force_reject_with_handbook_only: bool = False,
     ) -> DecisionDraft:
-        """材料齐全断言 → 补件 / 拒赔 / 减赔 / 通赔建议。"""
+        """材料齐全断言 → Router 表驱动补件 / 拒赔 / 减赔 / 通赔建议。"""
         case = self.get_claim(case_id)
+        if sensitivity_flags is not None:
+            case.sensitivity_flags = list(sensitivity_flags)
+
+        # handbook_ops 独撑对外拒赔探针：必须失败关闭
+        if force_reject_with_handbook_only:
+            try:
+                assert_reject_not_handbook_alone(
+                    retrieval_profile=retrieval_profile or "handbook_ops",
+                    citation_doc_types=["handbook"],
+                )
+            except ValueError as exc:
+                raise ClaimsDomainError(
+                    ErrorCode.VALIDATION_FAILED.value,
+                    str(exc),
+                ) from exc
+
+        # 调查冻决期间：保持冻决态，禁止静默通赔/出款就绪
+        if case.freeze_active:
+            decision = DecisionDraft(
+                decision_type="investigating",
+                gate_status="INVESTIGATING",
+                document_status="DRAFT_EXPORT",
+                payout_ready=False,
+                inference_track="deterministic",
+                human_latch_required=True,
+                freeze_active=True,
+                reason_summary="调查冻决中，解除冻决须人闸",
+            )
+            self._attach_latch_fields(decision, case, recommended_amount=0)
+            decision.freeze_active = True
+            case.gate_status = "INVESTIGATING"
+            case.latest_decision = decision
+            return decision
+
+        # 峰值降级：禁止静默通赔，仅补件+人审队列
+        if case.peak_degraded:
+            return self._peak_degrade_decision(case)
+
         missing = self._missing_items(case)
         missing_codes = [m.code for m in missing]
+
+        routed = route_case(
+            CaseSignals(
+                materials_missing=bool(missing),
+                loss_cause=case.loss_cause,
+                endorsement_flags=tuple(case.endorsement_flags),
+                source_decisions=source_decisions,
+                retrieval_profile_override=retrieval_profile,
+            )
+        )
+
+        # 规则 vs RAG 冲突：fail-closed 进人闸，写 ledger，不静默采信
+        if routed.fail_closed:
+            self._append_ledger(
+                case,
+                route_id=routed.route_id,
+                retrieval_profile=routed.retrieval_profile,
+                decision_type="fail_closed_human_latch",
+                validator_score=0.0,
+                arbitration_winner=None,
+            )
+            case.gate_status = "HUMAN_LATCH"
+            raise ClaimsDomainError(
+                ErrorCode.LATCH_REQUIRED.value,
+                "规则与条款 RAG 冲突，失败关闭进人闸",
+                extra={
+                    "route_id": routed.route_id,
+                    "retrieval_profile": routed.retrieval_profile,
+                    "human_latch_required": True,
+                    "decision_type": "fail_closed_human_latch",
+                    "validator_score": 0.0,
+                },
+            )
 
         if missing:
             if case.frozen_one_shot_hash is not None:
@@ -475,20 +711,31 @@ class ClaimsService:
                 one_shot_hash=one_shot,
                 human_latch_required=False,
             )
+            self._attach_latch_fields(decision, case, recommended_amount=0)
+            self._stamp_route(decision, routed)
+            self._append_ledger(
+                case,
+                route_id=routed.route_id,
+                retrieval_profile=routed.retrieval_profile,
+                decision_type=decision.decision_type,
+                validator_score=1.0,
+                arbitration_winner=routed.arbitration_winner,
+            )
             case.latest_decision = decision
             return decision
 
         case.frozen_one_shot_hash = None
         case.frozen_checklist_codes = []
 
-        if case.loss_cause == "disease_fall":
-            return self._evaluate_rejection(case)
+        if routed.action == "reject_draft":
+            return self._evaluate_rejection(case, routed=routed)
 
-        if "PA-ACC-END-001" in case.endorsement_flags:
+        if routed.action == "reduce":
             return self._evaluate_reduction(
                 case,
                 proposed_deductible=proposed_deductible,
                 proposed_ratio=proposed_ratio,
+                routed=routed,
             )
 
         case.gate_status = "PRIMARY_REVIEW"
@@ -500,7 +747,182 @@ class ClaimsService:
             inference_track="deterministic",
             human_latch_required=True,
         )
+        self._attach_latch_fields(
+            decision, case, recommended_amount=case.claim_amount_claimed
+        )
+        if decision.human_latch_required:
+            case.gate_status = "HUMAN_LATCH"
+            decision.gate_status = case.gate_status
+        self._stamp_route(decision, routed)
+        self._append_ledger(
+            case,
+            route_id=routed.route_id,
+            retrieval_profile=routed.retrieval_profile,
+            decision_type=decision.decision_type,
+            validator_score=1.0,
+            arbitration_winner=routed.arbitration_winner,
+        )
         case.latest_decision = decision
+        return decision
+
+    def _peak_degrade_decision(self, case: ClaimCase) -> DecisionDraft:
+        """峰值降级：仅补件 + 排队人审，禁止静默通赔。"""
+        peak_item = SupplementItem(
+            code="PEAK_HUMAN_REVIEW",
+            name_zh="峰值降级人工复核材料包",
+            required=True,
+            example="按人审队列指引提交完整材料与说明",
+        )
+        case.gate_status = "HUMAN_LATCH"
+        case.peak_degraded = True
+        decision = DecisionDraft(
+            decision_type="supplement",
+            gate_status=case.gate_status,
+            document_status="DRAFT_EXPORT",
+            payout_ready=False,
+            inference_track="deterministic",
+            supplement_checklist=[peak_item],
+            remaining_missing=[peak_item],
+            one_shot_hash=self._one_shot_hash([peak_item.code]),
+            human_latch_required=True,
+            peak_degraded=True,
+            reason_summary="峰值降级：仅允许补件+排队人审，禁止静默自动通赔",
+        )
+        self._attach_latch_fields(decision, case, recommended_amount=0)
+        decision.human_latch_required = True
+        decision.peak_degraded = True
+        case.latest_decision = decision
+        return decision
+
+    def decide_exgratia(
+        self,
+        case_id: str,
+        *,
+        reason: str,
+        recommended_amount: int,
+        citations: list[dict[str, Any]] | None = None,
+    ) -> DecisionDraft:
+        """通融决定：必闸；禁止伪主险条款通赔 citation。"""
+        case = self.get_claim(case_id)
+        cites = list(citations or [])
+        for c in cites:
+            if is_fake_exgratia_clause_approve_citation(c):
+                raise ClaimsDomainError(
+                    ErrorCode.VALIDATION_FAILED.value,
+                    "通融不得使用主险条款通赔伪 citation，失败关闭",
+                )
+        if "exgratia" not in case.sensitivity_flags:
+            case.sensitivity_flags.append("exgratia")
+        case.gate_status = "HUMAN_LATCH"
+        case.human_latch_token = None
+        decision = DecisionDraft(
+            decision_type="exgratia",
+            gate_status=case.gate_status,
+            document_status="DRAFT_EXPORT",
+            payout_ready=False,
+            inference_track="deterministic",
+            human_latch_required=True,
+            citations=cites,
+            reason_summary=reason,
+        )
+        self._attach_latch_fields(decision, case, recommended_amount=recommended_amount)
+        decision.human_latch_required = True
+        case.latest_decision = decision
+        return decision
+
+    def decide_prepay(
+        self,
+        case_id: str,
+        *,
+        reason: str,
+        recommended_amount: int,
+    ) -> DecisionDraft:
+        """预赔：默认必闸，无人闸不得出款就绪。"""
+        case = self.get_claim(case_id)
+        case.gate_status = "HUMAN_LATCH"
+        case.human_latch_token = None
+        decision = DecisionDraft(
+            decision_type="prepay",
+            gate_status=case.gate_status,
+            document_status="DRAFT_EXPORT",
+            payout_ready=False,
+            inference_track="deterministic",
+            human_latch_required=True,
+            reason_summary=reason,
+        )
+        self._attach_latch_fields(decision, case, recommended_amount=recommended_amount)
+        decision.human_latch_required = True
+        case.latest_decision = decision
+        return decision
+
+    def enter_investigation(
+        self,
+        case_id: str,
+        *,
+        reason: str,
+        risk_score: float,
+    ) -> DecisionDraft:
+        """风险超阈进入调查中：自动冻决，payout_ready=false。"""
+        case = self.get_claim(case_id)
+        case.freeze_active = True
+        case.gate_status = "INVESTIGATING"
+        case.human_latch_token = None
+        case.human_approver = None
+        decision = DecisionDraft(
+            decision_type="investigating",
+            gate_status=case.gate_status,
+            document_status="DRAFT_EXPORT",
+            payout_ready=False,
+            inference_track="deterministic",
+            human_latch_required=True,
+            freeze_active=True,
+            reason_summary=f"{reason}（risk_score={risk_score}）；冻决中不得出款就绪",
+        )
+        self._attach_latch_fields(decision, case, recommended_amount=0)
+        decision.freeze_active = True
+        decision.human_latch_required = True
+        case.latest_decision = decision
+        return decision
+
+    def unfreeze_investigation(
+        self,
+        case_id: str,
+        *,
+        human_latch_token: str | None,
+    ) -> dict[str, Any]:
+        """解除调查冻决：必须持有有效人闸令牌。"""
+        case = self.get_claim(case_id)
+        if not case.freeze_active:
+            raise ClaimsDomainError(
+                ErrorCode.VALIDATION_FAILED.value,
+                "当前案件未处于调查冻决",
+            )
+        if not human_latch_token or human_latch_token != case.human_latch_token:
+            raise ClaimsDomainError(
+                ErrorCode.LATCH_REQUIRED.value,
+                "解除调查冻决须有效人闸令牌",
+            )
+        case.freeze_active = False
+        case.gate_status = "PRIMARY_REVIEW"
+        if case.latest_decision is not None:
+            case.latest_decision.freeze_active = False
+            case.latest_decision.payout_ready = False
+            case.latest_decision.gate_status = case.gate_status
+        return {
+            "case_id": case.case_id,
+            "freeze_active": False,
+            "payout_ready": False,
+            "gate_status": case.gate_status,
+            "human_latch_token": case.human_latch_token,
+        }
+
+    def peak_degrade(self, case_id: str, *, reason: str) -> DecisionDraft:
+        """峰值降级入口：仅补件+人审队列。"""
+        case = self.get_claim(case_id)
+        case.peak_degraded = True
+        decision = self._peak_degrade_decision(case)
+        if reason:
+            decision.reason_summary = reason
         return decision
 
     def register_materials(
@@ -558,8 +980,14 @@ class ClaimsService:
             document_status="DRAFT_EXPORT",
         )
 
-    def approve_human_latch(self, case_id: str, *, approved_by: str) -> dict[str, Any]:
-        """人闸批准：发出令牌；拒赔案仍不得出款就绪。"""
+    def approve_human_latch(
+        self,
+        case_id: str,
+        *,
+        approved_by: str,
+        second_approver: str | None = None,
+    ) -> dict[str, Any]:
+        """人闸批准：发出令牌；D 档上浮双人令牌；拒赔案仍不得出款就绪。"""
         case = self.get_claim(case_id)
         if case.latest_decision is None:
             raise ClaimsDomainError(
@@ -571,6 +999,12 @@ class ClaimsService:
                 ErrorCode.VALIDATION_FAILED.value,
                 "当前裁决不要求人闸",
             )
+        if case.latest_decision.dual_token_required:
+            if not second_approver or second_approver.strip() == approved_by.strip():
+                raise ClaimsDomainError(
+                    ErrorCode.LATCH_REQUIRED.value,
+                    "已是 D 档上浮须双人令牌：second_approver 须为不同批准人",
+                )
         token = f"HLT-{secrets.token_hex(8)}"
         case.human_latch_token = token
         case.human_approver = approved_by
@@ -578,14 +1012,18 @@ class ClaimsService:
         case.latest_decision.payout_ready = False
         case.gate_status = "HUMAN_LATCH"
         case.latest_decision.gate_status = case.gate_status
-        return {
+        body: dict[str, Any] = {
             "case_id": case.case_id,
             "human_latch_token": token,
             "human_approver": approved_by,
             "payout_ready": False,
             "gate_status": case.gate_status,
             "decision_type": case.latest_decision.decision_type,
+            "dual_token_required": case.latest_decision.dual_token_required,
         }
+        if case.latest_decision.dual_token_required:
+            body["second_approver"] = second_approver
+        return body
 
     def reject_human_latch(
         self,

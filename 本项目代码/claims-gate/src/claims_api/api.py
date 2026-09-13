@@ -2,7 +2,7 @@
 
 Rewrote from: REF-MISSIONS（transfer_api/api.py 换理赔域）；citation 门 REF-CASE-KB；
 SC-01 补件/裁决/文书 REF-COURSE-03；SC-02 拒赔分态与人闸 REF-MISSIONS；
-SC-03 减赔 REF-COURSE-04
+SC-03 减赔 REF-COURSE-04；Issue 06 人闸矩阵扩展 REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -74,12 +74,20 @@ class EvaluateIn(BaseModel):
 
     proposed_deductible: int | None = None
     proposed_ratio: float | None = None
+    # 敏感场景上浮（诉讼/信访/媒体等）
+    sensitivity_flags: list[str] = Field(default_factory=list)
+    # Issue 07：Router 冲突探针 / handbook 独撑拒赔探针
+    signal_sources: list[str] = Field(default_factory=list)
+    source_decisions: dict[str, str] = Field(default_factory=dict)
+    retrieval_profile: str | None = None
+    force_reject_with_handbook_only: bool = False
 
 
 class HumanLatchApproveIn(BaseModel):
-    """人闸批准请求。"""
+    """人闸批准请求；D 档上浮时须 second_approver。"""
 
     approved_by: str = Field(min_length=1)
+    second_approver: str | None = None
 
 
 class HumanLatchRejectIn(BaseModel):
@@ -88,6 +96,39 @@ class HumanLatchRejectIn(BaseModel):
     rejected_by: str = Field(min_length=1)
     reason: str = ""
 
+
+class ExgratiaIn(BaseModel):
+    """通融决定请求。"""
+
+    reason: str = Field(min_length=1)
+    recommended_amount: int = Field(ge=0)
+    citations: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class PrepayIn(BaseModel):
+    """预赔决定请求。"""
+
+    reason: str = Field(min_length=1)
+    recommended_amount: int = Field(ge=0)
+
+
+class InvestigateEnterIn(BaseModel):
+    """进入调查冻决。"""
+
+    reason: str = Field(min_length=1)
+    risk_score: float = Field(ge=0.0, le=1.0)
+
+
+class InvestigateUnfreezeIn(BaseModel):
+    """解除调查冻决（须人闸令牌）。"""
+
+    human_latch_token: str | None = None
+
+
+class PeakDegradeIn(BaseModel):
+    """峰值降级：仅补件+人审队列。"""
+
+    reason: str = Field(min_length=1)
 
 def get_service() -> ClaimsService:
     return _service
@@ -108,10 +149,10 @@ def _http_domain_error(exc: ClaimsDomainError) -> HTTPException:
         ErrorCode.LATCH_REQUIRED.value,
     ):
         status = 403
-    return HTTPException(
-        status_code=status,
-        detail={"error_code": exc.error_code, "message": exc.message},
-    )
+    detail: dict[str, Any] = {"error_code": exc.error_code, "message": exc.message}
+    if exc.extra:
+        detail.update(exc.extra)
+    return HTTPException(status_code=status, detail=detail)
 
 
 @app.get("/health")
@@ -153,11 +194,19 @@ def evaluate_claim(case_id: str, body: EvaluateIn | None = None) -> dict[str, An
     """触发门禁裁决：材料不齐→一次补件；批单缩责→减赔；齐→通赔建议草案。"""
     assert_tool_allowed("evaluate_claim")
     payload = body or EvaluateIn()
+    source_decisions = dict(payload.source_decisions)
+    if payload.signal_sources and not source_decisions:
+        # 仅声明源列表无结论时，不构成冲突探针
+        source_decisions = {}
     try:
         decision = _service.evaluate(
             case_id,
             proposed_deductible=payload.proposed_deductible,
             proposed_ratio=payload.proposed_ratio,
+            sensitivity_flags=payload.sensitivity_flags or None,
+            source_decisions=source_decisions or None,
+            retrieval_profile=payload.retrieval_profile,
+            force_reject_with_handbook_only=payload.force_reject_with_handbook_only,
         )
     except ClaimNotFoundError as exc:
         raise HTTPException(
@@ -172,6 +221,23 @@ def evaluate_claim(case_id: str, body: EvaluateIn | None = None) -> dict[str, An
     out = decision.to_dict()
     out["case_id"] = case_id
     return out
+
+
+@app.get("/claims/{case_id}/ledger")
+def get_ledger(case_id: str) -> dict[str, Any]:
+    """每案审计 ledger：route_id / retrieval_profile / decision_type / validator_score。"""
+    assert_tool_allowed("read_ledger")
+    try:
+        items = _service.list_ledger(case_id)
+    except ClaimNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": ErrorCode.VALIDATION_FAILED.value,
+                "message": f"案件不存在: {exc.case_id}",
+            },
+        ) from exc
+    return {"case_id": case_id, "items": items}
 
 
 @app.get("/claims/{case_id}/decision")
@@ -279,7 +345,11 @@ def approve_human_latch(case_id: str, body: HumanLatchApproveIn) -> dict[str, An
     """人闸批准：发出 human_latch_token；不触发银企出款。"""
     assert_tool_allowed("approve_human_latch")
     try:
-        return _service.approve_human_latch(case_id, approved_by=body.approved_by)
+        return _service.approve_human_latch(
+            case_id,
+            approved_by=body.approved_by,
+            second_approver=body.second_approver,
+        )
     except ClaimNotFoundError as exc:
         raise HTTPException(
             status_code=404,
@@ -312,6 +382,127 @@ def reject_human_latch(case_id: str, body: HumanLatchRejectIn) -> dict[str, Any]
         ) from exc
     except ClaimsDomainError as exc:
         raise _http_domain_error(exc) from exc
+
+
+@app.post("/claims/{case_id}/decisions/exgratia")
+def decide_exgratia(case_id: str, body: ExgratiaIn) -> dict[str, Any]:
+    """通融决定：必闸；伪主险通赔 citation 失败关闭。"""
+    assert_tool_allowed("decide_exgratia")
+    try:
+        decision = _service.decide_exgratia(
+            case_id,
+            reason=body.reason,
+            recommended_amount=body.recommended_amount,
+            citations=body.citations,
+        )
+    except ClaimNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": ErrorCode.VALIDATION_FAILED.value,
+                "message": f"案件不存在: {exc.case_id}",
+            },
+        ) from exc
+    except ClaimsDomainError as exc:
+        raise _http_domain_error(exc) from exc
+    out = decision.to_dict()
+    out["case_id"] = case_id
+    return out
+
+
+@app.post("/claims/{case_id}/decisions/prepay")
+def decide_prepay(case_id: str, body: PrepayIn) -> dict[str, Any]:
+    """预赔决定：默认必闸。"""
+    assert_tool_allowed("decide_prepay")
+    try:
+        decision = _service.decide_prepay(
+            case_id,
+            reason=body.reason,
+            recommended_amount=body.recommended_amount,
+        )
+    except ClaimNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": ErrorCode.VALIDATION_FAILED.value,
+                "message": f"案件不存在: {exc.case_id}",
+            },
+        ) from exc
+    except ClaimsDomainError as exc:
+        raise _http_domain_error(exc) from exc
+    out = decision.to_dict()
+    out["case_id"] = case_id
+    return out
+
+
+@app.post("/claims/{case_id}/investigate/enter")
+def investigate_enter(case_id: str, body: InvestigateEnterIn) -> dict[str, Any]:
+    """进入调查中：自动冻决。"""
+    assert_tool_allowed("investigate_enter")
+    try:
+        decision = _service.enter_investigation(
+            case_id,
+            reason=body.reason,
+            risk_score=body.risk_score,
+        )
+    except ClaimNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": ErrorCode.VALIDATION_FAILED.value,
+                "message": f"案件不存在: {exc.case_id}",
+            },
+        ) from exc
+    except ClaimsDomainError as exc:
+        raise _http_domain_error(exc) from exc
+    out = decision.to_dict()
+    out["case_id"] = case_id
+    return out
+
+
+@app.post("/claims/{case_id}/investigate/unfreeze")
+def investigate_unfreeze(
+    case_id: str, body: InvestigateUnfreezeIn | None = None
+) -> dict[str, Any]:
+    """解除调查冻决：须人闸令牌。"""
+    assert_tool_allowed("investigate_unfreeze")
+    payload = body or InvestigateUnfreezeIn()
+    try:
+        return _service.unfreeze_investigation(
+            case_id,
+            human_latch_token=payload.human_latch_token,
+        )
+    except ClaimNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": ErrorCode.VALIDATION_FAILED.value,
+                "message": f"案件不存在: {exc.case_id}",
+            },
+        ) from exc
+    except ClaimsDomainError as exc:
+        raise _http_domain_error(exc) from exc
+
+
+@app.post("/claims/{case_id}/peak-degrade")
+def peak_degrade(case_id: str, body: PeakDegradeIn) -> dict[str, Any]:
+    """峰值降级：仅补件+排队人审，禁止静默通赔。"""
+    assert_tool_allowed("peak_degrade")
+    try:
+        decision = _service.peak_degrade(case_id, reason=body.reason)
+    except ClaimNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": ErrorCode.VALIDATION_FAILED.value,
+                "message": f"案件不存在: {exc.case_id}",
+            },
+        ) from exc
+    except ClaimsDomainError as exc:
+        raise _http_domain_error(exc) from exc
+    out = decision.to_dict()
+    out["case_id"] = case_id
+    return out
 
 
 @app.post("/kb/citations/validate")

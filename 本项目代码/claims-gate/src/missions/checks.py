@@ -2,7 +2,8 @@
 
 Rewrote from: REF-MISSIONS（missions/checks.py；检查体换理赔域）；
 SC-01 补件/拆轮/通赔建议 REF-COURSE-03；SC-02 拒赔引用/文书分态/人闸 REF-MISSIONS；
-SC-03 效力栈减赔 / calc_steps REF-CASE-KB, REF-COURSE-04
+SC-03 效力栈减赔 / calc_steps REF-CASE-KB, REF-COURSE-04；
+Issue 06 人闸矩阵（金额档/通融/调查冻决/峰值）REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -581,6 +582,366 @@ def _check_sc03_endorsement_stack_reduction(
     )
 
 
+def _check_latch_amount_tier_approve_diff(
+    client: TestClient, params: dict[str, Any]
+) -> CheckOutcome:
+    """通赔小额档 vs 大额档人闸差异。"""
+    _reset_claims_fixture()
+    small_id = params.get("small_case_id", "CLM-AMT-A-001")
+    large_id = params.get("large_case_id", "CLM-AMT-C-001")
+    small = client.post(f"/claims/{small_id}/evaluate")
+    large = client.post(f"/claims/{large_id}/evaluate")
+    if small.status_code != 200 or large.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"evaluate status small={small.status_code} large={large.status_code}",
+            CommandResult(cmd="evaluate tiers", exit_code=1, stdout_tail=""),
+        )
+    s, L = small.json(), large.json()
+    ok = (
+        s.get("decision_type") == "approve_recommend"
+        and s.get("amount_tier") == "A"
+        and s.get("human_latch_required") is False
+        and s.get("payout_ready") is False
+        and L.get("decision_type") == "approve_recommend"
+        and L.get("human_latch_required") is True
+        and L.get("amount_tier") in ("B", "C", "D")
+        and L.get("payout_ready") is False
+    )
+    return CheckOutcome(
+        ok=ok,
+        detail=f"small={s.get('amount_tier')}/{s.get('human_latch_required')} "
+        f"large={L.get('amount_tier')}/{L.get('human_latch_required')}",
+        command=CommandResult(
+            cmd="latch_amount_tier_approve_diff",
+            exit_code=0 if ok else 1,
+            stdout_tail=str({"small": s, "large": L})[:400],
+        ),
+    )
+
+
+def _check_latch_amount_tier_reduce_diff(
+    client: TestClient, params: dict[str, Any]
+) -> CheckOutcome:
+    """减赔小额档 vs 大额档：均必闸，金额档可区分。"""
+    _reset_claims_fixture()
+    small_id = params.get("small_case_id", "CLM-SC03-001")
+    large_id = params.get("large_case_id", "CLM-AMT-C-REDUCE-001")
+    small = client.post(f"/claims/{small_id}/evaluate")
+    large = client.post(f"/claims/{large_id}/evaluate")
+    if small.status_code != 200 or large.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"reduce evaluate status small={small.status_code} large={large.status_code}",
+            CommandResult(cmd="evaluate reduce tiers", exit_code=1, stdout_tail=""),
+        )
+    s, L = small.json(), large.json()
+    ok = (
+        s.get("decision_type") == "reduce"
+        and s.get("amount_tier") == "A"
+        and s.get("human_latch_required") is True
+        and s.get("latch_level_label") == "主管闸"
+        and L.get("decision_type") == "reduce"
+        and L.get("human_latch_required") is True
+        and L.get("amount_tier") in ("B", "C", "D")
+        and L.get("amount_tier") != s.get("amount_tier")
+        and L.get("payout_ready") is False
+    )
+    return CheckOutcome(
+        ok=ok,
+        detail=f"small={s.get('amount_tier')} large={L.get('amount_tier')}",
+        command=CommandResult(
+            cmd="latch_amount_tier_reduce_diff",
+            exit_code=0 if ok else 1,
+            stdout_tail=str({"small": s, "large": L})[:400],
+        ),
+    )
+
+
+def _check_latch_exgratia_prepay_and_fake_citation(
+    client: TestClient, params: dict[str, Any]
+) -> CheckOutcome:
+    """通融/预赔必闸；伪主险通赔 citation 负例失败。"""
+    _reset_claims_fixture()
+    case_id = params.get("case_id", "CLM-LATCH-BASE-001")
+    ex = client.post(
+        f"/claims/{case_id}/decisions/exgratia",
+        json={"reason": "通融协商", "recommended_amount": 3000},
+    )
+    pre = client.post(
+        f"/claims/{case_id}/decisions/prepay",
+        json={"reason": "预赔", "recommended_amount": 5000},
+    )
+    fake = client.post(
+        f"/claims/{case_id}/decisions/exgratia",
+        json={
+            "reason": "伪 citation",
+            "recommended_amount": 2000,
+            "citations": [
+                {
+                    "doc_id": "PA-ACC-MAIN",
+                    "clause_item": "ART-1-COV",
+                    "doc_version": "2024.1",
+                    "quote": "按主险条款通赔予以全额给付",
+                    "as_clause_approve": True,
+                    "semantic": "clause_approve",
+                }
+            ],
+        },
+    )
+    if ex.status_code != 200 or pre.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"ex/prepay status {ex.status_code}/{pre.status_code}",
+            CommandResult(cmd="exgratia/prepay", exit_code=1, stdout_tail=""),
+        )
+    ebody, pbody = ex.json(), pre.json()
+    fake_ok = fake.status_code == 422 and _error_code(fake) == ErrorCode.VALIDATION_FAILED.value
+    ok = (
+        ebody.get("decision_type") == "exgratia"
+        and ebody.get("human_latch_required") is True
+        and ebody.get("payout_ready") is False
+        and pbody.get("decision_type") == "prepay"
+        and pbody.get("human_latch_required") is True
+        and pbody.get("payout_ready") is False
+        and fake_ok
+    )
+    return CheckOutcome(
+        ok=ok,
+        detail=f"fake_status={fake.status_code} err={_error_code(fake)}",
+        command=CommandResult(
+            cmd="latch_exgratia_prepay_and_fake_citation",
+            exit_code=0 if ok else 1,
+            stdout_tail=str(fake.json())[:400],
+        ),
+    )
+
+
+def _check_latch_investigate_freeze_unfreeze(
+    client: TestClient, params: dict[str, Any]
+) -> CheckOutcome:
+    """调查自动冻决；解除须人闸；冻决期间 payout_ready=false。"""
+    _reset_claims_fixture()
+    case_id = params.get("case_id", "CLM-LATCH-BASE-001")
+    enter = client.post(
+        f"/claims/{case_id}/investigate/enter",
+        json={"reason": "真实性存疑", "risk_score": 0.9},
+    )
+    if enter.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"enter failed {enter.status_code}",
+            CommandResult(cmd="investigate/enter", exit_code=1, stdout_tail=str(enter.json())[:400]),
+        )
+    body = enter.json()
+    if (
+        body.get("decision_type") != "investigating"
+        or body.get("freeze_active") is not True
+        or body.get("payout_ready") is not False
+    ):
+        return CheckOutcome(
+            False,
+            f"enter body bad: {body}",
+            CommandResult(cmd="investigate/enter", exit_code=1, stdout_tail=str(body)[:400]),
+        )
+    bare = client.post(f"/claims/{case_id}/investigate/unfreeze", json={})
+    if bare.status_code not in (403, 422) or _error_code(bare) != ErrorCode.LATCH_REQUIRED.value:
+        return CheckOutcome(
+            False,
+            f"unfreeze bare should latch, status={bare.status_code}",
+            CommandResult(cmd="unfreeze bare", exit_code=1, stdout_tail=str(bare.json())[:400]),
+        )
+    appr = client.post(
+        f"/claims/{case_id}/human-latch/approve",
+        json={"approved_by": "invest-supervisor"},
+    )
+    if appr.status_code != 200 or not appr.json().get("human_latch_token"):
+        return CheckOutcome(
+            False,
+            f"approve failed {appr.status_code}",
+            CommandResult(cmd="approve", exit_code=1, stdout_tail=str(appr.json())[:400]),
+        )
+    token = appr.json()["human_latch_token"]
+    ok_unf = client.post(
+        f"/claims/{case_id}/investigate/unfreeze",
+        json={"human_latch_token": token},
+    )
+    if ok_unf.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"unfreeze with token failed {ok_unf.status_code}",
+            CommandResult(cmd="unfreeze", exit_code=1, stdout_tail=str(ok_unf.json())[:400]),
+        )
+    ub = ok_unf.json()
+    ok = ub.get("freeze_active") is False and ub.get("payout_ready") is False
+    return CheckOutcome(
+        ok=ok,
+        detail="investigate freeze/unfreeze ok",
+        command=CommandResult(
+            cmd="latch_investigate_freeze_unfreeze",
+            exit_code=0 if ok else 1,
+            stdout_tail=str(ub)[:400],
+        ),
+    )
+
+
+def _check_latch_sensitivity_uplift(
+    client: TestClient, params: dict[str, Any]
+) -> CheckOutcome:
+    """敏感场景上浮至少一档。"""
+    _reset_claims_fixture()
+    case_id = params.get("case_id", "CLM-AMT-A-001")
+    plain = client.post(f"/claims/{case_id}/evaluate")
+    _reset_claims_fixture()
+    sens = client.post(
+        f"/claims/{case_id}/evaluate",
+        json={"sensitivity_flags": ["litigation"]},
+    )
+    if plain.status_code != 200 or sens.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"status plain={plain.status_code} sens={sens.status_code}",
+            CommandResult(cmd="sensitivity", exit_code=1, stdout_tail=""),
+        )
+    p, s = plain.json(), sens.json()
+    ok = (
+        p.get("human_latch_required") is False
+        and p.get("amount_tier") == "A"
+        and s.get("amount_tier") == "A"
+        and s.get("latch_tier") == "B"
+        and s.get("human_latch_required") is True
+    )
+    return CheckOutcome(
+        ok=ok,
+        detail=f"plain={p.get('human_latch_required')} sens_tier={s.get('latch_tier')}",
+        command=CommandResult(
+            cmd="latch_sensitivity_uplift",
+            exit_code=0 if ok else 1,
+            stdout_tail=str(s)[:400],
+        ),
+    )
+
+
+def _check_latch_peak_degrade_no_silent_approve(
+    client: TestClient, params: dict[str, Any]
+) -> CheckOutcome:
+    """峰值降级禁止静默通赔。"""
+    _reset_claims_fixture()
+    case_id = params.get("case_id", "CLM-AMT-C-001")
+    resp = client.post(
+        f"/claims/{case_id}/peak-degrade",
+        json={"reason": "峰值降级"},
+    )
+    if resp.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"peak-degrade status={resp.status_code}",
+            CommandResult(cmd="peak-degrade", exit_code=1, stdout_tail=str(resp.json())[:400]),
+        )
+    body = resp.json()
+    ok = (
+        body.get("decision_type") == "supplement"
+        and body.get("decision_type") != "approve_recommend"
+        and body.get("peak_degraded") is True
+        and body.get("payout_ready") is False
+        and (
+            body.get("human_latch_required") is True
+            or body.get("gate_status") == "HUMAN_LATCH"
+        )
+    )
+    if not ok:
+        return CheckOutcome(
+            ok=False,
+            detail=f"decision={body.get('decision_type')} peak={body.get('peak_degraded')}",
+            command=CommandResult(
+                cmd="latch_peak_degrade_no_silent_approve",
+                exit_code=1,
+                stdout_tail=str(body)[:400],
+            ),
+        )
+    again = client.post(f"/claims/{case_id}/evaluate")
+    if again.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"re-evaluate after peak status={again.status_code}",
+            CommandResult(cmd="re-evaluate peak", exit_code=1, stdout_tail=str(again.json())[:400]),
+        )
+    ab = again.json()
+    ok2 = (
+        ab.get("decision_type") == "supplement"
+        and ab.get("peak_degraded") is True
+        and ab.get("decision_type") != "approve_recommend"
+    )
+    return CheckOutcome(
+        ok=ok2,
+        detail=f"decision={body.get('decision_type')} re={ab.get('decision_type')}",
+        command=CommandResult(
+            cmd="latch_peak_degrade_no_silent_approve",
+            exit_code=0 if ok2 else 1,
+            stdout_tail=str(ab)[:400],
+        ),
+    )
+
+
+def _check_router_ledger_reproducible(
+    client: TestClient, params: dict[str, Any]
+) -> CheckOutcome:
+    """轨 A：同夹具重复跑 Router 结果可复现，且 ledger 含必填字段。"""
+    _reset_claims_fixture()
+    case_id = params.get("case_id", "CLM-SC02-001")
+    first = client.post(f"/claims/{case_id}/evaluate")
+    if first.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"first evaluate failed status={first.status_code}",
+            CommandResult(cmd="evaluate#1", exit_code=1, stdout_tail=str(first.json())[:400]),
+        )
+    a = first.json()
+    led1 = client.get(f"/claims/{case_id}/ledger")
+    if led1.status_code != 200 or not led1.json().get("items"):
+        return CheckOutcome(
+            False,
+            "ledger empty after evaluate",
+            CommandResult(cmd="GET ledger#1", exit_code=1, stdout_tail=str(led1.json())[:400]),
+        )
+    item = led1.json()["items"][0]
+    for key in ("route_id", "retrieval_profile", "decision_type", "validator_score"):
+        if key not in item:
+            return CheckOutcome(
+                False,
+                f"ledger missing {key}",
+                CommandResult(cmd="GET ledger", exit_code=1, stdout_tail=str(item)[:400]),
+            )
+
+    _reset_claims_fixture()
+    second = client.post(f"/claims/{case_id}/evaluate")
+    if second.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"second evaluate failed status={second.status_code}",
+            CommandResult(cmd="evaluate#2", exit_code=1, stdout_tail=str(second.json())[:400]),
+        )
+    b = second.json()
+    ok = (
+        a.get("route_id") == b.get("route_id")
+        and a.get("retrieval_profile") == b.get("retrieval_profile")
+        and a.get("decision_type") == b.get("decision_type")
+        and a.get("validator_score") == b.get("validator_score")
+        and bool(a.get("route_id"))
+        and bool(a.get("retrieval_profile"))
+        and a.get("validator_score") == 1.0
+    )
+    return CheckOutcome(
+        ok=ok,
+        detail=f"route={a.get('route_id')} profile={a.get('retrieval_profile')}",
+        command=CommandResult(
+            cmd=f"router reproducible case={case_id}",
+            exit_code=0 if ok else 1,
+            stdout_tail=str({"first": a, "second": b})[:400],
+        ),
+    )
+
+
 def run_machine_check(client: TestClient, check: MachineCheck) -> CheckOutcome:
     """仅按 type + params 分发。"""
     t = check.type
@@ -600,6 +961,20 @@ def run_machine_check(client: TestClient, check: MachineCheck) -> CheckOutcome:
         return _check_sc02_external_notify_requires_latch(client, p)
     if t == "sc03_endorsement_stack_reduction":
         return _check_sc03_endorsement_stack_reduction(client, p)
+    if t == "latch_amount_tier_approve_diff":
+        return _check_latch_amount_tier_approve_diff(client, p)
+    if t == "latch_amount_tier_reduce_diff":
+        return _check_latch_amount_tier_reduce_diff(client, p)
+    if t == "latch_exgratia_prepay_and_fake_citation":
+        return _check_latch_exgratia_prepay_and_fake_citation(client, p)
+    if t == "latch_investigate_freeze_unfreeze":
+        return _check_latch_investigate_freeze_unfreeze(client, p)
+    if t == "latch_sensitivity_uplift":
+        return _check_latch_sensitivity_uplift(client, p)
+    if t == "latch_peak_degrade_no_silent_approve":
+        return _check_latch_peak_degrade_no_silent_approve(client, p)
+    if t == "router_ledger_reproducible":
+        return _check_router_ledger_reproducible(client, p)
 
     return CheckOutcome(
         ok=False,

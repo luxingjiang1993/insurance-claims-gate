@@ -1,7 +1,9 @@
 """理赔案件领域模型（内存夹具）。
 
 Rewrote from: REF-MISSIONS（models_domain 换理赔域）；SC-01 补件/裁决字段 REF-COURSE-03；
-SC-02 拒赔/人闸/appeal_path REF-MISSIONS；SC-03 calc_steps / 效力栈 REF-COURSE-04
+SC-02 拒赔/人闸/appeal_path REF-MISSIONS；SC-03 calc_steps / 效力栈 REF-COURSE-04；
+Issue 06 金额档/冻决/峰值字段 REF-MISSIONS；
+Issue 07 Router/ledger 字段 REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -48,6 +50,18 @@ class DecisionDraft:
     # 拒赔草案必填：申诉/人工复核入口
     appeal_path: str | None = None
     reason_summary: str | None = None
+    # Issue 06：人闸矩阵可观察字段
+    amount_tier: str | None = None
+    latch_tier: str | None = None
+    dual_token_required: bool = False
+    latch_level_label: str | None = None
+    recommended_payout_amount: int | None = None
+    freeze_active: bool = False
+    peak_degraded: bool = False
+    # Issue 07：Router / ledger 可观察字段
+    route_id: str | None = None
+    retrieval_profile: str | None = None
+    validator_score: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         body: dict[str, Any] = {
@@ -60,6 +74,9 @@ class DecisionDraft:
             "human_latch_token": self.human_latch_token,
             "citations": list(self.citations),
             "calc_steps": list(self.calc_steps),
+            "freeze_active": self.freeze_active,
+            "peak_degraded": self.peak_degraded,
+            "dual_token_required": self.dual_token_required,
         }
         if self.one_shot_hash is not None:
             body["one_shot_hash"] = self.one_shot_hash
@@ -73,6 +90,46 @@ class DecisionDraft:
             body["appeal_path"] = self.appeal_path
         if self.reason_summary is not None:
             body["reason_summary"] = self.reason_summary
+        if self.amount_tier is not None:
+            body["amount_tier"] = self.amount_tier
+        if self.latch_tier is not None:
+            body["latch_tier"] = self.latch_tier
+        if self.latch_level_label is not None:
+            body["latch_level_label"] = self.latch_level_label
+        if self.recommended_payout_amount is not None:
+            body["recommended_payout_amount"] = self.recommended_payout_amount
+        if self.route_id is not None:
+            body["route_id"] = self.route_id
+        if self.retrieval_profile is not None:
+            body["retrieval_profile"] = self.retrieval_profile
+        if self.validator_score is not None:
+            body["validator_score"] = self.validator_score
+        return body
+
+
+@dataclass
+class LedgerEntry:
+    """每案审计 ledger：路由与检索配置可回放。"""
+
+    case_id: str
+    route_id: str
+    retrieval_profile: str
+    decision_type: str
+    validator_score: float
+    ts: str = ""
+    arbitration_winner: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        body: dict[str, Any] = {
+            "case_id": self.case_id,
+            "route_id": self.route_id,
+            "retrieval_profile": self.retrieval_profile,
+            "decision_type": self.decision_type,
+            "validator_score": self.validator_score,
+            "ts": self.ts,
+        }
+        if self.arbitration_winner is not None:
+            body["arbitration_winner"] = self.arbitration_winner
         return body
 
 
@@ -101,3 +158,9 @@ class ClaimCase:
     # 人闸令牌与批准人（拒赔对外通知绑定）
     human_latch_token: str | None = None
     human_approver: str | None = None
+    # 每案 ledger（最新在前由服务层维护）
+    ledger: list[LedgerEntry] = field(default_factory=list)
+    # Issue 06：敏感标志、调查冻决、峰值降级
+    sensitivity_flags: list[str] = field(default_factory=list)
+    freeze_active: bool = False
+    peak_degraded: bool = False

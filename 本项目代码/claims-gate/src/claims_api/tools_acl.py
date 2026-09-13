@@ -28,6 +28,12 @@ ALLOWED_TOOL_NAMES: frozenset[str] = frozenset(
         "export_document",
         "approve_human_latch",
         "reject_human_latch",
+        "decide_exgratia",
+        "decide_prepay",
+        "investigate_enter",
+        "investigate_unfreeze",
+        "peak_degrade",
+        "read_ledger",
     }
 )
 

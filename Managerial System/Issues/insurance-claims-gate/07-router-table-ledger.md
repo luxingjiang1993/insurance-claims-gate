@@ -1,6 +1,6 @@
 # 07: Router 确定性策略表 + 冲突 fail-closed + ledger
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Blocked by:** 03, 04, 05
 
@@ -33,13 +33,14 @@
 
 ## Acceptance criteria
 
-- [ ] Router 以表/配置驱动，文档与实现均不引入第四个 LLM 核赔角色
-- [ ] 冲突优先级 Human > Invest > Rules > RAG > OCR 可测；规则 vs RAG 冲突 → fail-closed + 人闸
-- [ ] `handbook_ops` 单独支撑对外拒赔时失败
-- [ ] 每案 ledger（或等价审计记录）含 route_id、retrieval_profile、decision_type、validator_score
-- [ ] 轨 A 下同一夹具重复跑 Router 结果可复现
-- [ ] handoff 含 `Rewrote from: REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS`
+- [x] Router 以表/配置驱动，文档与实现均不引入第四个 LLM 核赔角色
+- [x] 冲突优先级 Human > Invest > Rules > RAG > OCR 可测；规则 vs RAG 冲突 → fail-closed + 人闸
+- [x] `handbook_ops` 单独支撑对外拒赔时失败
+- [x] 每案 ledger（或等价审计记录）含 route_id、retrieval_profile、decision_type、validator_score
+- [x] 轨 A 下同一夹具重复跑 Router 结果可复现
+- [x] handoff 含 `Rewrote from: REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS`
 
 ## Comments
 
 - 2026-09-13：to-tickets 批准 defaults 后落盘。
+- 2026-09-13：实现完成；接缝 defaults（Router 纯函数 + HTTP ledger + machine_check）；Rewrote from: REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS。

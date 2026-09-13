@@ -6,8 +6,7 @@
 
 | NN | 文件 | Blocked by |
 |----|------|------------|
-| 06 | `06-human-latch-matrix-invest-exgratia.md` | 03, 04, 05 |
-| 07 | `07-router-table-ledger.md` | 03, 04, 05 |
+| 08 | `08-l2-payout-ready-writeback.md` | 04, 06 |
 | 09 | `09-track-b-isolation-threat-negatives.md` | 03, 04, 05 |
 
 ## 全量任务图
@@ -19,7 +18,7 @@
 | 03 | SC-01 一次补件 → 补传 → 通赔建议（轨 A） | 01 | resolved |
 | 04 | SC-02 除外拒赔草案 + 文书分态 + 人闸 | 01, 02 | resolved |
 | 05 | SC-03 效力栈减赔 + 理算步骤 | 01, 02 | resolved |
-| 06 | 人闸权限矩阵扩展（金额档 / 通融 / 预赔 / 调查冻决） | 03, 04, 05 | ready-for-agent |
+| 06 | 人闸权限矩阵扩展（金额档 / 通融 / 预赔 / 调查冻决） | 03, 04, 05 | resolved |
 | 07 | Router 确定性策略表 + 冲突 fail-closed + ledger | 03, 04, 05 | ready-for-agent |
 | 08 | L2 出款就绪回写模拟（无人闸禁放行） | 04, 06 | ready-for-agent |
 | 09 | 轨 B 隔离占位 + 威胁负例机检 | 03, 04, 05 | ready-for-agent |

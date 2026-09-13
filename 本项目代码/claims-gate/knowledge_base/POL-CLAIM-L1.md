@@ -45,3 +45,13 @@ human_latch_token，否则 API 拒绝（LATCH_REQUIRED 或 DOCUMENT_STATUS_FORBI
 免赔额与赔付比例以可复核 calc_steps 呈现；与批单条款冲突则失败关闭，禁止静默改数。
 减赔通知 DRAFT_EXPORT 复用 citations 与 calc_steps；未人闸前 payout_ready 必须为 false。
 检索画像 endorsement_priority 须先查批单再主险。
+
+## POL-CLAIM-005 Router 确定性策略表与 ledger
+条款项: POL-CLAIM-005
+
+Router 为 Missions 硬层确定性策略表，禁止写成独立 LLM 核赔角色。
+多路由冲突按 Human > Invest > Rules > RAG > OCR 仲裁；
+规则与条款 RAG 结论冲突时失败关闭进人闸，不静默采信一侧。
+handbook_ops 不得单独作为对外拒赔唯一依据。
+每案 ledger 须记录 route_id、retrieval_profile、decision_type、validator_score；
+轨 A 下同一夹具重复跑 Router 结果须可复现。

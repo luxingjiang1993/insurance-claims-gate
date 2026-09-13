@@ -1,7 +1,8 @@
 """编排者：契约先行；入账前 JSON Schema 硬停；不做实现与最终验收。
 
 Rewrote from: REF-MISSIONS（missions/orchestrator.py；断言换理赔脚手架）；
-SC-03 效力栈减赔契约 REF-CASE-KB, REF-COURSE-04
+SC-03 效力栈减赔契约 REF-CASE-KB, REF-COURSE-04；
+Router/ledger REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -38,19 +39,32 @@ class Orchestrator:
         state.locked_paths = []
 
         goal_l = goal.strip().lower()
-        is_sc03 = any(
+        is_router = any(
+            key in goal_l or key in goal
+            for key in (
+                "router",
+                "route_id",
+                "ledger",
+                "策略表",
+                "retrieval_profile",
+                "handbook_ops",
+            )
+        )
+        is_sc03 = (not is_router) and any(
             key in goal_l or key in goal
             for key in ("sc-03", "sc03", "减赔", "效力栈", "calc_steps", "endorsement_priority")
         )
-        is_sc02 = (not is_sc03) and any(
+        is_sc02 = (not is_router) and (not is_sc03) and any(
             key in goal_l or key in goal
             for key in ("sc-02", "sc02", "拒赔", "除外", "疾病摔伤", "人闸", "external_notify")
         )
-        is_sc01 = (not is_sc03) and (not is_sc02) and any(
+        is_sc01 = (not is_router) and (not is_sc03) and (not is_sc02) and any(
             key in goal_l or key in goal
             for key in ("sc-01", "sc01", "一次补件", "通赔建议", "one_shot")
         )
-        if is_sc03:
+        if is_router:
+            clause_id = "POL-CLAIM-005"
+        elif is_sc03:
             clause_id = "POL-CLAIM-004"
         elif is_sc02:
             clause_id = "POL-CLAIM-003"
@@ -88,7 +102,31 @@ class Orchestrator:
             if extra.chunk_id != chunk.chunk_id:
                 citations.append(extra)
 
-        if is_sc03:
+        if is_router:
+            assertions = [
+                Assertion(
+                    id="A-001",
+                    behavior="Router 表驱动：同夹具轨 A 重复跑可复现；ledger 含 route_id/retrieval_profile/decision_type/validator_score",
+                    policy_clause_id=chunk.clause_id,
+                    acceptance="evaluate 两次 route 一致；GET ledger 含四字段",
+                    machine_check=MachineCheck(
+                        type="router_ledger_reproducible",
+                        params={"case_id": "CLM-SC02-001"},
+                    ),
+                    claimed_by_features=["F-001"],
+                ),
+            ]
+            title = "Router 确定性策略表 + ledger（轨 A）"
+            owns = [
+                "src/missions/router.py",
+                "src/claims_api/service.py",
+                "src/claims_api/api.py",
+                "src/missions/checks.py",
+            ]
+            feature_title = "实现 Router 策略表、冲突 fail-closed 与每案 ledger"
+            milestone = "M1-router"
+            rewrote = "REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS"
+        elif is_sc03:
             assertions = [
                 Assertion(
                     id="A-001",
@@ -247,6 +285,7 @@ class Orchestrator:
             extra={
                 "goal": goal,
                 "assertion_count": len(assertions),
+                "router": is_router,
                 "sc01": is_sc01,
                 "sc02": is_sc02,
                 "sc03": is_sc03,
