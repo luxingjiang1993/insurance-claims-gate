@@ -19,7 +19,7 @@
 | 04 | SC-02 除外拒赔草案 + 文书分态 + 人闸 | 01, 02 | resolved |
 | 05 | SC-03 效力栈减赔 + 理算步骤 | 01, 02 | resolved |
 | 06 | 人闸权限矩阵扩展（金额档 / 通融 / 预赔 / 调查冻决） | 03, 04, 05 | resolved |
-| 07 | Router 确定性策略表 + 冲突 fail-closed + ledger | 03, 04, 05 | ready-for-agent |
+| 07 | Router 确定性策略表 + 冲突 fail-closed + ledger | 03, 04, 05 | done |
 | 08 | L2 出款就绪回写模拟（无人闸禁放行） | 04, 06 | ready-for-agent |
 | 09 | 轨 B 隔离占位 + 威胁负例机检 | 03, 04, 05 | ready-for-agent |
 
