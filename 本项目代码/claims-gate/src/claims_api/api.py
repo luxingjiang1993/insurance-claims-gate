@@ -1,7 +1,8 @@
 """FastAPI 外壳：Validator 只能经 HTTP 黑盒验收，不得改产品代码。
 
 Rewrote from: REF-MISSIONS（transfer_api/api.py 换理赔域）；citation 门 REF-CASE-KB；
-SC-01 补件/裁决/文书 REF-COURSE-03
+SC-01 补件/裁决/文书 REF-COURSE-03；SC-02 拒赔分态与人闸 REF-MISSIONS；
+SC-03 减赔 REF-COURSE-04
 """
 
 from __future__ import annotations
@@ -19,9 +20,22 @@ from .service import ClaimNotFoundError, ClaimsDomainError, ClaimsService
 from .tools_acl import assert_tool_allowed
 
 app = FastAPI(title="Claims Gate API", version="0.1.0")
-_service = ClaimsService()
 _KB_ROOT = Path(__file__).resolve().parents[2] / "knowledge_base"
 _kb = KnowledgeBase(_KB_ROOT)
+
+
+def _build_service() -> ClaimsService:
+    """重建服务；共享同一 KB 实例，拒赔对外通知经 KB 落库门失败关闭。"""
+    svc = ClaimsService(kb=_kb)
+
+    def _ok(payload: dict[str, Any]) -> bool:
+        return _kb.validate_citation(payload).ok
+
+    svc.set_citation_validator(_ok)
+    return svc
+
+
+_service = _build_service()
 
 
 class CitationValidateRequest(BaseModel):
@@ -52,6 +66,27 @@ class DocumentExportIn(BaseModel):
 
     document_type: str = "supplement_notice"
     document_status: str = "DRAFT_EXPORT"
+    human_latch_token: str | None = None
+
+
+class EvaluateIn(BaseModel):
+    """裁决请求；可选提出理算参数（与条款冲突时失败关闭）。"""
+
+    proposed_deductible: int | None = None
+    proposed_ratio: float | None = None
+
+
+class HumanLatchApproveIn(BaseModel):
+    """人闸批准请求。"""
+
+    approved_by: str = Field(min_length=1)
+
+
+class HumanLatchRejectIn(BaseModel):
+    """人闸驳回请求。"""
+
+    rejected_by: str = Field(min_length=1)
+    reason: str = ""
 
 
 def get_service() -> ClaimsService:
@@ -61,14 +96,17 @@ def get_service() -> ClaimsService:
 def reset_service() -> ClaimsService:
     """测试夹具：重建内存台账并重载条款 KB。"""
     global _service, _kb
-    _service = ClaimsService()
     _kb = KnowledgeBase(_KB_ROOT)
+    _service = _build_service()
     return _service
 
 
 def _http_domain_error(exc: ClaimsDomainError) -> HTTPException:
     status = 422
-    if exc.error_code == ErrorCode.DOCUMENT_STATUS_FORBIDDEN.value:
+    if exc.error_code in (
+        ErrorCode.DOCUMENT_STATUS_FORBIDDEN.value,
+        ErrorCode.LATCH_REQUIRED.value,
+    ):
         status = 403
     return HTTPException(
         status_code=status,
@@ -111,11 +149,16 @@ def get_claim(case_id: str) -> dict:
 
 
 @app.post("/claims/{case_id}/evaluate")
-def evaluate_claim(case_id: str) -> dict[str, Any]:
-    """触发门禁裁决：材料不齐→一次补件；齐→通赔建议草案。"""
+def evaluate_claim(case_id: str, body: EvaluateIn | None = None) -> dict[str, Any]:
+    """触发门禁裁决：材料不齐→一次补件；批单缩责→减赔；齐→通赔建议草案。"""
     assert_tool_allowed("evaluate_claim")
+    payload = body or EvaluateIn()
     try:
-        decision = _service.evaluate(case_id)
+        decision = _service.evaluate(
+            case_id,
+            proposed_deductible=payload.proposed_deductible,
+            proposed_ratio=payload.proposed_ratio,
+        )
     except ClaimNotFoundError as exc:
         raise HTTPException(
             status_code=404,
@@ -126,9 +169,9 @@ def evaluate_claim(case_id: str) -> dict[str, Any]:
         ) from exc
     except ClaimsDomainError as exc:
         raise _http_domain_error(exc) from exc
-    body = decision.to_dict()
-    body["case_id"] = case_id
-    return body
+    out = decision.to_dict()
+    out["case_id"] = case_id
+    return out
 
 
 @app.get("/claims/{case_id}/decision")
@@ -210,13 +253,54 @@ def notify_supplement(case_id: str, body: SupplementNotifyIn) -> dict[str, Any]:
 
 @app.post("/claims/{case_id}/documents/export")
 def export_document(case_id: str, body: DocumentExportIn) -> dict[str, Any]:
-    """导出补件/拒赔等文书；补件 DRAFT_EXPORT 可无人闸。"""
+    """导出补件/拒赔等文书；拒赔 DRAFT_EXPORT 可无人闸，EXTERNAL_NOTIFY 须人闸。"""
     assert_tool_allowed("export_document")
     try:
         return _service.export_document(
             case_id,
             document_type=body.document_type,
             document_status=body.document_status,
+            human_latch_token=body.human_latch_token,
+        )
+    except ClaimNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": ErrorCode.VALIDATION_FAILED.value,
+                "message": f"案件不存在: {exc.case_id}",
+            },
+        ) from exc
+    except ClaimsDomainError as exc:
+        raise _http_domain_error(exc) from exc
+
+
+@app.post("/claims/{case_id}/human-latch/approve")
+def approve_human_latch(case_id: str, body: HumanLatchApproveIn) -> dict[str, Any]:
+    """人闸批准：发出 human_latch_token；不触发银企出款。"""
+    assert_tool_allowed("approve_human_latch")
+    try:
+        return _service.approve_human_latch(case_id, approved_by=body.approved_by)
+    except ClaimNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": ErrorCode.VALIDATION_FAILED.value,
+                "message": f"案件不存在: {exc.case_id}",
+            },
+        ) from exc
+    except ClaimsDomainError as exc:
+        raise _http_domain_error(exc) from exc
+
+
+@app.post("/claims/{case_id}/human-latch/reject")
+def reject_human_latch(case_id: str, body: HumanLatchRejectIn) -> dict[str, Any]:
+    """人闸驳回：回编辑态，可再 evaluate 提审。"""
+    assert_tool_allowed("reject_human_latch")
+    try:
+        return _service.reject_human_latch(
+            case_id,
+            rejected_by=body.rejected_by,
+            reason=body.reason,
         )
     except ClaimNotFoundError as exc:
         raise HTTPException(

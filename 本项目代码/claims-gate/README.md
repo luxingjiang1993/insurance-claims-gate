@@ -44,6 +44,28 @@
 - `machine_check`：`sc01_one_shot_supplement_approve`、`one_shot_split_round_rejected`
 - 默认轨 A `inference_track=deterministic`，不依赖 LLM
 
+## Issue 04 SC-02 除外拒赔 + 文书分态 + 人闸
+
+`Rewrote from: REF-MISSIONS`
+
+已落地：
+
+- 夹具 `CLM-SC02-001`（疾病摔伤）→ `reject_draft` + 条款项级 citations + `appeal_path`
+- `reject_notice`：`DRAFT_EXPORT` 可无人闸；`EXTERNAL_NOTIFY` 须 `human_latch_token`（否则 `LATCH_REQUIRED`）
+- `POST /claims/{id}/human-latch/approve|reject`；无人闸/`payout_ready` 恒 false，不触发银企
+- `machine_check`：`sc02_exclusion_reject_latch`、`sc02_external_notify_requires_latch`
+
+## Issue 05 SC-03 效力栈减赔 + 理算步骤
+
+`Rewrote from: REF-CASE-KB, REF-MISSIONS, REF-COURSE-04`
+
+已落地：
+
+- 夹具 `CLM-SC03-001`（批单缩责）→ `reduce` / `ADJUSTING` + `authority_rank` / `overridden_by` + `calc_steps`
+- `endorsement_priority` 检索先批单后主险；理算与批单冲突 fail-closed
+- `reduction_notice` 导出复用 citations / calc_steps；`payout_ready` 恒 false
+- `machine_check` type=`sc03_endorsement_stack_reduction`
+
 ## 运行
 
 ```bash

@@ -1,6 +1,6 @@
 # 04: SC-02 除外拒赔草案 + 文书分态 + 人闸
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** 01, 02
 
@@ -18,7 +18,7 @@
 |--------|------|--------|
 | 1 | `project 多agent/src/missions/runner.py` | `approve_promotion`、`blocked_for_human` / `awaiting_human_approval` |
 | 2 | `project 多agent/src/missions/models.py` | `HumanApproval`、handoff `blocked_for_human` |
-| 3 | `project 多agent/src/missions/validator.py` | 全过仍进人人闸相位的逻辑 |
+| 3 | `project 多agent/src/missions/validator.py` | 全过仍进入人闸相位的逻辑 |
 | 4 | `project 多agent/src/missions/checks.py` | 扩写拒赔 citation / `document_status` / 人闸令牌类检查 |
 | 5 | `project 多agent/src/missions/rag.py` + `validator.py`（citation 段） | 除外引用落库门（依赖票 02） |
 | 6 | `project 多agent/schemas/citation.schema.json` | 引用外形 |
@@ -32,14 +32,15 @@
 
 ## Acceptance criteria
 
-- [ ] SC-02 夹具经 HTTP：疾病摔伤 → 拒赔草案 + 条款项级 citations 通过落库门
-- [ ] 拒赔草案含 `appeal_path`；缺 citation 或伪 citation 不得对外
-- [ ] `DRAFT_EXPORT` 可无人闸生成；同案升 `EXTERNAL_NOTIFY` 无人闸必失败（`DOCUMENT_STATUS_FORBIDDEN` 或 `LATCH_REQUIRED`）
-- [ ] 无人闸时 `payout_ready` 恒 false；批准后发出人闸令牌，驳回可回编辑态
-- [ ] 对应 machine_check（拒赔引用、文书分态、人闸门）在轨 A 下稳定绿
-- [ ] 叙事与字段禁止「秒赔」包装责任争议案
-- [ ] handoff 含 `Rewrote from: REF-MISSIONS`
+- [x] SC-02 夹具经 HTTP：疾病摔伤 → 拒赔草案 + 条款项级 citations 通过落库门
+- [x] 拒赔草案含 `appeal_path`；缺 citation 或伪 citation 不得对外
+- [x] `DRAFT_EXPORT` 可无人闸生成；同案升 `EXTERNAL_NOTIFY` 无人闸必失败（`DOCUMENT_STATUS_FORBIDDEN` 或 `LATCH_REQUIRED`）
+- [x] 无人闸时 `payout_ready` 恒 false；批准后发出人闸令牌，驳回可回编辑态
+- [x] 对应 machine_check（拒赔引用、文书分态、人闸门）在轨 A 下稳定绿
+- [x] 叙事与字段禁止「秒赔」包装责任争议案
+- [x] handoff 含 `Rewrote from: REF-MISSIONS`
 
 ## Comments
 
 - 2026-09-13：to-tickets 批准 defaults 后落盘。
+- 2026-09-13：实现落地 — `CLM-SC02-001` 确定性除外拒赔；`reject_notice` 文书分态；`/human-latch/approve|reject`；machine_check `sc02_exclusion_reject_latch` / `sc02_external_notify_requires_latch`。Rewrote from: REF-MISSIONS

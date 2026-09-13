@@ -26,6 +26,8 @@ ALLOWED_TOOL_NAMES: frozenset[str] = frozenset(
         "register_materials",
         "notify_supplement",
         "export_document",
+        "approve_human_latch",
+        "reject_human_latch",
     }
 )
 

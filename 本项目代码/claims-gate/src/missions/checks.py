@@ -1,7 +1,8 @@
 """Contract 驱动的黑盒检查：按 machine_check.type 分发，不按 assertion.id 写死。
 
 Rewrote from: REF-MISSIONS（missions/checks.py；检查体换理赔域）；
-SC-01 补件/拆轮/通赔建议 REF-COURSE-03
+SC-01 补件/拆轮/通赔建议 REF-COURSE-03；SC-02 拒赔引用/文书分态/人闸 REF-MISSIONS；
+SC-03 效力栈减赔 / calc_steps REF-CASE-KB, REF-COURSE-04
 """
 
 from __future__ import annotations
@@ -298,6 +299,288 @@ def _check_one_shot_split_round_rejected(
     )
 
 
+def _check_sc02_exclusion_reject_latch(
+    client: TestClient, params: dict[str, Any]
+) -> CheckOutcome:
+    """SC-02：疾病摔伤拒赔草案 + 落库引用 + DRAFT 可无人闸 + 人闸后可 EXTERNAL_NOTIFY。"""
+    _reset_claims_fixture()
+    case_id = params.get("case_id", "CLM-SC02-001")
+    steps: list[str] = []
+
+    ev = client.post(f"/claims/{case_id}/evaluate")
+    if ev.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"evaluate failed status={ev.status_code}",
+            CommandResult(cmd="evaluate", exit_code=1, stdout_tail=str(ev.json())[:400]),
+        )
+    body = ev.json()
+    steps.append("reject_draft")
+    if body.get("decision_type") != "reject_draft":
+        return CheckOutcome(
+            False,
+            f"expect reject_draft got {body.get('decision_type')}",
+            CommandResult(cmd="evaluate", exit_code=1, stdout_tail=str(body)[:400]),
+        )
+    if body.get("payout_ready") is not False or not body.get("appeal_path"):
+        return CheckOutcome(
+            False,
+            f"payout_ready/appeal_path bad: {body.get('payout_ready')}/{body.get('appeal_path')}",
+            CommandResult(cmd="evaluate", exit_code=1, stdout_tail=str(body)[:400]),
+        )
+    if "秒赔" in str(body):
+        return CheckOutcome(
+            False,
+            "narrative contains forbidden 秒赔",
+            CommandResult(cmd="evaluate", exit_code=1, stdout_tail=str(body)[:400]),
+        )
+    citations = body.get("citations") or []
+    if not citations:
+        return CheckOutcome(
+            False,
+            "missing citations",
+            CommandResult(cmd="evaluate", exit_code=1, stdout_tail=str(body)[:400]),
+        )
+    for c in citations:
+        v = client.post(
+            "/kb/citations/validate",
+            json={
+                "doc_id": c.get("doc_id", ""),
+                "clause_item": c.get("clause_item", ""),
+                "doc_version": c.get("doc_version", ""),
+                "quote": c.get("quote", ""),
+            },
+        )
+        if v.status_code != 200:
+            return CheckOutcome(
+                False,
+                f"citation gate fail: {c}",
+                CommandResult(cmd="citations/validate", exit_code=1, stdout_tail=str(v.json())[:400]),
+            )
+    steps.append("citations_ok")
+
+    draft = client.post(
+        f"/claims/{case_id}/documents/export",
+        json={"document_type": "reject_notice", "document_status": "DRAFT_EXPORT"},
+    )
+    if draft.status_code != 200 or not draft.json().get("appeal_path"):
+        return CheckOutcome(
+            False,
+            f"DRAFT_EXPORT failed status={draft.status_code}",
+            CommandResult(cmd="export DRAFT", exit_code=1, stdout_tail=str(draft.json())[:400]),
+        )
+    steps.append("draft_export")
+
+    bare = client.post(
+        f"/claims/{case_id}/documents/export",
+        json={"document_type": "reject_notice", "document_status": "EXTERNAL_NOTIFY"},
+    )
+    err = _error_code(bare)
+    if bare.status_code not in (403, 422) or err not in (
+        ErrorCode.LATCH_REQUIRED.value,
+        ErrorCode.DOCUMENT_STATUS_FORBIDDEN.value,
+    ):
+        return CheckOutcome(
+            False,
+            f"expect latch fail, status={bare.status_code} err={err}",
+            CommandResult(cmd="export EXTERNAL bare", exit_code=1, stdout_tail=str(bare.json())[:400]),
+        )
+    steps.append("external_without_latch_rejected")
+
+    appr = client.post(
+        f"/claims/{case_id}/human-latch/approve",
+        json={"approved_by": "machine-check-supervisor"},
+    )
+    if appr.status_code != 200 or not appr.json().get("human_latch_token"):
+        return CheckOutcome(
+            False,
+            f"approve failed status={appr.status_code}",
+            CommandResult(cmd="human-latch/approve", exit_code=1, stdout_tail=str(appr.json())[:400]),
+        )
+    token = appr.json()["human_latch_token"]
+    if appr.json().get("payout_ready") is not False:
+        return CheckOutcome(
+            False,
+            "approve must keep payout_ready=false",
+            CommandResult(cmd="human-latch/approve", exit_code=1, stdout_tail=str(appr.json())[:400]),
+        )
+    steps.append("latch_approved")
+
+    ext = client.post(
+        f"/claims/{case_id}/documents/export",
+        json={
+            "document_type": "reject_notice",
+            "document_status": "EXTERNAL_NOTIFY",
+            "human_latch_token": token,
+        },
+    )
+    if ext.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"EXTERNAL_NOTIFY with token failed status={ext.status_code}",
+            CommandResult(cmd="export EXTERNAL", exit_code=1, stdout_tail=str(ext.json())[:400]),
+        )
+    ebody = ext.json()
+    ok = (
+        ebody.get("document_status") == "EXTERNAL_NOTIFY"
+        and bool(ebody.get("appeal_path"))
+        and bool(ebody.get("human_approver"))
+        and ebody.get("payout_ready") is False
+        and "秒赔" not in str(ebody)
+    )
+    steps.append("external_notify")
+    return CheckOutcome(
+        ok=ok,
+        detail=f"steps={steps}",
+        command=CommandResult(
+            cmd=f"SC-02 flow case={case_id}",
+            exit_code=0 if ok else 1,
+            stdout_tail=str(ebody)[:400],
+        ),
+    )
+
+
+def _check_sc02_external_notify_requires_latch(
+    client: TestClient, params: dict[str, Any]
+) -> CheckOutcome:
+    """负例检查：无人闸升 EXTERNAL_NOTIFY 必须被 API 拒绝（检查通过=正确拒绝）。"""
+    _reset_claims_fixture()
+    case_id = params.get("case_id", "CLM-SC02-001")
+    ev = client.post(f"/claims/{case_id}/evaluate")
+    if ev.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"evaluate failed status={ev.status_code}",
+            CommandResult(cmd="evaluate", exit_code=1, stdout_tail=str(ev.json())[:400]),
+        )
+    resp = client.post(
+        f"/claims/{case_id}/documents/export",
+        json={"document_type": "reject_notice", "document_status": "EXTERNAL_NOTIFY"},
+    )
+    got = _error_code(resp)
+    ok = resp.status_code in (403, 422) and got in (
+        ErrorCode.LATCH_REQUIRED.value,
+        ErrorCode.DOCUMENT_STATUS_FORBIDDEN.value,
+    )
+    return CheckOutcome(
+        ok=ok,
+        detail=f"status={resp.status_code} error_code={got}",
+        command=CommandResult(
+            cmd="POST documents/export EXTERNAL_NOTIFY without latch",
+            exit_code=0 if ok else 1,
+            stdout_tail=str(resp.json())[:400],
+        ),
+    )
+
+
+def _check_sc03_endorsement_stack_reduction(
+    client: TestClient, params: dict[str, Any]
+) -> CheckOutcome:
+    """SC-03：批单缩责减赔 + 效力栈 citations + calc_steps。"""
+    _reset_claims_fixture()
+    case_id = params.get("case_id", "CLM-SC03-001")
+    ev = client.post(f"/claims/{case_id}/evaluate")
+    if ev.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"evaluate failed status={ev.status_code}",
+            CommandResult(cmd="evaluate", exit_code=1, stdout_tail=str(ev.json())[:400]),
+        )
+    body = ev.json()
+    if body.get("decision_type") != "reduce" or body.get("payout_ready") is not False:
+        return CheckOutcome(
+            False,
+            f"expect reduce/payout_ready=false got {body.get('decision_type')}/{body.get('payout_ready')}",
+            CommandResult(cmd="evaluate", exit_code=1, stdout_tail=str(body)[:400]),
+        )
+    if body.get("gate_status") != "ADJUSTING" or body.get("inference_track") != "deterministic":
+        return CheckOutcome(
+            False,
+            f"gate/track bad: {body.get('gate_status')}/{body.get('inference_track')}",
+            CommandResult(cmd="evaluate", exit_code=1, stdout_tail=str(body)[:400]),
+        )
+    citations = body.get("citations") or []
+    if len(citations) < 2:
+        return CheckOutcome(
+            False,
+            "need >=2 citations for stack",
+            CommandResult(cmd="evaluate", exit_code=1, stdout_tail=str(body)[:400]),
+        )
+    for c in citations:
+        if "authority_rank" not in c:
+            return CheckOutcome(
+                False,
+                f"citation missing authority_rank: {c}",
+                CommandResult(cmd="evaluate", exit_code=1, stdout_tail=str(body)[:400]),
+            )
+    ranks = {c["clause_item"]: c["authority_rank"] for c in citations}
+    if ranks.get("END-2-DEDUCT", 99) >= ranks.get("ART-6-DEDUCT", 0):
+        return CheckOutcome(
+            False,
+            f"endorsement must outrank main: {ranks}",
+            CommandResult(cmd="evaluate", exit_code=1, stdout_tail=str(body)[:400]),
+        )
+    overridden = [c for c in citations if c.get("overridden_by")]
+    if not overridden:
+        return CheckOutcome(
+            False,
+            "missing overridden_by on superseded citation",
+            CommandResult(cmd="evaluate", exit_code=1, stdout_tail=str(body)[:400]),
+        )
+    steps = {s["step"]: s for s in (body.get("calc_steps") or [])}
+    if steps.get("deductible", {}).get("value") != 500 or steps.get("result", {}).get("value") != 7600:
+        return CheckOutcome(
+            False,
+            f"calc_steps unexpected: {steps}",
+            CommandResult(cmd="evaluate", exit_code=1, stdout_tail=str(body)[:400]),
+        )
+    # 冲突探针：主险数字不得静默通过
+    conflict = client.post(
+        f"/claims/{case_id}/evaluate",
+        json={"proposed_deductible": 100, "proposed_ratio": 1.0},
+    )
+    if conflict.status_code != 422 or _error_code(conflict) != ErrorCode.VALIDATION_FAILED.value:
+        return CheckOutcome(
+            False,
+            f"calc conflict should fail-closed, status={conflict.status_code}",
+            CommandResult(cmd="evaluate conflict", exit_code=1, stdout_tail=str(conflict.json())[:400]),
+        )
+    # 冲突后重评干净路径
+    _reset_claims_fixture()
+    ev2 = client.post(f"/claims/{case_id}/evaluate")
+    if ev2.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"re-evaluate after reset failed status={ev2.status_code}",
+            CommandResult(cmd="re-evaluate", exit_code=1, stdout_tail=str(ev2.json())[:400]),
+        )
+    doc = client.post(
+        f"/claims/{case_id}/documents/export",
+        json={"document_type": "reduction_notice", "document_status": "DRAFT_EXPORT"},
+    )
+    if doc.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"export failed status={doc.status_code}",
+            CommandResult(cmd="export", exit_code=1, stdout_tail=str(doc.json())[:400]),
+        )
+    dbody = doc.json()
+    ok = (
+        dbody.get("payout_ready") is False
+        and bool(dbody.get("calc_steps"))
+        and bool(dbody.get("citations"))
+    )
+    return CheckOutcome(
+        ok=ok,
+        detail="sc03 endorsement stack ok",
+        command=CommandResult(
+            cmd=f"SC-03 flow case={case_id}",
+            exit_code=0 if ok else 1,
+            stdout_tail=str(dbody)[:400],
+        ),
+    )
+
+
 def run_machine_check(client: TestClient, check: MachineCheck) -> CheckOutcome:
     """仅按 type + params 分发。"""
     t = check.type
@@ -311,6 +594,12 @@ def run_machine_check(client: TestClient, check: MachineCheck) -> CheckOutcome:
         return _check_sc01_one_shot_supplement_approve(client, p)
     if t == "one_shot_split_round_rejected":
         return _check_one_shot_split_round_rejected(client, p)
+    if t == "sc02_exclusion_reject_latch":
+        return _check_sc02_exclusion_reject_latch(client, p)
+    if t == "sc02_external_notify_requires_latch":
+        return _check_sc02_external_notify_requires_latch(client, p)
+    if t == "sc03_endorsement_stack_reduction":
+        return _check_sc03_endorsement_stack_reduction(client, p)
 
     return CheckOutcome(
         ok=False,
@@ -325,3 +614,4 @@ def run_assertion_checks(client: TestClient, assertions: list[Assertion]) -> dic
     for assertion in assertions:
         results[assertion.id] = run_machine_check(client, assertion.machine_check)
     return results
+

@@ -217,7 +217,7 @@ class KnowledgeBase:
         endorsement_first = bool(profile_cfg.get("endorsement_first"))
 
         effective_k = max(top_k, 5) if profile.startswith("validator") else top_k
-        scored: list[tuple[float, Chunk]] = []
+        scored: list[tuple[float, int, Chunk]] = []
         for chunk in self.chunks:
             score = _jaccard(q_tokens, chunk.tokens)
             if clause_hint and (
@@ -226,15 +226,20 @@ class KnowledgeBase:
                 score = min(1.0, score + 0.55)
             if prefer_types and chunk.doc_type in prefer_types:
                 # 配置位加权：不替代精确落库
-                rank = prefer_types.index(chunk.doc_type)
-                score = min(1.0, score + 0.05 * (len(prefer_types) - rank))
+                type_rank = prefer_types.index(chunk.doc_type)
+                score = min(1.0, score + 0.05 * (len(prefer_types) - type_rank))
+            else:
+                type_rank = len(prefer_types) + 10
             if endorsement_first and chunk.doc_type == "endorsement":
                 score = min(1.0, score + 0.08)
+                type_rank = 0
             if score > 0:
-                scored.append((score, chunk))
-        scored.sort(key=lambda x: x[0], reverse=True)
+                # type_rank 越小越优先（endorsement_priority：先批单再主险）
+                scored.append((score, type_rank, chunk))
+        # 先按 prefer 类型序，再按相似度
+        scored.sort(key=lambda x: (x[1], -x[0]))
         out: list[RagCitation] = []
-        for score, chunk in scored[:effective_k]:
+        for score, _type_rank, chunk in scored[:effective_k]:
             out.append(
                 RagCitation(
                     doc_id=chunk.doc_id,

@@ -41,7 +41,16 @@ class Orchestrator:
             key in goal_l or key in goal
             for key in ("sc-01", "sc01", "一次补件", "通赔建议", "one_shot")
         )
-        clause_id = "POL-CLAIM-002" if is_sc01 else "POL-CLAIM-001"
+        is_sc02 = any(
+            key in goal_l or key in goal
+            for key in ("sc-02", "sc02", "拒赔", "除外", "疾病摔伤", "人闸", "external_notify")
+        )
+        if is_sc02:
+            clause_id = "POL-CLAIM-003"
+        elif is_sc01:
+            clause_id = "POL-CLAIM-002"
+        else:
+            clause_id = "POL-CLAIM-001"
         chunk = self.kb.get_clause(clause_id)
         if chunk is None:
             raise RuntimeError(f"知识库缺少 {clause_id}，无法写出契约")
@@ -72,7 +81,42 @@ class Orchestrator:
             if extra.chunk_id != chunk.chunk_id:
                 citations.append(extra)
 
-        if is_sc01:
+        if is_sc02:
+            assertions = [
+                Assertion(
+                    id="A-001",
+                    behavior="SC-02：疾病摔伤拒赔草案须条款项落库引用；DRAFT 可无人闸；人闸后方可 EXTERNAL_NOTIFY",
+                    policy_clause_id=chunk.clause_id,
+                    acceptance="HTTP：evaluate→DRAFT→approve→EXTERNAL；payout_ready=false",
+                    machine_check=MachineCheck(
+                        type="sc02_exclusion_reject_latch",
+                        params={"case_id": "CLM-SC02-001"},
+                    ),
+                    claimed_by_features=["F-001"],
+                ),
+                Assertion(
+                    id="A-002",
+                    behavior="拒赔升 EXTERNAL_NOTIFY 无人闸必须失败关闭",
+                    policy_clause_id=chunk.clause_id,
+                    acceptance="documents/export EXTERNAL_NOTIFY 返回 LATCH_REQUIRED 或 DOCUMENT_STATUS_FORBIDDEN",
+                    machine_check=MachineCheck(
+                        type="sc02_external_notify_requires_latch",
+                        params={"case_id": "CLM-SC02-001"},
+                    ),
+                    claimed_by_features=["F-001"],
+                ),
+            ]
+            title = "SC-02 除外拒赔草案 + 文书分态 + 人闸（轨 A）"
+            owns = [
+                "src/claims_api/api.py",
+                "src/claims_api/service.py",
+                "src/claims_api/models_domain.py",
+                "src/missions/checks.py",
+            ]
+            feature_title = "实现 SC-02 除外拒赔与人闸文书分态"
+            milestone = "M1-sc02"
+            rewrote = "REF-MISSIONS"
+        elif is_sc01:
             assertions = [
                 Assertion(
                     id="A-001",
@@ -169,7 +213,12 @@ class Orchestrator:
             kind="contract_ready",
             message="validation contract 已外置；inference_track=deterministic",
             role=RoleName.ORCHESTRATOR,
-            extra={"goal": goal, "assertion_count": len(assertions), "sc01": is_sc01},
+            extra={
+                "goal": goal,
+                "assertion_count": len(assertions),
+                "sc01": is_sc01,
+                "sc02": is_sc02,
+            },
         )
 
         handoff = HandoffRecord(

@@ -1,6 +1,7 @@
 """理赔案件领域模型（内存夹具）。
 
-Rewrote from: REF-MISSIONS（models_domain 换理赔域）；SC-01 补件/裁决字段 REF-COURSE-03
+Rewrote from: REF-MISSIONS（models_domain 换理赔域）；SC-01 补件/裁决字段 REF-COURSE-03；
+SC-02 拒赔/人闸/appeal_path REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -44,6 +45,9 @@ class DecisionDraft:
     human_latch_token: str | None = None
     citations: list[dict[str, Any]] = field(default_factory=list)
     calc_steps: list[dict[str, Any]] = field(default_factory=list)
+    # 拒赔草案必填：申诉/人工复核入口
+    appeal_path: str | None = None
+    reason_summary: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         body: dict[str, Any] = {
@@ -65,6 +69,10 @@ class DecisionDraft:
             body["supplement_checklist"] = []
         if self.remaining_missing:
             body["remaining_missing"] = [i.to_dict() for i in self.remaining_missing]
+        if self.appeal_path is not None:
+            body["appeal_path"] = self.appeal_path
+        if self.reason_summary is not None:
+            body["reason_summary"] = self.reason_summary
         return body
 
 
@@ -82,9 +90,14 @@ class ClaimCase:
     image_ids: list[str] = field(default_factory=list)
     # 已登记材料码（确定性轨材料齐全断言）
     material_codes: list[str] = field(default_factory=list)
+    # 出险原因码：accident | disease_fall（SC-02 除外）
+    loss_cause: str = "accident"
     gate_status: str = "MATERIALS_INTAKE"
     inference_track: str = "deterministic"
     # 冻结的一次补件指纹与完整清单
     frozen_one_shot_hash: str | None = None
     frozen_checklist_codes: list[str] = field(default_factory=list)
     latest_decision: DecisionDraft | None = None
+    # 人闸令牌与批准人（拒赔对外通知绑定）
+    human_latch_token: str | None = None
+    human_approver: str | None = None

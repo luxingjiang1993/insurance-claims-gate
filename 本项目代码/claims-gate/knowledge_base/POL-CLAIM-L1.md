@@ -24,3 +24,14 @@
 
 客户补齐后重评可产出通赔建议（approve_recommend）裁决草案；
 未取得人闸令牌前 payout_ready 必须为 false。补件文书 DRAFT_EXPORT 可无人闸导出。
+
+## POL-CLAIM-003 除外拒赔草案与文书分态人闸
+条款项: POL-CLAIM-003
+
+疾病导致摔伤等除外案须产出拒赔草案（reject_draft），责任/除外引用须落库到条款项
+（doc_id + clause_item + doc_version）；拒赔文书须含 appeal_path。
+
+文书效力分态：DRAFT_EXPORT 可无人闸供内部预览；升 EXTERNAL_NOTIFY 必须持有有效
+human_latch_token，否则 API 拒绝（LATCH_REQUIRED 或 DOCUMENT_STATUS_FORBIDDEN）。
+无人闸时 payout_ready 恒为 false；人闸批准后可对外通知语义，但仍不触发银企出款。
+人闸驳回后回编辑态可再提。叙事禁止以「秒赔」包装责任争议案。
