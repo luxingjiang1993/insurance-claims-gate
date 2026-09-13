@@ -17,9 +17,11 @@
 同时满足：
 
 1. 本期 Issues `01`–`09` 轨 A 合门禁稳定（或书面豁免剩余票）。  
-2. 人类决定开扩面立项（新 PRD 切片或 SPEC 大修订）。  
-3. 下文 **N 标准** 中拟放松项已写入 `Managerial System/Constitution/` 附录或修订正文。  
-4. 新 `REF_*`（若入库代码）已登记进 `ref-projects.md` 全量目录，路径落在 `历史项目代码供参考/`。
+2. **当前阶段剩余 DoD 已关闭：** `docs/agents/current-phase-remaining.md` §1（Issues `10`–`13` resolved + 轨 A 绿 + 用户手册已同步）。个人开发可将真实用户基线等按该文 §0 延后，**不得**用延后项代替 10–13。  
+3. 人类决定开扩面立项（新 PRD 切片或 SPEC 大修订）。  
+4. 下文 **N 标准** 中拟放松项已写入 `Managerial System/Constitution/` 附录或修订正文。  
+5. 新 `REF_*`（若入库代码）已登记进 `ref-projects.md` 全量目录，路径落在 `历史项目代码供参考/`。  
+6. 阶段 2 用户可见能力合入时同步 `docs/user/`（见 `docs/user/MAINTENANCE.md`）。
 
 ---
 
@@ -120,6 +122,7 @@ Gorilla、ToolLLM、mcp-marketplace：仅协议/数据形态阅读，不进改�
 |--------|------|-------------|
 | P0 | 冻结清单一入库上限 | **已写入** `ref-projects.md` |
 | P0 | N1 必须带独立质量门与数值化门槛 | 本文 §2.1；升格时进 SPEC |
+| P0 | 当前阶段剩余 10–13 + 个人延后表 | **已写入** `current-phase-remaining.md` |
 | P1 | 清单二首批只批 2 仓 | 本文 §3.1 |
 | P1 | Gorilla / ToolLLM / marketplace 移出改写列 | **已写入** `ref-projects.md` |
 | P2 | N 标准写入 Constitution 附录 | 本文 §4 步骤 1 |
@@ -129,3 +132,4 @@ Gorilla、ToolLLM、mcp-marketplace：仅协议/数据形态阅读，不进改�
 ## 6. 修订记录
 
 - 2026-09-13：初稿。基于两份清单分类 + 硅谷技术合成评委会终稿建议落盘，供未来正式文档参考。
+- 2026-09-13：§1 增补门禁 —— 须先完成 `current-phase-remaining.md`（Issues 10–13）；真实用户实测可按该文延后。

@@ -10,8 +10,10 @@
 4. 若已存在：`Managerial System/SPEC/insurance-claims-gate/spec.md` 与对应 Issues
 5. `docs/agents/issue-tracker.md` — tickets 落盘约定
 6. 改写前读：`docs/agents/ref-projects.md`（`REF_*` ID、本期剩余与入库上限）；主基线 **`REF-MISSIONS`** = `历史项目代码供参考/project 多agent/`（只读）
+6b. 当前阶段剩余 / 进阶段 2 前：`docs/agents/current-phase-remaining.md`（Issues 10–13；真实用户项可延后）
 7. 若已存在：对应 Issues；票内应含 `ref_id:` 字段
-8. 扩面 / 第二阶段仅作草案参考：`docs/agents/ref-projects-phase2-supplement.md`（**未写入 Constitution/PRD/SPEC 前不得按草案放松 I1–I8**）
+8. 扩面 / 第二阶段仅作草案参考：`docs/agents/ref-projects-phase2-supplement.md`（**未写入 Constitution/PRD/SPEC 前不得按草案放松 I1–I8**；且须先满足 `current-phase-remaining.md` DoD）
+9. 用户可见操作 / 阶段交付说明：`docs/user/USER_GUIDE.md`（Changelog：`docs/user/CHANGELOG.md`；更新义务：`docs/user/MAINTENANCE.md`）
 
 ## 写边界
 
@@ -20,6 +22,7 @@
 | 产品代码 | `本项目代码/claims-gate/` |
 | 管理真源 | `Managerial System/`（PRD / SPEC / Issues / Background / Value / Sources / Constitution） |
 | Agent 约定 | `AGENTS.md`、`CONTEXT.md`、`docs/agents/` |
+| 用户手册 | `docs/user/`（操作指南 / Changelog；维护见该目录 `MAINTENANCE.md`） |
 
 | 只读（禁止当交付修改） | 路径 |
 |------------------------|------|
@@ -39,6 +42,12 @@
 `PRD` → `SPEC/insurance-claims-gate/spec.md` → `Issues/insurance-claims-gate/NN-*.md` → 实现（日后 git / PR）。  
 未写 SPEC 前不要切实现票；未人闸令牌不得设计自动出款。
 
+## 用户手册（阶段完结必同步）
+
+- 真源：`docs/user/USER_GUIDE.md`；索引 `docs/user/README.md`；变更 `docs/user/CHANGELOG.md`。
+- **阶段 DoD 关闭前**、以及 **用户可见 API/作业流/人闸/文书行为合入时**，必须按 `docs/user/MAINTENANCE.md` 更新手册与 Changelog；不得只改代码不改用户文档。
+- 手册只写已交付或明确 `Deferred` 的能力；禁止把轨 B / 延后项写成已上线作业台。
+
 ## Agent skills
 
 ### Issue tracker
@@ -48,6 +57,10 @@
 ### Domain docs
 
 single-context：根目录 `CONTEXT.md`；设计哲学在 `Managerial System/Constitution/`。ADR 仅在难逆、意外、有真实权衡时再写。
+
+### User docs
+
+对外/作业操作说明在 `docs/user/`；与 PRD/SPEC 分离。Resolve 用户可见票或关闭阶段时读 `docs/user/MAINTENANCE.md`。
 
 ## 硬禁区（与 PRD Won't / 哲学对齐）
 

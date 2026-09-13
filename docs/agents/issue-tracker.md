@@ -13,6 +13,8 @@
 - 需求真源 PRD：`Managerial System/PRD/`（本 tracker 不存放 PRD）
 - Triage 状态：每个 issue 文件顶部附近一行 `Status:`（词汇见本机 `setup-matt-pocock-skills/triage-labels.md`，若已安装 triage skill）
 - 评论：文件末尾 `## Comments` 下追加
+- 当前阶段剩余 / 进阶段 2：`docs/agents/current-phase-remaining.md`（与 `Issues/insurance-claims-gate/10`–`13` 对齐）
+- 用户操作手册：`docs/user/`（阶段 DoD / 用户可见 Resolve 时必同步）
 
 ## When a skill says "publish to the issue tracker"
 
@@ -30,6 +32,7 @@
 - **Frontier**：扫描目录中 open、未阻塞、未 claimed 的文件；编号小者优先
 - **Claim**：开工前先写 `Status: claimed` 并保存
 - **Resolve**：在 `## Answer` 下写结论，`Status: resolved`，并在 map 的 Decisions-so-far 追加指针（若有 map）
+- **用户手册（若本票改变用户可见行为）**：按 `docs/user/MAINTENANCE.md` 更新 `USER_GUIDE.md` 与 `CHANGELOG.md` Unreleased；阶段关闭时再折叠进对应 Phase 节。纯内部重构可跳过
 
 ## Implement-spec 对齐
 

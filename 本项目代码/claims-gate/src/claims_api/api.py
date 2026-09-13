@@ -175,6 +175,18 @@ def _http_domain_error(exc: ClaimsDomainError) -> HTTPException:
     return HTTPException(status_code=status, detail=detail)
 
 
+@app.get("/")
+def root() -> dict:
+    """入口说明：浏览器打开根路径时返回可用入口，避免误判服务未启动。"""
+    return {
+        "product": "Claims Gate",
+        "status": "ok",
+        "docs": "/docs",
+        "health": "/health",
+        "hint": "试用夹具: GET /claims/CLM-SC01-001 ；OpenAPI: /docs",
+    }
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok", "inference_track": "deterministic"}

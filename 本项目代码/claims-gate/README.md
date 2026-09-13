@@ -4,6 +4,7 @@
 
 - 需求真源：`Managerial System/PRD/PRD_02_INSURANCE_CLAIMS_GATE.md`
 - 工程真源：`Managerial System/SPEC/insurance-claims-gate/spec.md`
+- 用户操作手册：`docs/user/USER_GUIDE.md`（Changelog：`docs/user/CHANGELOG.md`）
 - 参考项目 ID：`docs/agents/ref-projects.md`（主基线 **`REF-MISSIONS`**）
 - 术语：`CONTEXT.md`
 - Agent 约定：`AGENTS.md`
@@ -162,7 +163,9 @@
 
 - `src/claims_api/demo_sc.py`：TestClient + 同语义 `machine_check` 跑 SC-01/02/03；失败非零退出
 - 可选 `--extras`：拆轮拒绝 / 无人闸 EXTERNAL_NOTIFY 负例
-- 一键入口：`python scripts/run_sc_demo.py`（或 `python -m claims_api.demo_sc`，需将 `src` 加入 PYTHONPATH）
+- 一键入口（在 `本项目代码/claims-gate` 下）：`python scripts/run_sc_demo.py`
+- 也可在**仓库根**执行：`python scripts/run_sc_demo.py`（根目录转发脚本）
+- 或：`python -m claims_api.demo_sc`（需将 `claims-gate/src` 加入 PYTHONPATH）
 - 不引入 L3/支付；不依赖真实 OCR/核心
 
 ## 当前阶段剩余（进阶段 2 前）
@@ -173,10 +176,16 @@ Issues **10–13** 已落地。清单与延后项见仓库
 ## 运行
 
 ```bash
+# —— 仓库根目录（推荐）——
+pip install -r "本项目代码/claims-gate/requirements.txt"
+python scripts/run_api.py
+python scripts/run_sc_demo.py
+python scripts/run_sc_demo.py --extras
+
+# —— 或在 本项目代码/claims-gate 目录 ——
 pip install -r requirements.txt
 uvicorn claims_api.api:app --app-dir src --reload
 pytest -q
-# 个人验收 Solo SC Demo（一条命令）：
 python scripts/run_sc_demo.py
 # 可选负例：
 python scripts/run_sc_demo.py --extras
@@ -186,3 +195,5 @@ pytest -m track_llm_optional -q
 pytest -m eval_bypass -q
 python -m missions.eval_entry
 ```
+
+勿在仓库根直接执行 `uvicorn ... --app-dir src`（会找不到 `claims_api`）；请用 `python scripts/run_api.py` 或先 `cd` 进 `claims-gate`。

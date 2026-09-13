@@ -425,10 +425,13 @@ Ledger 必记：`route_id`, `retrieval_profile`, `tool_acl_scope`, `decision_typ
 | M0b SPEC | Week 0–1 | `SPEC/insurance-claims-gate/spec.md`；再切 Issues tickets |
 | M1 契约 | Week 1–2 | validation contract + 条款 KB 首版 |
 | M2 Demo | Week 3–5 | SC-01/02/03 + 文书导出 |
+| M2b 当前阶段剩余 | （个人） | Issues 10–13；见 `docs/agents/current-phase-remaining.md` |
 | M3 金标 | Week 3–6 | ≥300 金标；首次全量打分 |
 | M4 基线 | Week 1–4 | OUT 基线实测（与 M1–M3 并行） |
 | M5 试点 | Week 6–11 | L2 灰度；周回归 |
 | M6 决策 | Week 12 | ROI 卡片；Go/No-Go |
+
+**个人开发说明（2026-09-13）：** 无真实作业中心用户时，**M3 全量 / M4 实测延后**，不阻塞 M2b 完成与阶段 2 工程启动；§14 A1–A5 继续沿用试点默认直至具备客户签字条件。M2b 以机检入口、合成抽检占位、轨 B 最小检索与 Solo Demo 脚本代替真实用户验收。
 
 ---
 
