@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "validation_contract.schema.json",
+  "title": "ValidationContract",
+  "description": "编排者在实现前写出的行为断言契约；验收标准不得从实现方生长出来。非法契约入账前硬停。",
+  "type": "object",
+  "required": ["mission_id", "title", "goal", "version", "assertions", "created_by", "source_citations"],
+  "properties": {
+    "mission_id": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "goal": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "created_by": { "const": "orchestrator" },
+    "created_at": { "type": "string" },
+    "grade_threshold": { "type": "string", "default": "all_assertions_pass" },
+    "max_validation_rounds": { "type": "integer", "minimum": 1, "default": 5 },
+    "inference_track": {
+      "type": "string",
+      "enum": ["deterministic", "llm_optional"],
+      "default": "deterministic"
+    },
+    "broadcast_constraints": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "assertions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/assertion" }
+    },
+    "source_citations": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/citation" }
+    }
+  },
+  "$defs": {
+    "citation": {
+      "type": "object",
+      "required": ["doc_id", "chunk_id", "clause_id", "quote", "score"],
+      "properties": {
+        "doc_id": { "type": "string" },
+        "chunk_id": { "type": "string" },
+        "clause_id": { "type": "string" },
+        "title": { "type": "string" },
+        "quote": { "type": "string", "minLength": 1 },
+        "score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "doc_version": { "type": "string" },
+        "retrieved_by": { "type": "string" },
+        "retrieval_profile": { "type": "string" }
+      }
+    },
+    "assertion": {
+      "type": "object",
+      "required": ["id", "behavior", "policy_clause_id", "acceptance", "machine_check"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^A-[0-9]{3}$" },
+        "behavior": { "type": "string" },
+        "policy_clause_id": { "type": "string" },
+        "acceptance": { "type": "string" },
+        "machine_check": {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "type": "string", "minLength": 1 },
+            "params": { "type": "object" }
+          },
+          "description": "Validator 按 type 分发执行，禁止按 assertion.id 写死分支"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "passed", "failed"],
+          "default": "pending"
+        },
+        "claimed_by_features": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

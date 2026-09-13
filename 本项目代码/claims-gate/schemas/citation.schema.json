@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "citation.schema.json",
+  "title": "RagCitation",
+  "description": "RAG 检索引用：合同断言与验收必须能回溯到知识库片段。",
+  "type": "object",
+  "required": ["doc_id", "chunk_id", "clause_id", "quote", "score"],
+  "properties": {
+    "doc_id": { "type": "string" },
+    "chunk_id": { "type": "string" },
+    "clause_id": { "type": "string" },
+    "title": { "type": "string" },
+    "quote": { "type": "string", "minLength": 1 },
+    "score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "doc_version": { "type": "string" },
+    "retrieved_by": {
+      "type": "string",
+      "enum": ["orchestrator", "worker", "validator", "research"]
+    },
+    "retrieval_profile": { "type": "string" }
+  }
+}

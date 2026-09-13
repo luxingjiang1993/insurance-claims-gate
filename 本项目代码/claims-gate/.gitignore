@@ -1,0 +1,12 @@
+# 运行产物（勿提交）
+artifacts/*
+!artifacts/.gitkeep
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/

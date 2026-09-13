@@ -1,6 +1,6 @@
 # 01: Missions 换垂直脚手架 + 理赔 HTTP 空壳 + machine_check 分发器
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Blocked by:** None (can start immediately)
 
@@ -32,16 +32,17 @@
 
 ## Acceptance criteria
 
-- [ ] `claims-gate` 可启动；L1 只读可返回案件号、保单号、条款版本、出险日等最低字段，门禁态可达 `MATERIALS_INTAKE`
-- [ ] Orchestrator → Worker → Validator 空回路可跑；非法 validation contract 不得开工（JSON Schema 硬停）
-- [ ] `machine_check` 分发器按 `type` + `params` 执行，不存在按断言 ID（如 A-00x）硬编码开关
-- [ ] 默认响应/契约标注 `inference_track=deterministic`；支付类工具默认无权限
-- [ ] 最小 `error_code` 表已登记（至少含 `VALIDATION_FAILED`、`LATCH_REQUIRED`、`CITATION_NOT_IN_KB`、`DOCUMENT_STATUS_FORBIDDEN`、`MASTER_DATA_MISMATCH` 的占位语义）
-- [ ] 实现只写入约定产品代码根；历史参考仓保持只读；handoff 含 `Rewrote from: REF-MISSIONS`
+- [x] `claims-gate` 可启动；L1 只读可返回案件号、保单号、条款版本、出险日等最低字段，门禁态可达 `MATERIALS_INTAKE`
+- [x] Orchestrator → Worker → Validator 空回路可跑；非法 validation contract 不得开工（JSON Schema 硬停）
+- [x] `machine_check` 分发器按 `type` + `params` 执行，不存在按断言 ID（如 A-00x）硬编码开关
+- [x] 默认响应/契约标注 `inference_track=deterministic`；支付类工具默认无权限
+- [x] 最小 `error_code` 表已登记（至少含 `VALIDATION_FAILED`、`LATCH_REQUIRED`、`CITATION_NOT_IN_KB`、`DOCUMENT_STATUS_FORBIDDEN`、`MASTER_DATA_MISMATCH` 的占位语义）
+- [x] 实现只写入约定产品代码根；历史参考仓保持只读；handoff 含 `Rewrote from: REF-MISSIONS`
 
 
 
 ## Comments
 
 - 2026-09-13：to-tickets 批准 defaults 后落盘。
+- 2026-09-13：Issue 01 实现完成（`本项目代码/claims-gate/`）；Rewrote from: REF-MISSIONS；评审 Important 已修（artifacts 隔离 + ACL 挂接只读入口）。
 
