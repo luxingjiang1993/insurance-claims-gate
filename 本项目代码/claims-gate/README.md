@@ -139,14 +139,26 @@
 - `artifacts/spot_check_sample_sc01.json`：基于 SC-01 的合成样例行（演示填法）
 - `src/missions/spot_check.py`：加载表 + 计算一致率占位（评估流水线外形）
 
+## Issue 12 轨 B 最小检索起草（RAG-CY）
+
+`Rewrote from: REF-RAG-CY, REF-MISSIONS, REF-CASE-HYBRID`
+
+**最小可跑前置，非完整质量门。** 完整方差预算 / 金标门槛数值化仍属 SPEC P2-4（open）；本票只交付隔离目录内「检索 → 辅助起草」。
+
+已落地：
+
+- `missions/track_llm_optional/retrieval.py`：检索入口（复用保险 KB + `retrieval_profiles`，含 `endorsement_priority`）
+- `missions/track_llm_optional/pipeline.py`：`draft_assist` → 产物含 `inference_track=llm_optional`；默认 `enable_llm=False` 确定性假检索
+- 规则 vs RAG 冲突 → `human_latch_required` + `R-CONFLICT-RULES-RAG`；`handbook_ops` 不得单独支撑对外拒赔
+- 测试：`tests/track_llm_optional/test_min_rag_draft.py`（仅 `-m track_llm_optional`）；失败不阻断轨 A `pytest -q`
+
 ## 当前阶段剩余（进阶段 2 前）
 
-Issues **12–13** 尚未实现。清单与延后项见仓库  
+Issue **13** 尚未实现。清单与延后项见仓库  
 `docs/agents/current-phase-remaining.md`。
 
 | NN | 主题 | 主 ref |
 |----|------|--------|
-| 12 | 轨 B 最小 RAG | `REF-RAG-CY` |
 | 13 | Solo SC Demo 脚本 | `REF-MISSIONS` |
 
 ## 运行
@@ -155,7 +167,7 @@ Issues **12–13** 尚未实现。清单与延后项见仓库
 pip install -r requirements.txt
 uvicorn claims_api.api:app --app-dir src --reload
 pytest -q
-# 显式跑轨 B 占位（不并入默认合门禁）：
+# 显式跑轨 B 最小 RAG（不并入默认合门禁）：
 pytest -m track_llm_optional -q
 # 显式跑 eval 负例旁路（不替代 machine_check）：
 pytest -m eval_bypass -q

@@ -1,9 +1,9 @@
-"""轨 B（llm_optional）隔离配置占位。
+"""轨 B（llm_optional）隔离配置。
 
 方差、重试与人闸策略独立于轨 A；失败不得阻断轨 A 合门禁。
-本期不交付完整 RAG/LLM 质量门。
+完整方差预算 / 金标门槛数值化仍属 P2-4；Issues 12 仅最小检索起草可跑。
 
-Rewrote from: REF-CASE-HYBRID, REF-MISSIONS
+Rewrote from: REF-RAG-CY, REF-MISSIONS, REF-CASE-HYBRID
 """
 
 from __future__ import annotations
