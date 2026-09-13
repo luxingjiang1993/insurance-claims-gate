@@ -1,0 +1,16 @@
+{
+  "docs_note": "合成样例行：演示填法；非真实核赔员；真实用户/金标运营延后；不阻塞轨 A",
+  "judge_human_agreement": 1.0,
+  "rewrote_from": "REF-CASE-EVAL-ADVISOR, REF-MISSIONS",
+  "rows": [
+    {
+      "case_id": "CLM-SC01-001",
+      "system_decision": "supplement",
+      "synthetic_label_a": "supplement",
+      "synthetic_label_b": "supplement",
+      "synthetic_adjudication": "supplement",
+      "agrees_with_system": true,
+      "notes": "合成演练：SC-01 缺件一次补件路径；标注 A/B 与系统一致"
+    }
+  ]
+}

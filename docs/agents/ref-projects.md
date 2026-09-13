@@ -45,13 +45,24 @@
 
 | ref_id | 占用票 |
 |--------|--------|
-| `REF-MISSIONS` | 01–09（主基线；各票均含或合门禁依赖） |
+| `REF-MISSIONS` | 01–09（主基线；各票均含或合门禁依赖）；**10–13 亦含** |
 | `REF-COURSE-03` | 03 |
 | `REF-CASE-KB` | 02、05 |
 | `REF-COURSE-04` | 05 |
 | `REF-COURSE-12` | 07 |
-| `REF-CASE-HYBRID` | 07、09 |
+| `REF-CASE-HYBRID` | 07、09、**12** |
 | `REF-CASE-FC` | 08 |
+
+## Issues 10–13 占用（当前阶段剩余 · 清单一消费）
+
+| ref_id | 占用票 | 说明 |
+|--------|--------|------|
+| `REF-CASE-OPENEVALS` | **10** | eval/负例旁路；不替代 machine_check |
+| `REF-CASE-EVAL-ADVISOR` | **11** | P1-7 合成抽检占位 |
+| `REF-RAG-CY` | **12** | 轨 B 最小检索；不得进轨 A CI |
+| `REF-MISSIONS` | 10–13 | 主基线合门禁/Demo |
+
+进阶段 2 前门禁：`docs/agents/current-phase-remaining.md`。
 
 ---
 
@@ -62,11 +73,11 @@
 
 | 候选 | 状态 | 可补缺口 | 建议用法 |
 |------|------|----------|----------|
-| `REF-RAG-CY` | 允许 | 轨 B 检索+生成；强化 Issue 09 占位 | 只读补 09 或另开「轨 B 最小检索」；**不得进轨 A CI** |
-| `REF-CASE-RECALL` | 允许 | 混合召回；检索画像质量 | 挂轨 B 或独立检索票；证明不破坏效力栈 |
-| `REF-CASE-OPENEVALS` | 允许 | 评估器 / 负例入口 | 新票：机检负例与 eval 外形；不替代 `machine_check` |
-| `REF-CASE-EVAL-ADVISOR` | 允许 | 金标 / Judge–human 抽检占位（P1-7） | 新票；不阻塞轨 A 绿门 |
-| `REF-CASE-MCP` **或** FastMCP 外形 | 允许（二选一） | 工具协议 / 异步工具 ACL | 仅当要显式 MCP 工具面时；对照改写即可，FastMCP **不必整仓入库** |
+| `REF-RAG-CY` | **已切票 12** | 轨 B 检索+生成 | 实现 12；**不得进轨 A CI** |
+| `REF-CASE-RECALL` | 允许（非 DoD） | 混合召回；检索画像质量 | 可选；阶段 2 前可不做 |
+| `REF-CASE-OPENEVALS` | **已切票 10** | 评估器 / 负例入口 | 实现 10 |
+| `REF-CASE-EVAL-ADVISOR` | **11 resolved** | 金标 / Judge–human 抽检占位（P1-7） | 已实现合成表；金标全量仍延后 |
+| `REF-CASE-MCP` **或** FastMCP 外形 | 允许（非 DoD） | 工具协议 / 异步工具 ACL | 当前阶段可不做 |
 
 **本期明确不要新开改写票：** `REF-OPENMANUS-*` 作主中继、Browser Use / GUI、SWE-agent / Aider 进产品域、llama.cpp / vLLM / Ollama 当业务改写源、E2B、微调栈、CrewAI / AgentScope 主编排、RAGFlow / Letta / LightRAG 整仓、Dify 主链。
 

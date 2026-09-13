@@ -7,7 +7,7 @@
 | Status | `ready-for-agent` |
 | 主测试接缝 | HTTP 黑盒 + `machine_check` 类型注册表（人闸令牌与 KB 引用门为支撑） |
 | 术语 | 见仓库根 `CONTEXT.md` |
-| 修订 | `2.3` — REF 本期剩余/入库上限与扩面补充文档指针（评委会终稿） |
+| 修订 | `2.4` — 同步已落地 P1；切当前阶段剩余票 10–13；真实用户/基线延后；进阶段 2 门禁见 `docs/agents/current-phase-remaining.md` |
 | 参考目录 | `docs/agents/ref-projects.md` |
 
 ---
@@ -194,28 +194,33 @@ ValidationContract.assertions[]
 
 | ID | 摘要 | 建议消费方式 | 状态 |
 |----|------|--------------|------|
-| P1-1 | Router = 确定性策略表（硬层），禁止写成独立 LLM「核赔角色」 | Issues：脚手架/Router 票正文写死；User Story 40 实现时降级为表驱动 | `open` |
-| P1-2 | Validation contract 入账前 JSON Schema 硬停；非法契约不得开工 | Issues：契约/Orchestrator 票 | `open` |
-| P1-3 | 间接提示注入负例：OCR/备注含提权文案不得翻转 `human_latch_required` / `payout_ready` | Issues：威胁模型 machine_check 负例票 | `applied` |
-| P1-4 | 冻结最小 `error_code` 表（如 `MASTER_DATA_MISMATCH`、`VALIDATION_FAILED`、`LATCH_REQUIRED`、`CITATION_NOT_IN_KB`、`DOCUMENT_STATUS_FORBIDDEN`） | Issues：API 合约票 | `open` |
-| P1-5 | User Stories 分 Must-for-MVP（SC+人闸+引用+双轨+文书态）与 Should；首批 tickets 只吃 Must | 切票时过滤；可选在本 SPEC 加 Must 标签附录 | `done` → `Issues/insurance-claims-gate/`（01–05 Must 绿门；06–09 Should/支撑） |
-| P1-6 | MVP 削面：SC 三夹具 + 核心 machine_check + 人闸 + 最小 KB；Router 仲裁可先硬编码 SC 路径再表格化 | 切票排序：先 SC 绿门，后 Router 全表 | `done` → Issues 03–05 先于 07 |
-| P1-7 | Judge–human 抽检占位：预留一致率字段/手工表（每周 N 案）；不阻塞机器绿门 | Issues：金标/回归入口票；对齐 PRD §9 | `open` |
-| P1-8 | Citation 可选增强：摘录哈希或字符偏移（决策 17 已标可选） | 扩面或逃逸修复时 | `open` |
+| P1-1 | Router = 确定性策略表（硬层），禁止写成独立 LLM「核赔角色」 | Issues 07 | `done` → `Issues/…/07-router-table-ledger.md` |
+| P1-2 | Validation contract 入账前 JSON Schema 硬停；非法契约不得开工 | Issues 01 | `done` → `Issues/…/01-missions-scaffold-claims-api.md` |
+| P1-3 | 间接提示注入负例：OCR/备注含提权文案不得翻转 `human_latch_required` / `payout_ready` | Issues 09 | `applied` → `09-track-b-isolation-threat-negatives.md` |
+| P1-4 | 冻结最小 `error_code` 表 | Issues 01（骨架）+ 域映射 | `done` → `01` / `error_codes.py` |
+| P1-5 | User Stories 分 Must / Should；首批只吃 Must | 切票过滤 | `done` → Issues 01–05 Must；06–09 Should |
+| P1-6 | MVP 削面：SC 三夹具优先于 Router 全表 | 切票排序 | `done` → 03–05 先于 07 |
+| P1-7 | Judge–human 抽检占位（一致率字段/手工表）；不阻塞机器绿门 | Issues 11（**合成**表；真实用户延后） | `done` → `Issues/…/11-judge-human-spotcheck-placeholder.md` |
+| P1-8 | Citation 可选增强：摘录哈希或字符偏移 | 扩面或逃逸修复 | `open`（非当前阶段 DoD） |
 
 ### P2（扩面 / 运营里程碑）
 
 | ID | 摘要 | 建议消费方式 | 状态 |
 |----|------|--------------|------|
-| P2-1 | ≥300 人工金标全量与周回归运营（PRD M3/M5） | 试点运营里程碑；非本 SPEC 完成定义 | `open` |
-| P2-2 | 真连客户核心 L2 / 现网枚举关闭 A2 | 上线前；依赖客户填空 | `open` |
-| P2-3 | 真实 OCR 供应商接入（替换夹具影像元数据） | 另票；保持 machine_check 黑盒不变 | `open` |
-| P2-4 | 轨 B（`llm_optional`）独立质量门与方差预算 | 确定性轨稳定后；不得并入默认 CI 绿 | `open` |
-| P2-5 | 完整生产凭证代理、多租户 Mission Control、监管报送 | Out of Scope 维持；另立项 | `open` |
-| P2-6 | Tracker 迁 GitHub Issues（local → remote） | 建 git remote 后跑 setup-matt-pocock-skills | `open` |
-| P2-7 | REF 扩面：N1–N11 修宪附录 + 首批至多 2 仓入库（LightRAG/RAGFlow 解析旁路与可观测二选一组合） | 消费 `docs/agents/ref-projects-phase2-supplement.md` → Constitution 附录 / 新 PRD / 本 SPEC 修订后再切票 | `open` |
+| P2-1 | ≥300 人工金标全量与周回归运营（PRD M3/M5） | 需真实标注组 | `deferred-solo`（个人开发延后；入口见 Issues 10/11） |
+| P2-2 | 真连客户核心 L2 / 现网枚举关闭 A2 | 上线前；依赖客户 | `deferred-solo` |
+| P2-3 | 真实 OCR 供应商接入 | 另票 | `deferred-solo` |
+| P2-4 | 轨 B 独立质量门与方差预算（数值化） | Issues 12 仅最小检索前置；完整门仍 open | `open`（12=`min-preq`） |
+| P2-5 | 完整生产凭证代理、多租户 Mission Control、监管报送 | Out of Scope | `open` |
+| P2-6 | Tracker 迁 GitHub Issues | 建 remote 后 | `open` |
+| P2-7 | REF 扩面 N1–N11 + 至多 2 仓 | phase2-supplement → 修宪后 | `blocked-by-current-phase`（须先完成 `current-phase-remaining.md` DoD） |
 
 **消费规则：** 开 Issues 时在票首引用 `Backlog: P1-x` / `P2-x`；完成后把上表状态改为 `done` 并写 `→ Issues/…/NN-….md`。
+
+### 当前阶段剩余（个人 · 进阶段 2 前）
+
+见 `docs/agents/current-phase-remaining.md`。强制票：**10**（OPENEVALS 旁路）、**11**（P1-7 合成抽检）、**12**（RAG-CY 轨 B 最小）、**13**（Solo SC Demo 脚本）。  
+真实用户 OUT 基线 / 作业 UI / §14 客户签字：**不**纳入本阶段 DoD。
 
 ---
 
@@ -226,3 +231,4 @@ ValidationContract.assertions[]
 - 2026-09-13：SPEC 修订 2.2 — 增加 Reference Projects 与决策级 `REF_*`；目录见 `docs/agents/ref-projects.md`。
 - 2026-09-13：to-tickets 落盘 `Issues/insurance-claims-gate/01`–`09`；消费 P1-5/P1-6。
 - 2026-09-13：SPEC 修订 2.3 — 挂载 REF 本期剩余/入库上限与扩面补充文档；Backlog 增 P2-7；对齐硅谷技术合成评委会终稿（清单一通过、清单二有条件通过）。
+- 2026-09-13：SPEC 修订 2.4 — P1-1/2/4 与代码对齐为 done；切 Issues 10–13；P2-1/2/3 标 `deferred-solo`；进阶段 2 门禁挂 `current-phase-remaining.md`。

@@ -1,6 +1,8 @@
-# 运行产物（勿提交）
+# 运行产物（勿提交）；抽检模板/样例为例外（Issue 11 交付物）
 artifacts/*
 !artifacts/.gitkeep
+!artifacts/spot_check_template.md
+!artifacts/spot_check_sample_sc01.json
 .pytest_cache/
 __pycache__/
 *.py[cod]

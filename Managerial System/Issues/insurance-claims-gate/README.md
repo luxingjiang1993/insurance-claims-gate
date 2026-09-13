@@ -16,15 +16,13 @@
 
 |----|------|------------|
 
-| 11 | `11-judge-human-spotcheck-placeholder.md` | 10（已 resolved） |
-
 | 12 | `12-track-b-min-rag.md` | 09（已 resolved） |
 
 | 13 | `13-solo-sc-demo-script.md` | 08, 09（已 resolved） |
 
 
 
-**建议顺序：** 11 → 12 与 13 可并行（不同目录时注意写锁）。
+**建议顺序：** 12 与 13 可并行（不同目录时注意写锁）。
 
 
 
@@ -56,7 +54,7 @@
 
 | 10 | Eval / 机检负例入口（不替代 machine_check） | 09 | resolved |
 
-| 11 | Judge–human 合成抽检占位（P1-7） | 10 | open |
+| 11 | Judge–human 合成抽检占位（P1-7） | 10 | resolved |
 
 | 12 | 轨 B 最小检索起草（RAG-CY） | 09 | open |
 

@@ -1,6 +1,7 @@
 """Validator：HTTP 黑盒 + contract.machine_check；只报问题，不改产品代码。
 
-Rewrote from: REF-MISSIONS（missions/validator.py）
+Rewrote from: REF-MISSIONS（missions/validator.py）；
+P1-7 一致率占位字段 Rewrote from: REF-CASE-EVAL-ADVISOR, REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -30,6 +31,8 @@ class ValidationReport:
     failed_assertions: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     citations_count: int = 0
+    # P1-7：Judge–human 一致率占位；缺省 null，不阻塞机器绿门
+    judge_human_agreement: float | None = None
 
 
 class Validator:
@@ -124,6 +127,8 @@ class Validator:
             extra={
                 "passed": report.passed,
                 "failed_assertions": report.failed_assertions,
+                # 占位：缺省 null；可由合成抽检表事后填入，不参与合门禁
+                "judge_human_agreement": report.judge_human_agreement,
             },
         )
         return state, report

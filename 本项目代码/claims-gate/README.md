@@ -126,14 +126,26 @@
 - `tests/eval/` 契约测试进默认 CI；套件 `-m eval_bypass`（不并入合门禁）
 - 脚本：`python -m missions.eval_entry`（需 PYTHONPATH 含 `src`）
 
+## Issue 11 Judge–human 合成抽检占位（P1-7）
+
+`Rewrote from: REF-CASE-EVAL-ADVISOR, REF-MISSIONS`
+
+**占位，不阻塞轨 A。** 真实核赔员 / 真实用户实测 / ≥300 金标运营**延后**；合成表不得冒充金标。
+
+已落地：
+
+- `ValidationReport.judge_human_agreement`（缺省 `null`）；`validation_done` 事件可挂同名字段
+- `artifacts/spot_check_template.md`：手工抽检表模板（case_id / 系统裁决 / 合成双标+裁决 / 是否一致 / 备注）
+- `artifacts/spot_check_sample_sc01.json`：基于 SC-01 的合成样例行（演示填法）
+- `src/missions/spot_check.py`：加载表 + 计算一致率占位（评估流水线外形）
+
 ## 当前阶段剩余（进阶段 2 前）
 
-Issues **11–13** 尚未实现。清单与延后项见仓库  
+Issues **12–13** 尚未实现。清单与延后项见仓库  
 `docs/agents/current-phase-remaining.md`。
 
 | NN | 主题 | 主 ref |
 |----|------|--------|
-| 11 | 合成 Judge–human 抽检占位 | `REF-CASE-EVAL-ADVISOR` |
 | 12 | 轨 B 最小 RAG | `REF-RAG-CY` |
 | 13 | Solo SC Demo 脚本 | `REF-MISSIONS` |
 
