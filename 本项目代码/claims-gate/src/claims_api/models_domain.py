@@ -177,6 +177,9 @@ class ClaimCase:
     sensitivity_flags: list[str] = field(default_factory=list)
     freeze_active: bool = False
     peak_degraded: bool = False
+    # Issue 09：用户可控文本（OCR/备注）— 仅收纳可观察，不得改写人闸
+    ocr_text: str = ""
+    customer_remark: str = ""
     # Issue 08：核心主数据快照；缺省由服务层按案件字段自洽填充
     core_master: CoreMasterSnapshot | None = None
     # 结案意见（L2 回写；与出款解耦）

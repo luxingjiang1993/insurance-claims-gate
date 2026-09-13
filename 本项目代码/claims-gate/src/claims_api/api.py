@@ -3,7 +3,8 @@
 Rewrote from: REF-MISSIONS（transfer_api/api.py 换理赔域）；citation 门 REF-CASE-KB；
 SC-01 补件/裁决/文书 REF-COURSE-03；SC-02 拒赔分态与人闸 REF-MISSIONS；
 SC-03 减赔 REF-COURSE-04；Issue 06 人闸矩阵扩展 REF-MISSIONS；
-Issue 08 L2 出款就绪/结案回写 REF-MISSIONS, REF-CASE-FC
+Issue 08 L2 出款就绪/结案回写 REF-MISSIONS, REF-CASE-FC；
+Issue 09 OCR/备注威胁负例 REF-CASE-HYBRID, REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -49,10 +50,12 @@ class CitationValidateRequest(BaseModel):
 
 
 class MaterialsIn(BaseModel):
-    """补传材料元数据。"""
+    """补传材料元数据；OCR/备注为用户可控字段，不得改写人闸。"""
 
     material_codes: list[str] = Field(min_length=1)
     image_ids: list[str] = Field(default_factory=list)
+    ocr_text: str | None = None
+    customer_remark: str | None = None
 
 
 class SupplementNotifyIn(BaseModel):
@@ -82,6 +85,9 @@ class EvaluateIn(BaseModel):
     source_decisions: dict[str, str] = Field(default_factory=dict)
     retrieval_profile: str | None = None
     force_reject_with_handbook_only: bool = False
+    # Issue 09：用户可控文本；收纳可观察，不得翻转人闸 / payout_ready
+    ocr_text: str | None = None
+    customer_remark: str | None = None
 
 
 class HumanLatchApproveIn(BaseModel):
@@ -200,6 +206,8 @@ def get_claim(case_id: str) -> dict:
         "material_codes": list(case.material_codes),
         "gate_status": case.gate_status,
         "inference_track": case.inference_track,
+        "ocr_text": case.ocr_text,
+        "customer_remark": case.customer_remark,
     }
 
 
@@ -221,6 +229,8 @@ def evaluate_claim(case_id: str, body: EvaluateIn | None = None) -> dict[str, An
             source_decisions=source_decisions or None,
             retrieval_profile=payload.retrieval_profile,
             force_reject_with_handbook_only=payload.force_reject_with_handbook_only,
+            ocr_text=payload.ocr_text,
+            customer_remark=payload.customer_remark,
         )
     except ClaimNotFoundError as exc:
         raise HTTPException(
@@ -290,6 +300,8 @@ def register_materials(case_id: str, body: MaterialsIn) -> dict[str, Any]:
             case_id,
             material_codes=body.material_codes,
             image_ids=body.image_ids,
+            ocr_text=body.ocr_text,
+            customer_remark=body.customer_remark,
         )
     except ClaimNotFoundError as exc:
         raise HTTPException(
@@ -306,6 +318,8 @@ def register_materials(case_id: str, body: MaterialsIn) -> dict[str, Any]:
         "material_codes": list(case.material_codes),
         "image_ids": list(case.image_ids),
         "gate_status": case.gate_status,
+        "ocr_text": case.ocr_text,
+        "customer_remark": case.customer_remark,
     }
 
 

@@ -26,6 +26,7 @@ from missions.router import (
 
 from .error_codes import ErrorCode
 from .latch_matrix import is_fake_exgratia_clause_approve_citation, resolve_latch
+from .user_text import absorb_user_controlled_text
 from .models_domain import (
     ClaimCase,
     CoreMasterSnapshot,
@@ -640,9 +641,15 @@ class ClaimsService:
         source_decisions: Mapping[str, str] | None = None,
         retrieval_profile: str | None = None,
         force_reject_with_handbook_only: bool = False,
+        ocr_text: str | None = None,
+        customer_remark: str | None = None,
     ) -> DecisionDraft:
         """材料齐全断言 → Router 表驱动补件 / 拒赔 / 减赔 / 通赔建议。"""
         case = self.get_claim(case_id)
+        # OCR/备注仅收纳；不得改写人闸矩阵输入
+        absorb_user_controlled_text(
+            case, ocr_text=ocr_text, customer_remark=customer_remark
+        )
         if sensitivity_flags is not None:
             case.sensitivity_flags = list(sensitivity_flags)
 
@@ -980,9 +987,14 @@ class ClaimsService:
         *,
         material_codes: list[str],
         image_ids: list[str] | None = None,
+        ocr_text: str | None = None,
+        customer_remark: str | None = None,
     ) -> ClaimCase:
-        """客户补传材料元数据（确定性登记，无 OCR）。"""
+        """客户补传材料元数据；OCR/备注可观察收纳，不改人闸规则。"""
         case = self.get_claim(case_id)
+        absorb_user_controlled_text(
+            case, ocr_text=ocr_text, customer_remark=customer_remark
+        )
         for code in material_codes:
             if code not in REQUIRED_MATERIALS:
                 raise ClaimsDomainError(

@@ -102,10 +102,23 @@
 - `POST /claims/{id}/l2/close`：可达 `CLOSED`；载荷不含自动支付指令（与出款解耦）
 - 支付类工具 ACL 仍默认拒绝；`machine_check`：`l2_payout_ready_writeback` / `l2_close_without_payment`
 
+## Issue 09 轨 B 隔离 + 威胁负例
+
+`Rewrote from: REF-CASE-HYBRID, REF-MISSIONS`
+
+已落地：
+
+- 轨 B 隔离：`src/missions/track_llm_optional/` 配置占位 + `tests/track_llm_optional/`；`pytest.ini` 默认 `-m "not track_llm_optional"`
+- 契约：轨 B 失败不阻断轨 A；默认 CI/Demo 禁止依赖 LLM 抽样才能通过 SC
+- OCR/客户备注经 `absorb_user_controlled_text` 仅收纳可观察，不得翻转 `human_latch_required` / `payout_ready`
+- `machine_check` type=`threat_inject_ocr_remark_no_latch_flip`
+
 ## 运行
 
 ```bash
 pip install -r requirements.txt
 uvicorn claims_api.api:app --app-dir src --reload
 pytest -q
+# 显式跑轨 B 占位（不并入默认合门禁）：
+pytest -m track_llm_optional -q
 ```

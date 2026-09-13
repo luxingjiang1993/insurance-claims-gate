@@ -196,7 +196,7 @@ ValidationContract.assertions[]
 |----|------|--------------|------|
 | P1-1 | Router = 确定性策略表（硬层），禁止写成独立 LLM「核赔角色」 | Issues：脚手架/Router 票正文写死；User Story 40 实现时降级为表驱动 | `open` |
 | P1-2 | Validation contract 入账前 JSON Schema 硬停；非法契约不得开工 | Issues：契约/Orchestrator 票 | `open` |
-| P1-3 | 间接提示注入负例：OCR/备注含提权文案不得翻转 `human_latch_required` / `payout_ready` | Issues：威胁模型 machine_check 负例票 | `open` |
+| P1-3 | 间接提示注入负例：OCR/备注含提权文案不得翻转 `human_latch_required` / `payout_ready` | Issues：威胁模型 machine_check 负例票 | `applied` |
 | P1-4 | 冻结最小 `error_code` 表（如 `MASTER_DATA_MISMATCH`、`VALIDATION_FAILED`、`LATCH_REQUIRED`、`CITATION_NOT_IN_KB`、`DOCUMENT_STATUS_FORBIDDEN`） | Issues：API 合约票 | `open` |
 | P1-5 | User Stories 分 Must-for-MVP（SC+人闸+引用+双轨+文书态）与 Should；首批 tickets 只吃 Must | 切票时过滤；可选在本 SPEC 加 Must 标签附录 | `done` → `Issues/insurance-claims-gate/`（01–05 Must 绿门；06–09 Should/支撑） |
 | P1-6 | MVP 削面：SC 三夹具 + 核心 machine_check + 人闸 + 最小 KB；Router 仲裁可先硬编码 SC 路径再表格化 | 切票排序：先 SC 绿门，后 Router 全表 | `done` → Issues 03–05 先于 07 |

@@ -1,6 +1,6 @@
 # 09: 轨 B 隔离占位 + 威胁负例机检
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** 03, 04, 05
 
@@ -31,13 +31,18 @@
 
 ## Acceptance criteria
 
-- [ ] 存在明确的轨 B 隔离目录或测试标记（如 `track_llm_optional`）；默认 CI 只跑轨 A
-- [ ] 文档/契约声明：轨 B 失败不阻断轨 A；默认绿门禁止依赖 LLM 抽样
-- [ ] 注入负例夹具：备注/OCR 含提权文案时，人闸要求与 `payout_ready` 不被翻转
-- [ ] 至少一条 machine_check 覆盖上述注入负例
-- [ ] 不把 OpenManus 或轨 B 框架替代 Missions 中继主链
-- [ ] handoff 含 `Rewrote from: REF-CASE-HYBRID, REF-MISSIONS`
+- [x] 存在明确的轨 B 隔离目录或测试标记（如 `track_llm_optional`）；默认 CI 只跑轨 A
+- [x] 文档/契约声明：轨 B 失败不阻断轨 A；默认绿门禁止依赖 LLM 抽样
+- [x] 注入负例夹具：备注/OCR 含提权文案时，人闸要求与 `payout_ready` 不被翻转
+- [x] 至少一条 machine_check 覆盖上述注入负例
+- [x] 不把 OpenManus 或轨 B 框架替代 Missions 中继主链
+- [x] handoff 含 `Rewrote from: REF-CASE-HYBRID, REF-MISSIONS`
+
+## Answer
+
+轨 B 隔离占位与威胁负例已落地：`pytest.ini` 默认排除 `track_llm_optional`；`missions/track_llm_optional` 独立配置声明不阻断轨 A；OCR/备注经 `absorb_user_controlled_text` 仅收纳可观察，不得翻转人闸/`payout_ready`；`machine_check` type=`threat_inject_ocr_remark_no_latch_flip`。Rewrote from: REF-CASE-HYBRID, REF-MISSIONS。
 
 ## Comments
 
 - 2026-09-13：to-tickets 批准 defaults 后落盘。
+- 2026-09-13：实现完成；接缝 defaults（轨 B 标记隔离 + OCR/备注吸收 + machine_check）；Rewrote from: REF-CASE-HYBRID, REF-MISSIONS。
