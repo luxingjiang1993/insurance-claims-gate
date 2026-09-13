@@ -157,8 +157,7 @@ def test_sc01_partial_upload_keeps_same_hash_then_approve() -> None:
     assert mbody["decision_type"] == "supplement"
     assert mbody["one_shot_hash"] == one_shot
     remaining_codes = {i["code"] for i in mbody.get("remaining_missing", [])}
-    assert first not in remaining_codes
-    assert set(codes) - {first} <= remaining_codes | set(codes)
+    assert remaining_codes == set(codes) - {first}
 
     # 补齐剩余
     rest = [c for c in codes if c != first]
