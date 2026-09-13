@@ -1,6 +1,6 @@
 # 07: Router 确定性策略表 + 冲突 fail-closed + ledger
 
-**Status:** done
+**Status:** resolved
 
 **Blocked by:** 03, 04, 05
 
@@ -40,7 +40,12 @@
 - [x] 轨 A 下同一夹具重复跑 Router 结果可复现
 - [x] handoff 含 `Rewrote from: REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS`
 
+## Answer
+
+Router 硬层策略表已落地：`missions/router.py` 按 Human > Invest > Rules > RAG > OCR 仲裁；规则 vs RAG 冲突 fail-closed 进人闸；`handbook_ops` 不得单独拒赔；每案 ledger 含 `route_id` / `retrieval_profile` / `decision_type` / `validator_score`；轨 A 可复现。交付提交：`cd8580e`。
+
 ## Comments
 
 - 2026-09-13：to-tickets 批准 defaults 后落盘。
 - 2026-09-13：实现完成；接缝 defaults（Router 纯函数 + HTTP ledger + machine_check）；Rewrote from: REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS。
+- 2026-09-13：正式关闭 — Status=resolved；Answer 已写；随 main 推远程。

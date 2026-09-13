@@ -39,7 +39,12 @@
 - [x] 峰值降级路径仅允许补件+人审队列，不出现静默通赔
 - [x] handoff 含 `Rewrote from: REF-MISSIONS`
 
+## Answer
+
+人闸权限矩阵已按 PRD §7 落地：`latch_matrix.py` 表驱动金额档 A–D；通赔小额可直通草案、大额必闸；减赔 A 起主管闸；通融/预赔必闸且伪主险通赔 citation 失败关闭；调查进入自动冻决、解除须令牌；峰值降级仅补件+人审；D 档上浮双人令牌。验收经 HTTP + `latch_*` machine_check。交付提交：`cd8580e`（与 Issue 07 同树）。
+
 ## Comments
 
 - 2026-09-13：to-tickets 批准 defaults 后落盘。
 - 2026-09-13：实现落地 — `latch_matrix.py`（PRD §7 表驱动）；金额档夹具 `CLM-AMT-*`；通融/预赔/调查冻决/峰值降级 HTTP；machine_check `latch_*`。Rewrote from: REF-MISSIONS
+- 2026-09-13：正式关闭 — Status=resolved；Answer 已写；随 main 推远程。
