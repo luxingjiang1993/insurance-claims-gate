@@ -3,7 +3,8 @@
 Rewrote from: REF-MISSIONS（transfer_api/service.py 换垂直）；补件法义 REF-COURSE-03；
 SC-02 拒赔分态 REF-MISSIONS；效力栈减赔 / calc_steps REF-CASE-KB, REF-COURSE-04；
 金额档/通融/预赔/调查冻决/峰值降级 REF-MISSIONS（limits 表驱动换域，阈值取 PRD §7）；
-Router 策略表 + ledger REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS
+Router 策略表 + ledger REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS；
+L2 出款就绪/结案回写模拟 REF-MISSIONS, REF-CASE-FC
 """
 
 from __future__ import annotations
@@ -25,7 +26,23 @@ from missions.router import (
 
 from .error_codes import ErrorCode
 from .latch_matrix import is_fake_exgratia_clause_approve_citation, resolve_latch
-from .models_domain import ClaimCase, DecisionDraft, LedgerEntry, SupplementItem
+from .models_domain import (
+    ClaimCase,
+    CoreMasterSnapshot,
+    DecisionDraft,
+    LedgerEntry,
+    SupplementItem,
+)
+
+# 允许进入出款就绪的裁决类型（拒赔/补件/调查不得 PAYOUT_READY）
+_PAYOUT_ELIGIBLE_DECISIONS: frozenset[str] = frozenset(
+    {
+        "approve_recommend",
+        "reduce",
+        "exgratia",
+        "prepay",
+    }
+)
 
 # 《保险法》第22条一次性补正义务 — 法务审定锚点文案（轨 A 固定常量）
 LEGAL_BASIS_ARTICLE_22 = (
@@ -113,6 +130,8 @@ class ClaimsService:
         self._kb = kb if kb is not None else KnowledgeBase(_DEFAULT_KB_ROOT)
         self._citation_validator: CitationValidator | None = None
         self._cases: dict[str, ClaimCase] = {}
+        # 银企/支付适配器调用计数：L2 回写路径禁止递增（Demo 可观察）
+        self.payment_adapter_calls: int = 0
         self._seed()
 
     def set_citation_validator(self, validator: CitationValidator) -> None:
@@ -130,6 +149,7 @@ class ClaimsService:
     ) -> ClaimCase:
         """材料齐全夹具。"""
         all_codes = list(REQUIRED_MATERIALS.keys())
+        flags = list(endorsement_flags or [])
         case = ClaimCase(
             case_id=case_id,
             policy_no=policy_no,
@@ -137,12 +157,19 @@ class ClaimsService:
             clause_version="PA-ACC-2024.1",
             loss_date="2026-08-15",
             claim_amount_claimed=claim_amount_claimed,
-            endorsement_flags=list(endorsement_flags or []),
+            endorsement_flags=flags,
             image_ids=[f"IMG-{c}" for c in all_codes],
             material_codes=list(all_codes),
             loss_cause=loss_cause,
             gate_status="MATERIALS_INTAKE",
             inference_track="deterministic",
+            core_master=CoreMasterSnapshot(
+                case_id=case_id,
+                policy_no=policy_no,
+                product_code="PA-ACCIDENT-MED",
+                clause_version="PA-ACC-2024.1",
+                endorsement_flags=list(flags),
+            ),
         )
         self._cases[case.case_id] = case
         return case
@@ -165,6 +192,13 @@ class ClaimsService:
             loss_cause="accident",
             gate_status="MATERIALS_INTAKE",
             inference_track="deterministic",
+            core_master=CoreMasterSnapshot(
+                case_id="CLM-SC01-001",
+                policy_no="PA-2026-000188",
+                product_code="PA-ACCIDENT-MED",
+                clause_version="PA-ACC-2024.1",
+                endorsement_flags=[],
+            ),
         )
         self._cases[case.case_id] = case
 
@@ -205,6 +239,21 @@ class ClaimsService:
             case_id="CLM-LATCH-BASE-001",
             policy_no="PA-2026-000804",
             claim_amount_claimed=12000,
+        )
+
+        # Issue 08：主数据不一致夹具（案件侧与核心快照保单号不一致）
+        mismatch = self._seed_complete_case(
+            case_id="CLM-MISMATCH-001",
+            policy_no="PA-2026-CLAIM-SIDE",
+            claim_amount_claimed=80000,
+        )
+        assert mismatch.core_master is not None
+        mismatch.core_master = CoreMasterSnapshot(
+            case_id="CLM-MISMATCH-001",
+            policy_no="PA-2026-CORE-OTHER",
+            product_code=mismatch.product_code,
+            clause_version=mismatch.clause_version,
+            endorsement_flags=list(mismatch.endorsement_flags),
         )
 
     def _attach_latch_fields(
@@ -1048,6 +1097,124 @@ class ClaimsService:
             "payout_ready": False,
             "rejected_by": rejected_by,
             "reason": reason,
+        }
+
+    def _assert_master_data_aligned(self, case: ClaimCase) -> None:
+        """保单/险别/条款/批单/案件号与核心快照不一致则禁止出款就绪。"""
+        snap = case.core_master
+        if snap is None:
+            return
+        if (
+            snap.case_id != case.case_id
+            or snap.policy_no != case.policy_no
+            or snap.product_code != case.product_code
+            or snap.clause_version != case.clause_version
+            or list(snap.endorsement_flags) != list(case.endorsement_flags)
+        ):
+            raise ClaimsDomainError(
+                ErrorCode.MASTER_DATA_MISMATCH.value,
+                "保单/批单/案件主数据与核心不一致，禁止出款就绪",
+                extra={
+                    "case_policy_no": case.policy_no,
+                    "core_policy_no": snap.policy_no,
+                },
+            )
+
+    def writeback_payout_ready(
+        self,
+        case_id: str,
+        *,
+        human_latch_token: str | None,
+    ) -> dict[str, Any]:
+        """L2 模拟回写出款就绪：须人闸令牌；不触发银企支付。"""
+        case = self.get_claim(case_id)
+        if case.freeze_active:
+            raise ClaimsDomainError(
+                ErrorCode.LATCH_REQUIRED.value,
+                "调查冻决中禁止出款就绪",
+            )
+        if not human_latch_token or human_latch_token != case.human_latch_token:
+            raise ClaimsDomainError(
+                ErrorCode.LATCH_REQUIRED.value,
+                "写入出款就绪须有效人闸令牌",
+            )
+        decision = case.latest_decision
+        if decision is None:
+            raise ClaimsDomainError(
+                ErrorCode.VALIDATION_FAILED.value,
+                "尚无裁决草案，禁止出款就绪",
+            )
+        if decision.decision_type not in _PAYOUT_ELIGIBLE_DECISIONS:
+            raise ClaimsDomainError(
+                ErrorCode.VALIDATION_FAILED.value,
+                f"裁决类型 {decision.decision_type} 不得进入出款就绪",
+            )
+        self._assert_master_data_aligned(case)
+
+        # 明确不调用银企/支付适配器（payment_adapter_calls 保持不变）
+        case.gate_status = "PAYOUT_READY"
+        decision.gate_status = "PAYOUT_READY"
+        decision.payout_ready = True
+        self._append_ledger(
+            case,
+            route_id="L2-PAYOUT-READY",
+            retrieval_profile=decision.retrieval_profile or "clause_v_current",
+            decision_type="l2_payout_ready",
+            validator_score=1.0,
+        )
+        return {
+            "case_id": case.case_id,
+            "gate_status": case.gate_status,
+            "payout_ready": True,
+            "payment_adapter_called": False,
+            "decision_type": decision.decision_type,
+            "human_latch_token": case.human_latch_token,
+            "inference_track": "deterministic",
+        }
+
+    def writeback_close(
+        self,
+        case_id: str,
+        *,
+        close_opinion: str,
+    ) -> dict[str, Any]:
+        """L2 结案回写：可达 CLOSED；载荷不含自动支付指令；与出款解耦。"""
+        case = self.get_claim(case_id)
+        if case.freeze_active:
+            raise ClaimsDomainError(
+                ErrorCode.LATCH_REQUIRED.value,
+                "调查冻决中禁止结案回写",
+            )
+        if not close_opinion or not close_opinion.strip():
+            raise ClaimsDomainError(
+                ErrorCode.VALIDATION_FAILED.value,
+                "结案意见不能为空",
+            )
+        case.gate_status = "CLOSED"
+        case.close_opinion = close_opinion.strip()
+        if case.latest_decision is not None:
+            case.latest_decision.gate_status = "CLOSED"
+        self._append_ledger(
+            case,
+            route_id="L2-CLOSE",
+            retrieval_profile=(
+                case.latest_decision.retrieval_profile
+                if case.latest_decision and case.latest_decision.retrieval_profile
+                else "clause_v_current"
+            ),
+            decision_type="l2_close",
+            validator_score=1.0,
+        )
+        # 故意不包含 auto_pay / payment_instruction / bank_transfer
+        return {
+            "case_id": case.case_id,
+            "gate_status": "CLOSED",
+            "close_opinion": case.close_opinion,
+            "payout_ready": bool(
+                case.latest_decision.payout_ready if case.latest_decision else False
+            ),
+            "payment_adapter_called": False,
+            "inference_track": "deterministic",
         }
 
     def export_document(

@@ -3,13 +3,26 @@
 Rewrote from: REF-MISSIONS（models_domain 换理赔域）；SC-01 补件/裁决字段 REF-COURSE-03；
 SC-02 拒赔/人闸/appeal_path REF-MISSIONS；SC-03 calc_steps / 效力栈 REF-COURSE-04；
 Issue 06 金额档/冻决/峰值字段 REF-MISSIONS；
-Issue 07 Router/ledger 字段 REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS
+Issue 07 Router/ledger 字段 REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS；
+Issue 08 L2 主数据快照字段 REF-MISSIONS；
+Issue 09 OCR/备注用户可控字段 REF-CASE-HYBRID, REF-MISSIONS
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
+
+
+@dataclass
+class CoreMasterSnapshot:
+    """核心主数据快照：与案件侧字段对齐校验（禁止出款就绪时不一致）。"""
+
+    case_id: str
+    policy_no: str
+    product_code: str
+    clause_version: str
+    endorsement_flags: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -164,3 +177,7 @@ class ClaimCase:
     sensitivity_flags: list[str] = field(default_factory=list)
     freeze_active: bool = False
     peak_degraded: bool = False
+    # Issue 08：核心主数据快照；缺省由服务层按案件字段自洽填充
+    core_master: CoreMasterSnapshot | None = None
+    # 结案意见（L2 回写；与出款解耦）
+    close_opinion: str | None = None

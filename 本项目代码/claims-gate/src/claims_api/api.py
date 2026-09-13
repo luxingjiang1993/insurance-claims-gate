@@ -2,7 +2,8 @@
 
 Rewrote from: REF-MISSIONS（transfer_api/api.py 换理赔域）；citation 门 REF-CASE-KB；
 SC-01 补件/裁决/文书 REF-COURSE-03；SC-02 拒赔分态与人闸 REF-MISSIONS；
-SC-03 减赔 REF-COURSE-04；Issue 06 人闸矩阵扩展 REF-MISSIONS
+SC-03 减赔 REF-COURSE-04；Issue 06 人闸矩阵扩展 REF-MISSIONS；
+Issue 08 L2 出款就绪/结案回写 REF-MISSIONS, REF-CASE-FC
 """
 
 from __future__ import annotations
@@ -74,7 +75,7 @@ class EvaluateIn(BaseModel):
 
     proposed_deductible: int | None = None
     proposed_ratio: float | None = None
-    # 敏感场景上浮（诉讼/信访/媒体等）
+    # 敏感场景上浮（诉讼/信访/媒体等）— 运营侧结构化字段，非 OCR/备注
     sensitivity_flags: list[str] = Field(default_factory=list)
     # Issue 07：Router 冲突探针 / handbook 独撑拒赔探针
     signal_sources: list[str] = Field(default_factory=list)
@@ -129,6 +130,19 @@ class PeakDegradeIn(BaseModel):
     """峰值降级：仅补件+人审队列。"""
 
     reason: str = Field(min_length=1)
+
+
+class L2PayoutReadyIn(BaseModel):
+    """L2 出款就绪回写：须人闸令牌；不触发银企。"""
+
+    human_latch_token: str | None = None
+
+
+class L2CloseIn(BaseModel):
+    """L2 结案回写：不含自动支付指令。"""
+
+    close_opinion: str = Field(min_length=1)
+
 
 def get_service() -> ClaimsService:
     return _service
@@ -503,6 +517,48 @@ def peak_degrade(case_id: str, body: PeakDegradeIn) -> dict[str, Any]:
     out = decision.to_dict()
     out["case_id"] = case_id
     return out
+
+
+@app.post("/claims/{case_id}/l2/payout-ready")
+def l2_payout_ready(
+    case_id: str, body: L2PayoutReadyIn | None = None
+) -> dict[str, Any]:
+    """L2 模拟回写出款就绪：人闸后置 PAYOUT_READY；不触发银企支付。"""
+    assert_tool_allowed("l2_payout_ready")
+    payload = body or L2PayoutReadyIn()
+    try:
+        return _service.writeback_payout_ready(
+            case_id,
+            human_latch_token=payload.human_latch_token,
+        )
+    except ClaimNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": ErrorCode.VALIDATION_FAILED.value,
+                "message": f"案件不存在: {exc.case_id}",
+            },
+        ) from exc
+    except ClaimsDomainError as exc:
+        raise _http_domain_error(exc) from exc
+
+
+@app.post("/claims/{case_id}/l2/close")
+def l2_close(case_id: str, body: L2CloseIn) -> dict[str, Any]:
+    """L2 结案回写：CLOSED 与出款解耦；载荷不含自动支付指令。"""
+    assert_tool_allowed("l2_close")
+    try:
+        return _service.writeback_close(case_id, close_opinion=body.close_opinion)
+    except ClaimNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": ErrorCode.VALIDATION_FAILED.value,
+                "message": f"案件不存在: {exc.case_id}",
+            },
+        ) from exc
+    except ClaimsDomainError as exc:
+        raise _http_domain_error(exc) from exc
 
 
 @app.post("/kb/citations/validate")

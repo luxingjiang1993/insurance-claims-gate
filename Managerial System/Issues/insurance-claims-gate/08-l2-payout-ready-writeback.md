@@ -1,6 +1,6 @@
 # 08: L2 出款就绪回写模拟（无人闸禁放行）
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Blocked by:** 04, 06
 
@@ -32,13 +32,14 @@
 
 ## Acceptance criteria
 
-- [ ] 人闸后可通过 API 将状态置为 `PAYOUT_READY`（或规范态等价），且无银企/支付适配器调用
-- [ ] 无人闸令牌时写入出款就绪失败；`payout_ready` 保持 false
-- [ ] 主数据不一致夹具触发 `MASTER_DATA_MISMATCH`（或等价），禁止出款就绪
-- [ ] 结案回写可达 `CLOSED` 且载荷不含自动支付指令
-- [ ] 支付类工具在 ACL 下默认拒绝
-- [ ] handoff 含 `Rewrote from: REF-MISSIONS, REF-CASE-FC`
+- [x] 人闸后可通过 API 将状态置为 `PAYOUT_READY`（或规范态等价），且无银企/支付适配器调用
+- [x] 无人闸令牌时写入出款就绪失败；`payout_ready` 保持 false
+- [x] 主数据不一致夹具触发 `MASTER_DATA_MISMATCH`（或等价），禁止出款就绪
+- [x] 结案回写可达 `CLOSED` 且载荷不含自动支付指令
+- [x] 支付类工具在 ACL 下默认拒绝
+- [x] handoff 含 `Rewrote from: REF-MISSIONS, REF-CASE-FC`
 
 ## Comments
 
 - 2026-09-13：to-tickets 批准 defaults 后落盘。
+- 2026-09-13：实现完成 — HTTP `l2/payout-ready` + `l2/close`；夹具 `CLM-MISMATCH-001`；machine_check 两类型。

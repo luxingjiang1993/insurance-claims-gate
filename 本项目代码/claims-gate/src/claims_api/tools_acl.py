@@ -34,6 +34,8 @@ ALLOWED_TOOL_NAMES: frozenset[str] = frozenset(
         "investigate_unfreeze",
         "peak_degrade",
         "read_ledger",
+        "l2_payout_ready",
+        "l2_close",
     }
 )
 
