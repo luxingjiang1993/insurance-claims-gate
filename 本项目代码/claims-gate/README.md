@@ -152,14 +152,23 @@
 - 规则 vs RAG 冲突 → `human_latch_required` + `R-CONFLICT-RULES-RAG`；`handbook_ops` 不得单独支撑对外拒赔
 - 测试：`tests/track_llm_optional/test_min_rag_draft.py`（仅 `-m track_llm_optional`）；失败不阻断轨 A `pytest -q`
 
+## Issue 13 Solo Demo / SC 黑盒一键脚本
+
+`Rewrote from: REF-MISSIONS`
+
+**个人验收 Demo，不替代 pytest/machine_check 合门禁。** 无需真实用户 / 作业台 UI。
+
+已落地：
+
+- `src/claims_api/demo_sc.py`：TestClient + 同语义 `machine_check` 跑 SC-01/02/03；失败非零退出
+- 可选 `--extras`：拆轮拒绝 / 无人闸 EXTERNAL_NOTIFY 负例
+- 一键入口：`python scripts/run_sc_demo.py`（或 `python -m claims_api.demo_sc`，需将 `src` 加入 PYTHONPATH）
+- 不引入 L3/支付；不依赖真实 OCR/核心
+
 ## 当前阶段剩余（进阶段 2 前）
 
-Issue **13** 尚未实现。清单与延后项见仓库  
+Issues **10–13** 已落地。清单与延后项见仓库  
 `docs/agents/current-phase-remaining.md`。
-
-| NN | 主题 | 主 ref |
-|----|------|--------|
-| 13 | Solo SC Demo 脚本 | `REF-MISSIONS` |
 
 ## 运行
 
@@ -167,6 +176,10 @@ Issue **13** 尚未实现。清单与延后项见仓库
 pip install -r requirements.txt
 uvicorn claims_api.api:app --app-dir src --reload
 pytest -q
+# 个人验收 Solo SC Demo（一条命令）：
+python scripts/run_sc_demo.py
+# 可选负例：
+python scripts/run_sc_demo.py --extras
 # 显式跑轨 B 最小 RAG（不并入默认合门禁）：
 pytest -m track_llm_optional -q
 # 显式跑 eval 负例旁路（不替代 machine_check）：
