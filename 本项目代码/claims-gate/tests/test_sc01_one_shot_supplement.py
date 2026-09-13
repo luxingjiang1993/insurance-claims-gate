@@ -125,6 +125,54 @@ def test_sc01_upload_invoice_then_approve_recommend() -> None:
     assert body["inference_track"] == "deterministic"
 
 
+def test_sc01_partial_upload_keeps_same_hash_then_approve() -> None:
+    """部分补传后重评：保持同 one_shot_hash；全部补齐后通赔建议。"""
+    client = _client()
+    ev = client.post(f"/claims/{CASE_ID}/evaluate")
+    assert ev.status_code == 200
+    one_shot = ev.json()["one_shot_hash"]
+    codes = [item["code"] for item in ev.json()["supplement_checklist"]]
+    assert len(codes) >= 2
+
+    # 成功一次完整通知
+    notify = client.post(
+        f"/claims/{CASE_ID}/supplement/notify",
+        json={"one_shot_hash": one_shot, "missing_item_codes": codes},
+    )
+    assert notify.status_code == 200
+    assert notify.json()["legal_basis"]
+    assert notify.json()["missing_items"]
+
+    # 只补第一项
+    first = codes[0]
+    up1 = client.post(
+        f"/claims/{CASE_ID}/materials",
+        json={"material_codes": [first], "image_ids": [f"IMG-{first}"]},
+    )
+    assert up1.status_code == 200
+
+    mid = client.post(f"/claims/{CASE_ID}/evaluate")
+    assert mid.status_code == 200
+    mbody = mid.json()
+    assert mbody["decision_type"] == "supplement"
+    assert mbody["one_shot_hash"] == one_shot
+    remaining_codes = {i["code"] for i in mbody.get("remaining_missing", [])}
+    assert first not in remaining_codes
+    assert set(codes) - {first} <= remaining_codes | set(codes)
+
+    # 补齐剩余
+    rest = [c for c in codes if c != first]
+    up2 = client.post(
+        f"/claims/{CASE_ID}/materials",
+        json={"material_codes": rest, "image_ids": [f"IMG-{c}" for c in rest]},
+    )
+    assert up2.status_code == 200
+    done = client.post(f"/claims/{CASE_ID}/evaluate")
+    assert done.status_code == 200
+    assert done.json()["decision_type"] == "approve_recommend"
+    assert done.json()["payout_ready"] is False
+
+
 def test_machine_check_sc01_one_shot_flow_passes() -> None:
     """轨 A：SC-01 主路径 machine_check 稳定绿，不依赖 LLM。"""
     reset_service()

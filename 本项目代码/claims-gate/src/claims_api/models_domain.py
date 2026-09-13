@@ -37,6 +37,8 @@ class DecisionDraft:
     payout_ready: bool
     inference_track: str = "deterministic"
     supplement_checklist: list[SupplementItem] = field(default_factory=list)
+    # 一次补件后尚未满足的剩余缺项（部分补传重评可观察）
+    remaining_missing: list[SupplementItem] = field(default_factory=list)
     one_shot_hash: str | None = None
     human_latch_required: bool = False
     human_latch_token: str | None = None
@@ -61,6 +63,8 @@ class DecisionDraft:
             body["supplement_checklist"] = [i.to_dict() for i in self.supplement_checklist]
         else:
             body["supplement_checklist"] = []
+        if self.remaining_missing:
+            body["remaining_missing"] = [i.to_dict() for i in self.remaining_missing]
         return body
 
 

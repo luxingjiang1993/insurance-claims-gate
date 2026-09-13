@@ -123,26 +123,39 @@ class ClaimsService:
         missing_codes = [m.code for m in missing]
 
         if missing:
-            new_hash = self._one_shot_hash(missing_codes)
-            # 已冻结一次补件且旧缺项未满足：禁止改清单（含新增缺项）
             if case.frozen_one_shot_hash is not None:
+                frozen = set(case.frozen_checklist_codes)
                 old_still_missing = [
                     c for c in case.frozen_checklist_codes if c not in case.material_codes
                 ]
                 if old_still_missing:
-                    if set(missing_codes) != set(case.frozen_checklist_codes):
+                    extras = set(missing_codes) - frozen
+                    if extras:
                         raise ClaimsDomainError(
                             ErrorCode.VALIDATION_FAILED.value,
-                            "同 one_shot_hash 下禁止拆轮或新增缺项；须客户先补齐已通知项",
+                            "同 one_shot_hash 下禁止新增缺项；须客户先补齐已通知项",
                         )
-                    # 清单未变：继续返回冻结补件裁决
-                    missing = [
-                        REQUIRED_MATERIALS[c] for c in case.frozen_checklist_codes
-                    ]
-                    new_hash = case.frozen_one_shot_hash
+                    # 部分补传：保持冻结完整清单与原 hash
+                    one_shot = case.frozen_one_shot_hash
+                    checklist_codes = list(case.frozen_checklist_codes)
+                else:
+                    # 旧项已齐，出现新缺项：开启新一次补件
+                    one_shot = self._one_shot_hash(missing_codes)
+                    checklist_codes = list(missing_codes)
+                    case.frozen_one_shot_hash = one_shot
+                    case.frozen_checklist_codes = checklist_codes
+            else:
+                # 首次一次补件：冻结完整缺项与 hash
+                one_shot = self._one_shot_hash(missing_codes)
+                checklist_codes = list(missing_codes)
+                case.frozen_one_shot_hash = one_shot
+                case.frozen_checklist_codes = checklist_codes
 
-            case.frozen_one_shot_hash = new_hash
-            case.frozen_checklist_codes = [m.code for m in missing]
+            remaining = [
+                REQUIRED_MATERIALS[c]
+                for c in checklist_codes
+                if c not in case.material_codes
+            ]
             case.gate_status = "PENDING_SUPPLEMENT"
             decision = DecisionDraft(
                 decision_type="supplement",
@@ -150,8 +163,9 @@ class ClaimsService:
                 document_status="DRAFT_EXPORT",
                 payout_ready=False,
                 inference_track="deterministic",
-                supplement_checklist=list(missing),
-                one_shot_hash=new_hash,
+                supplement_checklist=[REQUIRED_MATERIALS[c] for c in checklist_codes],
+                remaining_missing=remaining,
+                one_shot_hash=one_shot,
                 human_latch_required=False,
             )
             case.latest_decision = decision
@@ -221,13 +235,12 @@ class ClaimsService:
                 ErrorCode.VALIDATION_FAILED.value,
                 "同 one_shot_hash 禁止拆轮补件：通知清单须与一次完整缺项一致",
             )
-        return {
-            "ok": True,
-            "case_id": case.case_id,
-            "one_shot_hash": one_shot_hash,
-            "missing_item_codes": list(case.frozen_checklist_codes),
-            "document_status": "DRAFT_EXPORT",
-        }
+        # 成功通知：返回与 PRD §11.1 同构字段（DRAFT_EXPORT 可无人闸）
+        return self.export_document(
+            case_id,
+            document_type="supplement_notice",
+            document_status="DRAFT_EXPORT",
+        )
 
     def export_document(
         self,

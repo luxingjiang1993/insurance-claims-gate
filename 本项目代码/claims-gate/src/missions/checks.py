@@ -158,6 +158,26 @@ def _check_sc01_one_shot_supplement_approve(
             CommandResult(cmd="evaluate", exit_code=1, stdout_tail=str(body)[:400]),
         )
 
+    full_codes = [item["code"] for item in body["supplement_checklist"]]
+    notify = client.post(
+        f"/claims/{case_id}/supplement/notify",
+        json={"one_shot_hash": body["one_shot_hash"], "missing_item_codes": full_codes},
+    )
+    if notify.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"notify failed status={notify.status_code}",
+            CommandResult(cmd="supplement/notify", exit_code=1, stdout_tail=str(notify.json())[:400]),
+        )
+    nbody = notify.json()
+    steps.append("notify")
+    if not nbody.get("legal_basis") or not nbody.get("missing_items"):
+        return CheckOutcome(
+            False,
+            "notify missing legal_basis or missing_items",
+            CommandResult(cmd="supplement/notify", exit_code=1, stdout_tail=str(nbody)[:400]),
+        )
+
     doc = client.post(
         f"/claims/{case_id}/documents/export",
         json={"document_type": "supplement_notice", "document_status": "DRAFT_EXPORT"},

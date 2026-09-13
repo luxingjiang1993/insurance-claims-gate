@@ -44,10 +44,7 @@ class Orchestrator:
         clause_id = "POL-CLAIM-002" if is_sc01 else "POL-CLAIM-001"
         chunk = self.kb.get_clause(clause_id)
         if chunk is None:
-            # 回退到脚手架条款，避免 KB 未加载时无法开工
-            chunk = self.kb.get_clause("POL-CLAIM-001")
-        if chunk is None:
-            raise RuntimeError("知识库缺少 POL-CLAIM-001，无法写出契约")
+            raise RuntimeError(f"知识库缺少 {clause_id}，无法写出契约")
 
         from .models import RagCitation
 
