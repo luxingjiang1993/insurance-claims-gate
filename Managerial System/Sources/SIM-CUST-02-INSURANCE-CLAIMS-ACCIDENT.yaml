@@ -1,0 +1,973 @@
+# =============================================================================
+# SIM-CUST-02-INSURANCE 客户模拟填表实例
+# 主垂直：claims（理赔）；薄切片：个人意外伤害险（含意外医疗）材料齐全 + 除外/免赔裁决门禁
+# 说明：主体机构为「合成客户」（非某一保司内部机密），但监管依据、行业痛点、
+#       公开对标数据均来自可核验公开资料；不得当作真实保司内部口径对外引用。
+# 证据索引见文末 evidence_notes
+# =============================================================================
+
+meta:
+  task_id: SIM-CUST-02-INSURANCE
+  scenario_name: 保险承保或理赔政策到裁决/功能门禁
+  filled_at: "2026-09-13"
+  revised_at: "2026-09-13"
+  revision: "v2-silicon-valley-5-cuts"
+  filled_by: customer_simulation_agent
+  primary_vertical: claims
+  thin_slice: "个人意外伤害保险（含附加意外医疗）— 必传材料清单断言 + 除外责任命中引用 + 免赔额/比例赔付断言 + 分层人闸"
+  company_label: "合成客户：浙海财产保险股份有限公司（中型财险总公司画像）"
+  reality_policy: |
+    机构名称与内部工单号为模拟；规模量级、系统栈、监管义务、痛点与 KPI 口径对齐中国持牌财险
+    人身意外险理赔数字化的公开事实，不照搬 BACKGROUND 示例句，不以「编造监管处罚」充当触发。
+  revision_note: |
+    v2 按硅谷评审五刀补强：Golden 评测规格、核赔作业流、outcome 基线→目标、Router 表、公开 VOC。
+    既有 REQ-M-* / REQ-W-* 正文与倾向不变；仅新增/强化 Should 与附录规格。
+
+# -----------------------------------------------------------------------------
+### B1. 客户所在行业与业务背景总体介绍
+# -----------------------------------------------------------------------------
+
+section: industry_and_business_background
+status: FILLED
+
+industry:
+  sector: insurance
+  line_of_business: property_personal_accident   # 财险牌照下的意外险/短期意外医疗（非寿险公司重疾主业）
+  primary_vertical_for_pilot: claims
+  regulators_and_regimes:
+    - "《中华人民共和国保险法》第22条：证明资料不完整时应及时一次性通知补正"
+    - "《中华人民共和国保险法》第23条：及时核定；情形复杂的原则上三十日内核定；达成协议后十日内履行给付"
+    - "《中华人民共和国保险法》第24条：不属于保险责任的，自核定之日起三日内发出拒赔通知书并说明理由"
+    - "《中华人民共和国保险法》第26条：人寿保险以外其他保险请求给付时效一般为二年（自知道保险事故发生之日起）"
+    - "国家金融监督管理总局《银行保险机构消费者权益保护管理办法》及消保监管评价（含金规〔2025〕20号《金融机构消费者权益保护监管评价办法》）"
+    - "《中华人民共和国个人信息保护法》：病历、诊疗信息等敏感个人信息处理与最小化"
+    - "条款报备/注册与互联网保险销售相关监管要求（意外险互联网专属条款常见）"
+  company_type: "全国性中型财产保险公司总公司（合成画像；在十余个省市设分公司）"
+  company_size_hint: |
+    对标公开市场中非「龙头五家」的财险主体量级：个人意外险与短期意外医疗年报案量约数十万级；
+    理赔作业以总公司规则+省级集中作业中心为主，地市机构负责协查与大额现场。
+    （合成规模，用于试点范围估算，非真实保费披露。）
+
+business_context:
+  products_in_scope:
+    - "个人意外伤害保险（主险）：意外身故/伤残"
+    - "附加意外医疗保险：门急诊/住院医疗费用补偿（含免赔额与赔付比例）"
+    - "试点条款集：已报备/注册的现行有效版本 + 有效批单/特别约定；不含重疾诊断给付、不含临床路径建议"
+  current_systems:
+    - "财产险核心业务系统（保单、批改、收付费）"
+    - "理赔作业系统（立案、理算、核赔、结案）"
+    - "影像/单证系统 + 第三方 OCR（发票、病历首页等结构化抽取，已上线数年）"
+    - "规则引擎（金额权限、简易案件直通、黑名单/重复索赔初筛）"
+    - "条款/产品文档库（PDF/Word；版本管理弱于核心险别代码）"
+    - "银企支付/出款系统（仅核心触发；本试点不要求 Agent 直连出款）"
+  policy_and_clause_lifecycle: |
+    产品部与精算完成条款设计并完成监管报备/注册后上线；互联网渠道与银保渠道迭代快，
+    特别约定与批单多。理赔手册与规则引擎条件由理赔管理部维护，常滞后于条款改版 1–2 个迭代。
+    一线核赔员实际「夹缝作业」：一边看 PDF 条款，一边点规则引擎结果，拒赔话术另存话术库，
+    三者不一致时，消保投诉与诉讼举证成本陡增。
+  document_types_in_play:
+    - "主险/附加险条款 PDF（含责任免除加粗页）"
+    - "保险单与批单、特别约定"
+    - "理赔申请书、身份证明、银行卡信息"
+    - "门急诊病历/出院小结、费用发票与费用清单、医保结算单"
+    - "意外经过说明、交通事故认定书（如有）、伤残鉴定报告（伤残案件）"
+    - "公司理赔作业手册与材料清单（对内）"
+  recent_trigger: |
+    1) 消保与投诉侧：客户对「多次补件」与「拒赔说不清条款依据」投诉占比上升；法务复核发现
+       部分拒赔通知引用的是旧版除外表述或仅有话术库句子、无条款项级出处——直接触及保险法
+       第22条一次性通知补正与第24条说明理由义务。
+    2) 内外部对标压力：行业公开报道显示头部公司小额理赔已做到极短时效、智能化审核比例高
+       （如中国人寿寿险公开披露 2024 年智能化审核赔案超 1700 万件、智能化率超 70%，整体赔付时效 0.34 天），
+       抬高客户对「秒赔/快赔」预期；我司 OCR 与规则直通已有，但「条款一致性裁决」仍靠人工，
+       复杂意外医疗（疾病vs意外争议）排队拉长，拖累消保评价观感。
+    3) 内审抽样：规则引擎「免赔额/比例」与现行附加险条款不一致的个案；手册未同步批单特别约定。
+    4) 监管评价语境：金融监管总局持续强化消保监管评价（金规〔2025〕20号等），理赔可解释性与
+       材料一次性交对齐成为可被抽查的证据链问题，而非纯 IT 效率项目。
+  constraints:
+    compliance:
+      - "拒赔/减赔对外文书必须能追溯到有效条款版本与条款项；禁止不可申诉的自动终局拒赔"
+      - "补件通知应符合「一次性告知」要求，系统需固化必传清单，避免反复索要"
+      - "病历等敏感个人信息最小化、脱敏与访问审计；试点数据不出境"
+      - "自动化辅助决策需可人工复核；持牌核赔责任不因 AI 草案而转移"
+      - "通融赔付必须走权限人闸，不得伪装成条款通赔引用"
+    technical:
+      - "已有 OCR/规则引擎，本项目增量是条款版本化 RAG + 验收契约 + 独立校验，不重复建设 OCR"
+      - "试点仅 L1 读案件/保单/影像元数据 + L2 回写补件清单与裁决草案/门禁状态；L3 出款仍由核心人工或既有支付流程触发"
+      - "Worker 禁止直连生产支付；写权限需 ACL、灰度与可回滚"
+      - "峰值（节假日出行意外、暑期等）允许降级为补件清单+排队人审，禁止静默自动通赔"
+    organizational:
+      - "总公司理赔管理部定规则与人闸阈值；省分作业中心执行；产品/精算负责条款版本权威源"
+      - "IT 与核心厂商协调窗口有限，试点必须薄切片，避免「全险种改造」立项失败"
+      - "调查岗/公估外包案件走「调查中」状态，冻结自动裁决"
+
+narrative_overview: |
+  我们是一家中型财产险总公司。试点锁定「个人意外伤害险 + 附加意外医疗」理赔，而不是车险定损或重疾诊断。
+  行业已经证明 OCR 和线上化能把材料识别做上去（公开案例中，代理平台侧曾披露 OCR 覆盖六十余类材料、
+  识别准确度超 95%、材料一次交对率提升至约 90%），头部寿险也公开了较高的智能化审核比例与极短整体时效。
+  我们的真实缺口不在「能不能把发票读出来」，而在：读完之后，是否按【现行有效条款 + 批单效力栈】完成
+  材料齐全、除外责任（尤其是疾病导致伤害、高风险运动、故意行为等意外险常见除外）、免赔与比例赔付的
+  可验收断言；以及拒赔/减赔能否在法定时限内给出带条款引用的说明，并保留申诉回人工路径。
+
+  因此我们要的不是理赔聊天机器人，而是「条款/手册 → 验收契约 → 抽取与裁决草案 → 独立校验 → 分层人闸」
+  的门禁中继。成功标准是：补件一次说清、裁决类型结构化、引用可审计、校验失败不得结案出款、
+  对外拒赔与超权限给付必须人批。
+
+# -----------------------------------------------------------------------------
+### B2. 关键干系人（目标用户是谁）
+# -----------------------------------------------------------------------------
+
+section: stakeholders
+status: FILLED
+
+stakeholders:
+  - stakeholder_id: SH-01
+    role_title: "分管运营副总经理"
+    org_unit: "总公司管理层"
+    persona_type: economic_buyer
+    goals:
+      - "消保评价与投诉指标可控，同时缩短意外险案均处理时长"
+      - "用可演示 ROI 的薄试点说服办公会，避免大而全数字化烂尾"
+    pains:
+      - "「秒赔」舆论提高客户预期，中型公司若只有 OCR 没有条款门禁，复杂案更容易变成投诉"
+      - "怕 AI 项目被内审/合规一票否决"
+    success_looks_like: "试点险种投诉中「说不清依据/多次补件」类工单下降，且无自动错赔事故"
+    interacts_with_our_product_as: "审阅试点看板（断言通过率、人闸队列、投诉归因），批准扩大切片"
+
+  - stakeholder_id: SH-02
+    role_title: "理赔管理部总经理"
+    org_unit: "理赔"
+    persona_type: decision_maker
+    goals:
+      - "统一总省作业标准：材料清单、除外认定、免赔计算口径一致"
+      - "降低错赔与不当拒赔，提高可追溯核赔质量"
+    pains:
+      - "条款改版后规则引擎与话术库不同步"
+      - "疾病 vs 意外争议案占用骨干核赔员，简易案也被反复补件拖累"
+    success_looks_like: "裁决草案含类型+条款引用；Golden 案件集回归通过后才允许提高直通比例"
+    interacts_with_our_product_as: "维护理赔契约主题、审批人闸阈值、确认裁决类型枚举"
+
+  - stakeholder_id: SH-03
+    role_title: "省级理赔作业中心主管（核赔）"
+    org_unit: "理赔作业中心"
+    persona_type: end_user
+    goals:
+      - "减少无效来回补件，把时间花在责任争议与调查案"
+      - "拒赔通知书一键带出条款依据草稿，人工改写后签发"
+    pains:
+      - "PDF 翻条款与系统字段来回切换，容易漏检特别约定"
+      - "调查案件与普通案件混流，担心自动通赔"
+    success_looks_like: "系统明确输出补件/通赔建议/减赔/拒赔草案/调查中；超阈值自动进自己的人闸队列"
+    interacts_with_our_product_as: "处理人闸队列、确认或驳回草案、触发调查中冻决"
+
+  - stakeholder_id: SH-04
+    role_title: "消费者权益保护部负责人"
+    org_unit: "合规/消保"
+    persona_type: influencer
+    goals:
+      - "理赔服务满足保险法时限与说明义务，经得起消保监管评价材料抽查"
+      - "投诉与调解案件有完整证据链"
+    pains:
+      - "拒赔理由「话术化」无法对应条款项"
+      - "多次补件被客户认定为刁难，形成信访/调解压力"
+    success_looks_like: "每笔对外拒赔/减赔可导出：条款版本、条款项、效力层级、校验报告、操作者"
+    interacts_with_our_product_as: "抽检校验报告与 citation 覆盖；参与安全声明与申诉回流设计"
+
+  - stakeholder_id: SH-05
+    role_title: "法律合规部律师"
+    org_unit: "法律合规"
+    persona_type: blocker
+    goals:
+      - "避免 AI 输出被直接当作终局拒赔；确保可申诉、可人工复核"
+      - "批单/特约与主险冲突时有明确效力解释路径"
+    pains:
+      - "诉讼中对方质证「依据哪一版哪一条」，我方举证链断裂"
+    success_looks_like: "效力栈 citation + 人闸记录可作为诉讼/调解证据材料"
+    interacts_with_our_product_as: "审核对外文书模板与 Won't 边界；一票否决「不可申诉自动拒赔」"
+
+  - stakeholder_id: SH-06
+    role_title: "内审/风险管理部检查岗"
+    org_unit: "内审与风控"
+    persona_type: blocker
+    goals:
+      - "防止越权出款与日志不完整"
+      - "模型/规则变更可审计"
+    pains:
+      - "历史智能项目存在「先上线后补审计」"
+    success_looks_like: "失败关闭、人闸令牌、工具 ACL、handoff 日志齐全"
+    interacts_with_our_product_as: "审计 VP-FAIL-CLOSED / VP-HUMAN-LATCH / VP-AUDIT-TRAIL 相关产物"
+
+  - stakeholder_id: SH-07
+    role_title: "信息技术部理赔系统产品经理"
+    org_unit: "IT/数据"
+    persona_type: influencer
+    goals:
+      - "明确 L1/L2/L3 边界，控制对核心与支付的改造量"
+      - "与现有 OCR、规则引擎并存，避免两套真相"
+    pains:
+      - "核心厂商排期紧；若要求直连出款，项目必卡"
+      - "条款库与险别代码主数据不一致"
+    success_looks_like: "试点只读核心/理赔/影像 + 回写状态字段；支付仍走既有核赔通过后出款"
+    interacts_with_our_product_as: "配置工具 ACL、接口字段、串行写锁与灰度发布"
+
+  - stakeholder_id: SH-08
+    role_title: "个人险产品部经理"
+    org_unit: "精算/产品"
+    persona_type: influencer
+    goals:
+      - "条款与特别约定变更后，理赔侧契约可再生，而不是口头通知"
+    pains:
+      - "产品上线快，理赔规则更新慢，最终产品背锅"
+    success_looks_like: "新条款版本入库（生效日）→ 自动提示契约回归任务"
+    interacts_with_our_product_as: "维护条款 KB 权威版本与生效日"
+
+  - stakeholder_id: SH-09
+    role_title: "调查/协查岗"
+    org_unit: "理赔调查"
+    persona_type: end_user
+    goals:
+      - "疑似非意外、虚假票据、重复索赔案件及时冻结自动流"
+    pains:
+      - "规则引擎只做简单重复线索，复杂欺诈仍靠人工发现时往往已接近出款"
+    success_looks_like: "触发「调查中」即冻决并进入调查工作台"
+    interacts_with_our_product_as: "接收调查中案件，回写调查结论后解除冻决"
+
+# -----------------------------------------------------------------------------
+### B3. 需求（收益、痛点）与 MoSCoW 排序
+# -----------------------------------------------------------------------------
+
+section: requirements_moscow
+status: FILLED
+
+requirements:
+  - requirement_id: REQ-M-01
+    moscow: Must
+    title: "条款与批单版本化入库，裁决引用必须到条款项"
+    pain: "拒赔/减赔说不清依据哪一款哪一版；消保与诉讼举证困难（对应保险法第24条说明理由义务）"
+    benefit: "对外说明与对内审核同源可追溯"
+    acceptance_hint: "任意拒赔/减赔草案均含 doc_id、条款项、doc_version/生效日、效力层级；缺失则不得进入对外通知状态"
+    primary_stakeholders: [SH-04, SH-05, SH-02]
+    related_clause_themes: [除外责任, 保险责任范围, 批单特别约定]
+    notes: "公开司法与监管实践强调免责说明与拒赔理由；意外险常见除外含疾病导致、故意行为、约定高风险运动等"
+
+  - requirement_id: REQ-M-02
+    moscow: Must
+    title: "材料齐全性断言 + 一次性补件清单"
+    pain: "多次补件引发投诉，且可能违反保险法第22条「及时一次性通知」补正资料的要求"
+    benefit: "提高材料一次交对率，缩短无效往返"
+    acceptance_hint: "材料不齐时裁决类型=补件，清单一次给出且可追踪；禁止同一缺失项拆成多轮通知（系统层约束）"
+    primary_stakeholders: [SH-03, SH-04, SH-02]
+    related_clause_themes: [材料齐全性, 理赔申请资料]
+    notes: |
+      行业侧已将「理赔材料一次交对率」列为「好理赔」可量化指标讨论项
+      （中国人民大学保险研究所《中国保险理赔数字化发展报告》发布场合，平安健康险等机构参与讨论）。
+      代理平台公开案例称数字化后一次交对率可至约 90%；我司试点以内部基线提升为验收，不宣称达到某公司广告值。
+
+  - requirement_id: REQ-M-03
+    moscow: Must
+    title: "意外险除外与「疾病 vs 意外」责任断言（带引用）"
+    pain: "意外医疗案中疾病诱发摔伤、猝死争议等易错赔或不当拒赔；仅靠 OCR 字段无法完成责任认定"
+    benefit: "争议点结构化呈给人审，减少骨干核赔遗漏关键除外"
+    acceptance_hint: "命中除外或责任争议时必须引用除外条款项；不得仅输出「建议拒赔」无依据"
+    primary_stakeholders: [SH-02, SH-03, SH-05]
+    related_clause_themes: [除外责任, 意外定义, 保险责任]
+    notes: "太平洋保险等公开科普亦归纳：疾病导致事故、主观故意、未承保高风险活动等属意外险常见不赔情形——试点要以本公司报备条款为准做断言，不以科普文代替条款"
+
+  - requirement_id: REQ-M-04
+    moscow: Must
+    title: "免赔额与赔付比例计算断言"
+    pain: "附加意外医疗的免赔额/赔付比例在规则引擎与条款间不一致，导致错赔或客诉"
+    benefit: "理算口径与现行条款一致、可复核"
+    acceptance_hint: "通赔/减赔草案展示免赔扣除与比例计算步骤，并引用对应条款；与条款冲突则失败关闭"
+    primary_stakeholders: [SH-02, SH-03, SH-08]
+    related_clause_themes: [免赔额, 比例赔付, 医疗费用补偿]
+    notes: "免赔额/免赔率/比例赔付在保险法司法解释语境下可归入免除或减轻保险人责任条款范畴，说明与引用要求更高"
+
+  - requirement_id: REQ-M-05
+    moscow: Must
+    title: "独立校验 + 失败关闭（不得自审自批结案）"
+    pain: "历史「智能核赔」易变成规则自嗨；错案流入出款"
+    benefit: "上线质量门禁，回归可重复"
+    acceptance_hint: "Validator 独立检索条款并对 Golden 案件集打分；断言失败或引用覆盖不足不得标完成/不得进入出款就绪"
+    primary_stakeholders: [SH-06, SH-02, SH-07]
+    related_clause_themes: [质量门禁, 案件回归]
+    notes: "对应我方 VP-INDEP-JUDGE / VP-FAIL-CLOSED；客户侧表述为内控要求"
+
+  - requirement_id: REQ-M-06
+    moscow: Must
+    title: "分层人闸：拒赔/通融/超金额/调查结论必须人批"
+    pain: "自动出款与对外拒赔风险极高；监管与内审零容忍越权"
+    benefit: "效率提升但不转移持牌责任"
+    acceptance_hint: |
+      人闸三维：金额档 × 决定类型 × 场景。
+      默认：对外拒赔、通融、预赔、调查结论解除冻决 → 人闸；
+      超金额阈值通赔建议 → 人闸；纯补件可自动。
+      无人闸令牌不得进入核心「同意给付/出款」状态。
+    primary_stakeholders: [SH-02, SH-03, SH-06, SH-01]
+    related_clause_themes: [人闸, 通融, 拒赔, 预赔]
+    notes: "对齐保险法核定与给付程序；不把「无人最终拒赔」做成目标"
+
+  - requirement_id: REQ-M-07
+    moscow: Must
+    title: "结构化裁决类型（补件/通赔建议/减赔/拒赔草案/调查中/预赔）"
+    pain: "只有通过/拒绝两态，无法对接作业流与核心状态机"
+    benefit: "与现有理赔系统状态对齐，可运营"
+    acceptance_hint: "Worker 输出必须落在枚举类型；调查中自动冻决并阻断出款就绪"
+    primary_stakeholders: [SH-03, SH-07, SH-09]
+    related_clause_themes: [裁决类型, 欺诈调查]
+    notes: "欺诈/虚假材料/事故真实性存疑是理赔数字化长期配套能力；公开核赔方案亦强调非正常赔付识别"
+
+  - requirement_id: REQ-M-08
+    moscow: Must
+    title: "单险种薄切片试点范围锁定"
+    pain: "若同时做车险定损+意健险+承保，集成与评价标准爆炸，项目失败"
+    benefit: "可在一个季度内验收 ROI 与合规证据链"
+    acceptance_hint: "范围书面锁定个人意外险（含附加意外医疗）理赔；其他险种仅调研不开发"
+    primary_stakeholders: [SH-01, SH-07, SH-02]
+    related_clause_themes: [试点范围]
+    notes: "对齐行业「先标准化流程切片再扩展」的真实采购策略"
+
+  - requirement_id: REQ-S-01
+    moscow: Should
+    title: "与理赔/核心/影像 L1 读 + L2 状态回写集成"
+    pain: "系统外 Excel/邮件运转无法审计，也无法进入消保证据链"
+    benefit: "门禁结果进入正式作业流"
+    acceptance_hint: "可读案件、保单险别、条款代码、影像元数据；可回写补件清单、草案、门禁状态、人闸结果"
+    primary_stakeholders: [SH-07, SH-03]
+    related_clause_themes: [系统集成]
+    notes: "L3 出款不进 Should 的强制项"
+
+  - requirement_id: REQ-S-02
+    moscow: Should
+    title: "欺诈/异常线索触发「调查中」并冻款"
+    pain: "重复索赔、发票疑点等若到出款前才发现，挽损成本高"
+    benefit: "与现有规则引擎黑名单能力衔接，形成升级路径"
+    acceptance_hint: "命中调查规则 → 裁决类型=调查中 + 冻决；仅调查岗/授权核赔可解除"
+    primary_stakeholders: [SH-09, SH-06, SH-02]
+    related_clause_themes: [欺诈, 调查中]
+    notes: "公开智能核赔案例常强调非正常赔付识别；本需求是门禁联动而非新建反欺诈模型全集"
+
+  - requirement_id: REQ-S-03
+    moscow: Should
+    title: "条款变更触发契约回归任务"
+    pain: "产品改版后理赔侧无人触发回归，问题在投诉时才暴露"
+    benefit: "手册/契约与条款同频"
+    acceptance_hint: "新 doc_version 入库后自动开回归 Mission；未通过不得提高直通率"
+    primary_stakeholders: [SH-08, SH-02, SH-07]
+    related_clause_themes: [条款版本, 契约再生]
+    notes: ""
+
+  - requirement_id: REQ-S-04
+    moscow: Should
+    title: "试点 KPI 看板（模拟量级，对内管理）"
+    pain: "只有技术指标，业务与消保看不到价值"
+    benefit: "办公会可决策是否扩面"
+    acceptance_hint: |
+      至少跟踪：材料一次交对率、二次补件率、案均人审耗时（简单案）、
+      拒赔可追溯率（抽检 citation 完整率）、人闸命中率、Golden 断言通过率。
+      基线与目标见附录 outcome_targets：试点第 1–4 周必须用真实作业日志测定基线，再锁定目标；
+      对外材料须标注非监管报送数；不得把头部公司公开广告值写成我司承诺。
+    primary_stakeholders: [SH-01, SH-04, SH-02]
+    related_clause_themes: [KPI]
+    notes: |
+      公开对标仅作压力来源：如国寿寿险 2024 年报口径整体赔付时效 0.34 天、智能化率超 70%；
+      微保等平台披露一次交对率约 90%、OCR 准确度超 95%。我司目标不得直接抄袭为承诺值。
+      「好理赔」公开讨论指标含：材料一次交对率、齐全到结案时效、平台理赔纠纷率、结案满意度。
+
+  - requirement_id: REQ-S-05
+    moscow: Should
+    title: "Golden 案件集与分段回归（专家标注 + 周频）"
+    pain: "无专家金标与分段评测时，试点只能靠 demo 一次说对，无法过内审/扩面"
+    benefit: "上线门槛可客观验收；错案可回流"
+    acceptance_hint: |
+      见附录 golden_eval_spec：试点金标不少于约 300 件专家双审案件（分层抽样）；
+      关键路径（补件一次清单、除外引用、免赔计算、批单效力冲突、拒赔 citation）断言通过率作为门禁；
+      每周跑固定回归子集；人闸改正必须可回流进金标。
+    primary_stakeholders: [SH-02, SH-06, SH-03]
+    related_clause_themes: [Golden, 分段eval, 回归]
+    notes: |
+      依据公开实践：企业 AI 强调 gold-standard evaluation sets（专家标注、持续基准）；
+      Snorkel 与 CPCU 专家共建保险承保 agent 基准并公开 Hugging Face 数据集，任务级准确率分化明显
+      （其公开博客口径：如 Deductibles 任务均值约 0.784，Appetite Check 约 0.615 等）——
+      说明垂直任务不能假设「前沿模型自然高分」，必须自建金标与分段门槛。
+      Sixfold 等承保 AI 厂商亦公开将 accuracy benchmarks 作为 pilot 进入量产的前提。
+
+  - requirement_id: REQ-S-06
+    moscow: Should
+    title: "核赔员端到端作业流（屏→动作→系统状态）"
+    pain: "只有组织角色图，没有一线「打开什么、点什么、回写什么」，无法落地集成与培训"
+    benefit: "与现有报案-立案-核赔-理算-结案链路对齐，降低变革阻力"
+    acceptance_hint: "见附录 adjuster_workflow：每个关键屏有输入、系统动作、允许状态迁移与人闸点；Demo 必须按该路径走通一案"
+    primary_stakeholders: [SH-03, SH-07, SH-02]
+    related_clause_themes: [作业流, 状态机]
+    notes: |
+      人身/寿险理赔公开流程常见环节：报案、立案、受理/初审、调查、理算、复核审批、结案
+      （行业百科与保司公开说明一致）；财险实务亦含签收审核单证、理算复核、审批、赔付结案。
+      本试点映射到意外险个人险，不引入车险查勘定损主路径。
+
+  - requirement_id: REQ-S-07
+    moscow: Should
+    title: "显式 Router：规则字段 / 条款 RAG / OCR / 调查规则分派"
+    pain: "一律丢给大模型会把免赔算术与除外检索搅在一起，既慢又不可审计"
+    benefit: "可编排流水线（先 Category-1），失败可定位到路由层"
+    acceptance_hint: "见附录 router_table；每类请求有唯一主路由与回退；路由决策写入 ledger"
+    primary_stakeholders: [SH-07, SH-02, SH-06]
+    related_clause_themes: [Router, 编排]
+    notes: "对齐「结构化规则 vs 非结构化条款 RAG」的行业落地常识与 Jason Liu 等公开的 query routing 实践"
+
+  - requirement_id: REQ-C-01
+    moscow: Could
+    title: "核心 L3 直连出款/自动支付指令"
+    pain: "端到端仍需核赔员在核心点「同意给付」"
+    benefit: "极致时效"
+    acceptance_hint: "若做，必须叠加人闸令牌 + 双人复核 + 可回滚；本阶段不作为验收必要条件"
+    primary_stakeholders: [SH-07, SH-06]
+    related_clause_themes: [出款]
+    notes: "中型公司核心改造窗口有限；与「失败关闭」冲突风险高"
+
+  - requirement_id: REQ-C-02
+    moscow: Could
+    title: "承保侧等待期/告知除外的只读提示（非本试点主路径）"
+    pain: "部分纠纷源头在投保告知，理赔阶段被动背锅"
+    benefit: "为二期 underwriting 门禁探路"
+    acceptance_hint: "仅展示只读提示，不在本期做自动承保决策"
+    primary_stakeholders: [SH-08, SH-02]
+    related_clause_themes: [等待期, 投保告知]
+    notes: "主垂直锁定 claims；本项 Could，防止范围回潮"
+
+  - requirement_id: REQ-W-01
+    moscow: Won't
+    title: "健康/医疗诊断建议或治疗方案生成"
+    pain: "越权医疗建议，监管与安全不可接受"
+    benefit: "—"
+    acceptance_hint: "需求说明书明确排除；评测集若出现诊疗建议视为缺陷"
+    primary_stakeholders: [SH-05, SH-04]
+    related_clause_themes: [安全边界]
+    notes: "即使附加意外医疗涉及病历，也只做材料与条款门禁"
+
+  - requirement_id: REQ-W-02
+    moscow: Won't
+    title: "无人最终拒赔且不可申诉/不可人工复核"
+    pain: "直接违反消保与保险法说明义务精神，声誉与处罚风险"
+    benefit: "—"
+    acceptance_hint: "任何拒赔草案必须可驳回、可转人工、可申诉工单回流"
+    primary_stakeholders: [SH-05, SH-04, SH-06]
+    related_clause_themes: [拒赔, 申诉]
+    notes: "任务硬约束"
+
+  - requirement_id: REQ-W-03
+    moscow: Won't
+    title: "纯客服话术机器人作为本期交付"
+    pain: "不解决条款裁决与审计"
+    benefit: "—"
+    acceptance_hint: "CX 话术不在本期范围"
+    primary_stakeholders: [SH-02]
+    related_clause_themes: []
+    notes: ""
+
+moscow_summary:
+  Must:
+    - REQ-M-01
+    - REQ-M-02
+    - REQ-M-03
+    - REQ-M-04
+    - REQ-M-05
+    - REQ-M-06
+    - REQ-M-07
+    - REQ-M-08
+  Should:
+    - REQ-S-01
+    - REQ-S-02
+    - REQ-S-03
+    - REQ-S-04
+    - REQ-S-05
+    - REQ-S-06
+    - REQ-S-07
+  Could:
+    - REQ-C-01
+    - REQ-C-02
+  Wont:
+    - REQ-W-01
+    - REQ-W-02
+    - REQ-W-03
+  ranking_rationale: |
+    排序依据：(1) 法定义务与消保评价证据链（一次性补件、拒赔说明理由、可审计引用）优先于体验花活；
+    (2) 错赔/不当拒赔与越权出款的尾部风险优先于平均时效；
+    (3) 可验收性：材料断言、免赔计算、除外引用、独立校验均可做 Golden 集，优于不可测的「更智能」；
+    (4) 组织可交付：先锁意外险薄切片与 L1/L2，避免 L3 出款拖垮中型公司 IT 排期；
+    (5) 明确 Won't，防止销售/厂商把诊断 Agent 或不可申诉自动拒赔塞进范围；
+    (6) v2 将 Golden/作业流/Router/outcome 列为 Should：不改变 Must 合规底线，但作为 design partner 扩面前置条件。
+
+# -----------------------------------------------------------------------------
+### B4. 需求 ↔ 我方价值主张映射
+# -----------------------------------------------------------------------------
+
+section: value_proposition_mapping
+status: FILLED
+catalog_ref: customer_sim/PRODUCT_VALUE_CATALOG.md
+
+mappings:
+  - mapping_id: MAP-01
+    requirement_ids: [REQ-M-01, REQ-M-03, REQ-M-04]
+    value_prop_ids: [VP-RAG-CITE, VP-CONTRACT-FIRST]
+    cardinality: N:N
+    mapping_rationale: "除外、免赔、责任认定必须以版本化条款引用进入契约断言，而不是事后聊天解释。"
+    demo_observable: "拒赔草案展示条款项 citation（含版本/生效日/效力层级）；缺引用则门禁红灯"
+    unmet: false
+    unmet_gap: ""
+
+  - mapping_id: MAP-02
+    requirement_ids: [REQ-M-02, REQ-M-07]
+    value_prop_ids: [VP-CONTRACT-FIRST, VP-LEDGER, VP-THIN-SLICE]
+    cardinality: N:N
+    mapping_rationale: "补件清单与裁决类型是可执行契约输出；账本持久化案件门禁状态；薄切片保证意外险材料清单可先闭环。"
+    demo_observable: "材料缺失 → 裁决类型=补件且一次清单落账；补齐后重跑断言"
+    unmet: false
+    unmet_gap: ""
+
+  - mapping_id: MAP-03
+    requirement_ids: [REQ-M-05]
+    value_prop_ids: [VP-INDEP-JUDGE, VP-FAIL-CLOSED, VP-FIX-LOOP, VP-METRICS]
+    cardinality: 1:N
+    mapping_rationale: "独立 Validator 打分；失败不得 DONE；开 fix；以断言通过率/引用覆盖率为上线门槛。"
+    demo_observable: "Validator 独立检索后 fail report；Mission 保持未完成直至修复或人闸升级"
+    unmet: false
+    unmet_gap: ""
+
+  - mapping_id: MAP-04
+    requirement_ids: [REQ-M-06]
+    value_prop_ids: [VP-HUMAN-LATCH, VP-AUDIT-TRAIL, VP-TOOL-ACL]
+    cardinality: 1:N
+    mapping_rationale: "拒赔/通融/超阈值给付与调查解除冻决必须显式人批；令牌与操作进审计；支付工具默认无权限。"
+    demo_observable: "无 approve 令牌时出款就绪按钮/状态保持 blocked_for_human"
+    unmet: false
+    unmet_gap: ""
+
+  - mapping_id: MAP-05
+    requirement_ids: [REQ-M-08, REQ-S-03]
+    value_prop_ids: [VP-THIN-SLICE, VP-DOMAIN-SWAP, VP-RELAY]
+    cardinality: N:N
+    mapping_rationale: "先意外险理赔切片验收；同中继日后可换承保 KB/契约；三角色激励分离避免自审自批。"
+    demo_observable: "Demo 声明 vertical=claims + product=personal_accident；展示与金融垂直共用 ledger 的配置差仅 KB/schema/人闸表"
+    unmet: false
+    unmet_gap: ""
+
+  - mapping_id: MAP-06
+    requirement_ids: [REQ-S-01]
+    value_prop_ids: [VP-SERIAL-WRITE, VP-TOOL-ACL, VP-LEDGER]
+    cardinality: 1:N
+    mapping_rationale: "回写案件状态需串行写锁与最小权限，避免与核心并发双写。"
+    demo_observable: "同一案件同时仅一个 Writer；Validator 只读"
+    unmet: false
+    unmet_gap: ""
+
+  - mapping_id: MAP-07
+    requirement_ids: [REQ-S-02]
+    value_prop_ids: [VP-HUMAN-LATCH, VP-FAIL-CLOSED, VP-AUDIT-TRAIL]
+    cardinality: 1:N
+    mapping_rationale: "调查中即失败关闭自动通赔路径并人闸升级，全过程可审计。"
+    demo_observable: "触发调查规则后状态=调查中且出款就绪=false"
+    unmet: false
+    unmet_gap: ""
+
+  - mapping_id: MAP-08
+    requirement_ids: [REQ-S-04]
+    value_prop_ids: [VP-METRICS, VP-HONEST-AUTONOMY]
+    cardinality: 1:N
+    mapping_rationale: "正确性与引用覆盖优先于吞吐；自治等级如实标注（辅助起草≠自动结案）。"
+    demo_observable: "看板上标注 Autonomy L 级与断言通过率，不展示虚假「全自动无人赔付率」"
+    unmet: false
+    unmet_gap: ""
+
+  - mapping_id: MAP-09
+    requirement_ids: [REQ-C-01]
+    value_prop_ids: [VP-HUMAN-LATCH, VP-TOOL-ACL]
+    cardinality: 1:N
+    mapping_rationale: "若未来做 L3，只能在人闸+ACL 框架下扩展；当前能力可支撑门禁，但不承诺已具备生产支付连接器。"
+    demo_observable: "Could 项演示用「模拟支付适配器」且默认关闭"
+    unmet: true
+    unmet_gap: "目录未提供开箱即用的核心支付/银企直连适配器；需客户 IT 与厂商另立接口项目。本期以 L2 状态回写为止。"
+
+  - mapping_id: MAP-10
+    requirement_ids: [REQ-C-02]
+    value_prop_ids: [VP-DOMAIN-SWAP, VP-RAG-CITE]
+    cardinality: 1:N
+    mapping_rationale: "承保提示可复用同中继换 KB，但本期不做承保决策产品化。"
+    demo_observable: "仅只读提示卡片"
+    unmet: false
+    unmet_gap: ""
+
+  - mapping_id: MAP-11
+    requirement_ids: [REQ-W-01, REQ-W-02, REQ-W-03]
+    value_prop_ids: [VP-HONEST-AUTONOMY, VP-HUMAN-LATCH]
+    cardinality: N:N
+    mapping_rationale: "用诚实自治与人闸明确排除诊断 Agent、不可申诉拒赔、纯 CX 机器人，避免错误售卖。"
+    demo_observable: "范围页与安全声明列出 Won't"
+    unmet: false
+    unmet_gap: ""
+
+  - mapping_id: MAP-12
+    requirement_ids: [REQ-S-05]
+    value_prop_ids: [VP-METRICS, VP-INDEP-JUDGE, VP-FAIL-CLOSED, VP-FIX-LOOP]
+    cardinality: 1:N
+    mapping_rationale: "Golden 分段回归把「正确性优先」落实为可执行门禁；失败开 fix 并阻止扩面。"
+    demo_observable: "展示本周回归报告：分型通过率 + 未达门槛的 blocked 扩面标志"
+    unmet: false
+    unmet_gap: ""
+
+  - mapping_id: MAP-13
+    requirement_ids: [REQ-S-06]
+    value_prop_ids: [VP-LEDGER, VP-HUMAN-LATCH, VP-AUDIT-TRAIL]
+    cardinality: 1:N
+    mapping_rationale: "作业流每一步的状态与人闸写入账本，形成可审计操作轨迹。"
+    demo_observable: "按 adjuster_workflow 走通：补件→重跑→人闸批准→出款就绪=false/true"
+    unmet: false
+    unmet_gap: ""
+
+  - mapping_id: MAP-14
+    requirement_ids: [REQ-S-07]
+    value_prop_ids: [VP-RELAY, VP-CONTRACT-FIRST, VP-TOOL-ACL]
+    cardinality: 1:N
+    mapping_rationale: "Router 决定工具与检索画像，保持编排可解释、权限最小。"
+    demo_observable: "同一案件 ledger 可见 route=rules|rag|ocr|investigate 及选用的 retrieval_profile"
+    unmet: false
+    unmet_gap: ""
+
+coverage_check:
+  all_must_mapped: true
+  unmapped_requirement_ids: []
+  unused_but_relevant_vp_ids:
+    - "（无强制缺失；VP-RELAY 已在 MAP-05 / MAP-14 使用）"
+  must_vp_touchpoints:
+    citation_or_contract: [VP-RAG-CITE, VP-CONTRACT-FIRST]
+    fail_closed_or_judge: [VP-FAIL-CLOSED, VP-INDEP-JUDGE]
+    human_latch: [VP-HUMAN-LATCH]
+  self_check:
+    primary_vertical_declared: claims
+    b2_has_claims_and_compliance: true
+    must_has_traceable_citation: true
+    must_has_human_latch_or_wont_autopay: true
+    no_invented_vp: true
+    domain_swap_used: true
+    v2_golden_workflow_router_outcome: true
+
+# -----------------------------------------------------------------------------
+# v2 附录：Golden / 作业流 / Outcome / Router / 公开 VOC（非改 Must/Won't）
+# -----------------------------------------------------------------------------
+
+section: golden_eval_spec
+status: FILLED
+related_requirements: [REQ-M-05, REQ-S-05, REQ-S-04]
+
+design_principles:
+  - "专家金标优先于众包；持续基准优先于一次性 demo（企业 gold-standard evaluation 公开共识）"
+  - "分段评测：按失败模式看，不看单一总分（公开 RAG/垂直 agent 实践）"
+  - "不假设前沿模型在保险垂直任务上自然高分：Snorkel×CPCU 承保 agent 基准显示任务准确率可从约 0.78（Deductibles）降到约 0.38（Product Recommendations）量级分化"
+
+corpus:
+  pilot_gold_size: "约 300 件（最低验收门槛）；争取 400–500 件覆盖长尾"
+  size_rationale: |
+    垂直试点常见以「专家标注金标 + 分层抽样」支撑 pilot→量产决策（Sixfold 等公开强调 pilot 阶段 accuracy benchmarks）。
+    300 件量级可在 7 个主分型上各保留足够样本，同时适合中型公司 2–3 名资深核赔双周标注负荷。
+    不编造「已有内部 300 件」——启动后由历史已决案脱敏抽样新建。
+  labeling:
+    annotators: "资深核赔双人独立标注 + 第三人裁决分歧"
+    forbidden: "禁止用模型自标自测作为唯一金标"
+  stratification:
+    - id: G-SUPPLEMENT
+      name: "材料不齐→一次性补件"
+      share_pct: 20
+      must_assertions: ["材料清单完整", "无拆轮重复索要同一缺失项"]
+    - id: G-PAY
+      name: "通赔建议（权限内）"
+      share_pct: 20
+      must_assertions: ["责任成立引用", "金额步骤可复核"]
+    - id: G-DEDUCT
+      name: "免赔额/比例减赔"
+      share_pct: 15
+      must_assertions: ["免赔扣除", "比例计算", "条款引用"]
+    - id: G-EXCL
+      name: "除外/非意外（疾病vs意外等）"
+      share_pct: 20
+      must_assertions: ["除外条款项引用", "裁决类型=拒赔草案或调查中"]
+    - id: G-ENDORSE
+      name: "批单/特约覆盖主险冲突"
+      share_pct: 10
+      must_assertions: ["效力层级正确", "引用落在优先生效文本"]
+    - id: G-INVEST
+      name: "调查中冻决"
+      share_pct: 10
+      must_assertions: ["冻决出款就绪", "调查触发可审计"]
+    - id: G-DENY-CITE
+      name: "拒赔 citation 完整性"
+      share_pct: 5
+      must_assertions: ["版本+条款项+说明理由字段齐全"]
+
+pass_bars:
+  critical_assertion_pass_rate: "≥95%（G-SUPPLEMENT / G-DEDUCT / G-EXCL / G-ENDORSE / G-DENY-CITE 的关键断言）"
+  citation_coverage_on_deny_reduce: "抽检 100% 具备条款级引用（对齐消保举证与保险法第24条说明理由义务）"
+  overall_decision_type_accuracy: "≥90%（允许边界案进人闸，不计作自动结案成功）"
+  honesty_note: |
+    关键断言高门槛用于「可自动推进」路径；整体裁决类型允许低于关键断言，
+    因为公开垂直基准已表明模型在保险多步推理上并不均匀高分——不足处置为人人闸，而非放宽门禁。
+
+regression_ops:
+  cadence: "每周固定回归"
+  weekly_subset_size: "80–100 件（覆盖全部分型）"
+  full_gold_rerun: "条款新版本入库或规则变更后全量重跑"
+  escape_defect_handling: "生产逃逸缺陷 48h 内入库金标并开 fix Mission"
+  autonomy_rule: "未达 pass_bars 不得提高直通比例 / 不得扩大险种"
+
+section: adjuster_workflow
+status: FILLED
+related_requirements: [REQ-S-06, REQ-M-07, REQ-S-01]
+flow_source: |
+  对齐公开人身/寿险理赔环节（报案→立案→初审→调查→理算→复核审批→结案）
+  与财险「签收审核单证→理算复核→审批→赔付结案」实务；本表裁剪为意外险个人险作业，不含车险查勘定损主链。
+
+screens:
+  - step: 1
+    name: "报案/立案只读"
+    actor: "系统自动 / 内勤"
+    user_sees: "保单摘要、险别、生效日、批单标志、历史出险"
+    system_action: "L1 拉取核心+理赔案件头；写入 ledger.case_id"
+    next_state: "材料受理中"
+  - step: 2
+    name: "材料受理工作台"
+    actor: "核赔初审 / 作业中心"
+    user_sees: "OCR 字段、影像缩略图、必传清单红绿灯"
+    system_action: "Router→OCR+材料断言；不齐则裁决类型=补件并一次性回写清单"
+    next_state: "待补件 | 初审中"
+    legal_anchor: "保险法第22条一次性通知补正"
+  - step: 3
+    name: "责任与除外审阅"
+    actor: "核赔员"
+    user_sees: "除外命中候选、疾病vs意外争议点、条款 citation 草稿"
+    system_action: "Router→条款 RAG；输出通赔建议/减赔/拒赔草案/调查中"
+    next_state: "理算中 | 调查中 | 人闸队列"
+  - step: 4
+    name: "理算复核"
+    actor: "理算/核赔"
+    user_sees: "免赔扣除、赔付比例、计算步骤、与规则引擎对照差"
+    system_action: "Router→规则/算术断言；冲突则 fail-closed"
+    next_state: "待核赔审批"
+  - step: 5
+    name: "人闸队列"
+    actor: "主管/授权核赔"
+    user_sees: "草案、引用、Validator 报告、风险标签"
+    system_action: "approve/reject/escalate；无令牌不出款就绪"
+    next_state: "出款就绪 | 驳回修改 | 调查中"
+  - step: 6
+    name: "对外通知缮制"
+    actor: "核赔员"
+    user_sees: "补件通知 / 拒赔通知书草稿（含条款依据）"
+    system_action: "导出可编辑文书；记录发送回执字段"
+    next_state: "已通知"
+    legal_anchor: "拒赔：保险法第24条三日通知并说明理由"
+  - step: 7
+    name: "结案（L2）"
+    actor: "系统 + 核心既有支付"
+    user_sees: "门禁通过标志；支付仍在核心人工/既有流程触发"
+    system_action: "回写结案意见；L3 出款不在本期自动触发"
+    next_state: "已结案"
+
+demo_must_walkthrough:
+  - "缺发票→补件清单一次给出→客户补传→重跑变通赔建议"
+  - "疾病导致摔伤争议→除外 citation→拒赔草案进人闸→可驳回转申诉工单"
+  - "批单缩小责任→效力栈引用优先生效文本→减赔"
+
+section: outcome_targets
+status: FILLED
+related_requirements: [REQ-S-04]
+measurement_policy: |
+  禁止把头部公司公开广告值写成我司基线。
+  试点 Week1–4：用真实作业日志与抽检测定基线；Week5 锁定目标；Week12 做扩面决策。
+  下列「公开天花板/压力值」仅作对标，来源见 evidence_notes。
+
+metrics:
+  - metric_id: OUT-01
+    name: "材料一次交对率"
+    public_anchor: "行业「好理赔」讨论指标；微保等公开宣传数字化后约 90%"
+    baseline_method: "连续4周：首次提交即满足必传清单的案件占比"
+    target_rule: "相对基线 +10～20 个百分点，且不超过公开宣传上限的承诺；未测基线前不签对赌"
+    maps_to_pain: "多次补件 / 保险法一次性通知"
+  - metric_id: OUT-02
+    name: "二次补件率"
+    public_anchor: "消费者侧高频投诉点：材料要求不合理、一次不说完（保司公开策略文亦承认此类服务纠纷）"
+    baseline_method: "同案≥2 次补件通知占比"
+    target_rule: "相对基线下降 ≥30%（相对降幅）"
+    maps_to_pain: "反复补件"
+  - metric_id: OUT-03
+    name: "材料齐全到责任草案耗时（简单案）"
+    public_anchor: "行业分析指出大量耗时在文件登记与核验，而非最终决策本身；头部寿险公开整体时效可至亚日级（对标压力）"
+    baseline_method: "作业中心简单意外医疗案：材料齐→首版裁决草案中位耗时"
+    target_rule: "中位耗时相对基线缩短 20%～40%"
+    maps_to_pain: "骨干时间被简易案占用"
+  - metric_id: OUT-04
+    name: "拒赔/减赔可追溯率"
+    public_anchor: "保险法第24条说明理由；消保监管评价抽查证据链"
+    baseline_method: "抽检对外拒赔/减赔文书含条款版本+条款项的比例"
+    target_rule: "抽检 100%"
+    maps_to_pain: "说不清依据"
+  - metric_id: OUT-05
+    name: "人闸命中率（应闸必闸）"
+    public_anchor: "内控与持牌责任不转移；公开智能理赔亦区分小额快赔与复杂人审"
+    baseline_method: "拒赔/通融/超阈值/调查解除冻决进入人闸的占比"
+    target_rule: "应闸类型 100%"
+    maps_to_pain: "越权出款/不当自动拒赔"
+  - metric_id: OUT-06
+    name: "Golden 关键断言通过率"
+    public_anchor: "企业 AI gold-standard eval；垂直保险 agent 公开基准显示任务分数并不均匀"
+    baseline_method: "见 golden_eval_spec"
+    target_rule: "关键断言 ≥95% 方可提高直通"
+    maps_to_pain: "demo 无法过内审"
+
+outcome_pricing_hint: |
+  若需 outcome 对价（design partner 商务），建议绑定 OUT-01/OUT-02/OUT-04 的相对改进与可审计交付物，
+  而非绑定「秒赔率」或头部公司绝对时效——后者依赖直付数据源与险种结构，中型财险意外险试点不可照搬。
+
+section: router_table
+status: FILLED
+related_requirements: [REQ-S-07]
+principle: "结构化走规则；条款语义走 RAG；影像字段走 OCR；风险线索走调查；高风险走人人闸"
+
+routes:
+  - route_id: R-OCR
+    when: "发票/病历/费用清单等影像需结构化字段"
+    primary: "既有 OCR/影像服务"
+    fallback: "人工录入；不调用条款生成字段"
+    writes: "structured_fields.*"
+  - route_id: R-RULES
+    when: "免赔额、赔付比例、金额权限、重复索赔黑名单、等待期天数等可字段化规则"
+    primary: "规则引擎 / SQL 断言"
+    fallback: "fail-closed → 人审"
+    writes: "assertions.deductible|ratio|authority"
+  - route_id: R-RAG-CLAUSE
+    when: "保险责任、除外、意外定义、批单/特约效力冲突、拒赔理由生成"
+    primary: "版本化条款 RAG（retrieval_profile=clause_v_current）"
+    fallback: "扩大检索至手册；仍不足则调查中或人闸"
+    writes: "citations[] + decision_draft"
+  - route_id: R-INVEST
+    when: "规则引擎风险分超阈 / 发票验真失败 / 短期重复索赔 / 事故真实性存疑"
+    primary: "调查中状态 + 冻决"
+    fallback: "强制人闸"
+    writes: "decision_type=调查中; payout_ready=false"
+  - route_id: R-HUMAN
+    when: "拒赔草案、通融、预赔、超金额、Validator 失败升级、申诉回流"
+    primary: "人闸队列"
+    fallback: "无（硬闸）"
+    writes: "human_latch_token"
+
+routing_ledger_fields:
+  - route_id
+  - retrieval_profile
+  - tool_acl_scope
+  - decision_type
+  - validator_score
+
+section: voice_of_customer_public
+status: FILLED
+disclaimer: "以下为公开报道/公开实务文章中的原意摘录或转述，用于代替「合成客户虚构访谈」；非我司员工录音。"
+excerpts:
+  - voc_id: VOC-01
+    role_proxy: "学术/行业研究者（对标消保与预期管理）"
+    source: "《中国消费者报》报道中国人民大学保险研究所相关观点（魏丽等）"
+    quote_or_paraphrase: "一些极致的理赔时效容易提高用户预期，当用户真实理赔时时效达不到预期，就容易造成理赔难、理赔慢的印象；小额门诊与重疾/复杂案在审核复杂度上完全不同，应提前告知服务标准。"
+    product_implication: "Demo 与看板禁止用「秒赔」包装复杂意外责任争议案；简单案与争议案分流展示"
+    url: "https://www.ccn.com.cn/Content/2023/08-08/1008109221.html"
+  - voc_id: VOC-02
+    role_proxy: "消费者可感知的服务纠纷（对标作业中心补件体验）"
+    source: "中国平安官网策略文《被保险公司拒赔，你该怎么办？》对服务性纠纷的归纳"
+    quote_or_paraphrase: "理赔材料要求不合理，一次不说完，让人跑来跑去——被列为典型服务性纠纷。"
+    product_implication: "REQ-M-02 一次性补件清单为 Must；二次补件率进 outcome"
+    url: "https://www.pingan.com/official/strategyDetail/18754888"
+  - voc_id: VOC-03
+    role_proxy: "争议处理实务（对标拒赔文书）"
+    source: "理赔争议处理公开指南（区分补件/拖延/正式拒赔）"
+    quote_or_paraphrase: "专业上最怕分不清补件与正式拒赔；出现实质否认时应要求书面理由与条款依据，而不是无限口头来回。"
+    product_implication: "裁决类型枚举 + 拒赔 citation + 申诉回流；禁止口头式终局拒赔"
+    url: "https://lipei.com.tw/insurance-claim-appeal-evaluation-guide-2026"
+  - voc_id: VOC-04
+    role_proxy: "理赔运营分析（对标为何先做材料门禁）"
+    source: "Parseur 对理赔处理阶段耗时的行业分析"
+    quote_or_paraphrase: "理赔生命周期中，大量日历消耗在登记采集与承保范围/材料核验，而非最后那次「赔不赔」决策。"
+    product_implication: "薄切片先打材料齐全与条款核验，而不是先上自动出款"
+    url: "https://parseur.com/zh/blog/lipei-chuli"
+  - voc_id: VOC-05
+    role_proxy: "监管义务（对标法务/消保阻断者）"
+    source: "中国人大网《保险法》第22/24条"
+    quote_or_paraphrase: "资料不完整应及时一次性通知补正；不属于保险责任的，应在核定之日起三日内发出拒赔通知书并说明理由。"
+    product_implication: "补件与拒赔文书能力是合规底线，不是体验加分项"
+    url: "http://www.npc.gov.cn/zgrdw/npc/xinwen/lfgz/zxfl/2009-02/28/content_1476572.htm"
+
+# -----------------------------------------------------------------------------
+# 证据与真实感说明（非 B 节字段，供评审；模拟主体仍为合成客户）
+# -----------------------------------------------------------------------------
+
+evidence_notes:
+  regulatory:
+    - source: "中国人大网公开《中华人民共和国保险法》文本"
+      points:
+        - "第22条：资料不完整应及时一次性通知补正"
+        - "第23条：及时核定；复杂情形三十日；协议后十日给付"
+        - "第24条：拒赔通知书三日并说明理由"
+        - "第26条：非寿险请求时效二年等"
+      urls:
+        - "http://www.npc.gov.cn/zgrdw/npc/xinwen/lfgz/zxfl/2009-02/28/content_1476572.htm"
+  industry_public:
+    - source: "《中国消费者报》对保险理赔数字化痛点与趋势的报道（引用中国人民大学保险研究所相关报告观点）"
+      points:
+        - "痛点：用户认知门槛高、流程繁杂、标准笼统；趋势：在线化、智能化、前置化"
+        - "披露多家公司小额/整体理赔时效与线上化率等公开数据，抬高客户预期"
+        - "魏丽等提醒：极致时效抬高预期，复杂案达不到易形成理赔难印象"
+      urls:
+        - "https://www.ccn.com.cn/Content/2023/08-08/1008109221.html"
+    - source: "上观等对《中国保险理赔数字化发展报告》发布活动的报道"
+      points:
+        - "行业讨论「好理赔」量化指标含：材料一次交对率、齐全到结案时效、纠纷率、结案满意度"
+      urls:
+        - "https://www.jfdaily.com/sgh/detail?id=1090532"
+    - source: "中国人寿寿险《2024年度理赔服务报告》公开口径"
+      points:
+        - "整体赔付时效 0.34 天；智能化审核赔案超 1700 万件、智能化率超 70% 等（头部对标，非我司现状）"
+      urls:
+        - "https://www.e-chinalife.com/c/2025-01-21/00845704-738a-4423-9bf8-36b15123c6cb.shtml"
+    - source: "腾讯微保数字化理赔服务公开报道"
+      points:
+        - "OCR 覆盖六十余类材料、准确度超 95%、材料一次交对率提升至约 90% 等公开宣传口径"
+      urls:
+        - "https://www.zqbao.com.cn/news/2317.html"
+    - source: "国家金融监督管理总局消保监管评价"
+      points:
+        - "金规〔2025〕20号《金融机构消费者权益保护监管评价办法》等，强化年度消保评价与材料真实性"
+    - source: "意外险除外责任的公开产品科普/条款实践（如太平洋保险等）"
+      points:
+        - "疾病导致、故意行为、高风险活动等为常见不赔情形——具体以本公司报备条款为准"
+    - source: "中国平安官网理赔纠纷策略文"
+      points:
+        - "服务性纠纷含：材料要求不合理、一次不说完、让人跑来跑去"
+      urls:
+        - "https://www.pingan.com/official/strategyDetail/18754888"
+    - source: "人身/寿险理赔环节公开说明（行业百科等）"
+      points:
+        - "常见环节：报案、立案、初审、调查、理算、复核审批、结案；理算结论含给付/拒付/通融等"
+    - source: "Snorkel AI 保险承保 multi-turn agent 基准（Hugging Face 公开数据集 + 博客）"
+      points:
+        - "与 CPCU 专家共建；任务准确率显著分化（公开博客举例 Deductibles≈0.784、Appetite Check≈0.615、Product Recommendations≈0.377 量级）"
+        - "支撑「必须自建垂直 Golden / 分段门槛」的客户要求"
+      urls:
+        - "https://snorkel.ai/blog/building-the-benchmark-inside-our-agentic-insurance-underwriting-dataset"
+        - "https://huggingface.co/datasets/snorkelai/Multi-Turn-Insurance-Underwriting"
+    - source: "Sixfold 等承保 AI 对 accuracy validator / pilot benchmarks 的公开产品叙述"
+      points:
+        - "将准确率基准作为 pilot 是否进入全面实施的评估依据"
+    - source: "Parseur 理赔处理阶段耗时分析"
+      points:
+        - "延迟常在文件登记与核验，而非最终裁决瞬间"
+      urls:
+        - "https://parseur.com/zh/blog/lipei-chuli"
+  simulation_honesty:
+    - "未编造针对特定真实保司的监管处罚决定书或内部错赔率机密"
+    - "KPI 目标不直接承诺等于头部公司公开广告值；基线必须 Week1–4 实测"
+    - "系统厂商名称保持品类化（核心/理赔/影像/OCR），避免虚构绑定某一商业合同"
+    - "VOC 使用公开报道/公开实务文，不伪造员工访谈录音"
+    - "v2 未改动既有 Must/Won't 条文；仅新增 Should 与附录规格"
