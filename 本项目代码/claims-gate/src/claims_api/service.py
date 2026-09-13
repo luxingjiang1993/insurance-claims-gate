@@ -337,8 +337,30 @@ class ClaimsService:
         proposed_ratio: float | None = None,
     ) -> DecisionDraft:
         """批单缩责减赔：效力栈消解 + 可复核 calc_steps。"""
+        from missions.models import RoleName
+
         endo_doc, endo_item, endo_ver = _SC03_ENDO_DEDUCT
         main_doc, main_item, main_ver = _SC03_MAIN_DEDUCT
+
+        # 检索层落实 endorsement_priority：先批单后主险，再精确落库
+        hits = self._kb.retrieve(
+            "免赔额 赔付比例 保险责任",
+            role=RoleName.WORKER,
+            profile="endorsement_priority",
+            top_k=8,
+        )
+        endo_pos = next((i for i, h in enumerate(hits) if h.doc_id == endo_doc), None)
+        main_pos = next((i for i, h in enumerate(hits) if h.doc_id == main_doc), None)
+        if endo_pos is None:
+            raise ClaimsDomainError(
+                ErrorCode.VALIDATION_FAILED.value,
+                "endorsement_priority 未召回批单，失败关闭",
+            )
+        if main_pos is not None and endo_pos > main_pos:
+            raise ClaimsDomainError(
+                ErrorCode.VALIDATION_FAILED.value,
+                "endorsement_priority 未先批单后主险，失败关闭",
+            )
 
         endo_chunk = self._kb.resolve_clause(endo_doc, endo_item, endo_ver)
         if endo_chunk is None:
@@ -462,7 +484,7 @@ class ClaimsService:
         if case.loss_cause == "disease_fall":
             return self._evaluate_rejection(case)
 
-        if case.endorsement_flags:
+        if "PA-ACC-END-001" in case.endorsement_flags:
             return self._evaluate_reduction(
                 case,
                 proposed_deductible=proposed_deductible,

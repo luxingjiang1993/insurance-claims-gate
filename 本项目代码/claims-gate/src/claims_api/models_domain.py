@@ -1,7 +1,7 @@
 """理赔案件领域模型（内存夹具）。
 
 Rewrote from: REF-MISSIONS（models_domain 换理赔域）；SC-01 补件/裁决字段 REF-COURSE-03；
-SC-02 拒赔/人闸/appeal_path REF-MISSIONS
+SC-02 拒赔/人闸/appeal_path REF-MISSIONS；SC-03 calc_steps / 效力栈 REF-COURSE-04
 """
 
 from __future__ import annotations

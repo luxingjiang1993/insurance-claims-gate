@@ -35,3 +35,13 @@
 human_latch_token，否则 API 拒绝（LATCH_REQUIRED 或 DOCUMENT_STATUS_FORBIDDEN）。
 无人闸时 payout_ready 恒为 false；人闸批准后可对外通知语义，但仍不触发银企出款。
 人闸驳回后回编辑态可再提。叙事禁止以「秒赔」包装责任争议案。
+
+## POL-CLAIM-004 效力栈减赔与理算步骤
+条款项: POL-CLAIM-004
+
+批单缩小责任时须产出减赔草案（reduce），引用服从效力栈：批单优于主险；
+每条 citation 须含 doc_id、条款项、版本/生效日与 authority_rank，被覆盖条款须暴露 overridden_by。
+
+免赔额与赔付比例以可复核 calc_steps 呈现；与批单条款冲突则失败关闭，禁止静默改数。
+减赔通知 DRAFT_EXPORT 复用 citations 与 calc_steps；未人闸前 payout_ready 必须为 false。
+检索画像 endorsement_priority 须先查批单再主险。

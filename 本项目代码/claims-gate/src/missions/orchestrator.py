@@ -1,6 +1,7 @@
 """编排者：契约先行；入账前 JSON Schema 硬停；不做实现与最终验收。
 
-Rewrote from: REF-MISSIONS（missions/orchestrator.py；断言换理赔脚手架）
+Rewrote from: REF-MISSIONS（missions/orchestrator.py；断言换理赔脚手架）；
+SC-03 效力栈减赔契约 REF-CASE-KB, REF-COURSE-04
 """
 
 from __future__ import annotations
@@ -37,15 +38,21 @@ class Orchestrator:
         state.locked_paths = []
 
         goal_l = goal.strip().lower()
-        is_sc01 = any(
+        is_sc03 = any(
             key in goal_l or key in goal
-            for key in ("sc-01", "sc01", "一次补件", "通赔建议", "one_shot")
+            for key in ("sc-03", "sc03", "减赔", "效力栈", "calc_steps", "endorsement_priority")
         )
-        is_sc02 = any(
+        is_sc02 = (not is_sc03) and any(
             key in goal_l or key in goal
             for key in ("sc-02", "sc02", "拒赔", "除外", "疾病摔伤", "人闸", "external_notify")
         )
-        if is_sc02:
+        is_sc01 = (not is_sc03) and (not is_sc02) and any(
+            key in goal_l or key in goal
+            for key in ("sc-01", "sc01", "一次补件", "通赔建议", "one_shot")
+        )
+        if is_sc03:
+            clause_id = "POL-CLAIM-004"
+        elif is_sc02:
             clause_id = "POL-CLAIM-003"
         elif is_sc01:
             clause_id = "POL-CLAIM-002"
@@ -81,7 +88,31 @@ class Orchestrator:
             if extra.chunk_id != chunk.chunk_id:
                 citations.append(extra)
 
-        if is_sc02:
+        if is_sc03:
+            assertions = [
+                Assertion(
+                    id="A-001",
+                    behavior="SC-03：批单缩责减赔须效力栈引用与可复核 calc_steps；冲突 fail-closed",
+                    policy_clause_id=chunk.clause_id,
+                    acceptance="HTTP：evaluate→reduce；overridden_by；export reduction_notice；payout_ready=false",
+                    machine_check=MachineCheck(
+                        type="sc03_endorsement_stack_reduction",
+                        params={"case_id": "CLM-SC03-001"},
+                    ),
+                    claimed_by_features=["F-001"],
+                ),
+            ]
+            title = "SC-03 效力栈减赔 + 理算步骤（轨 A）"
+            owns = [
+                "src/claims_api/api.py",
+                "src/claims_api/service.py",
+                "src/missions/rag.py",
+                "src/missions/checks.py",
+            ]
+            feature_title = "实现 SC-03 效力栈减赔与 calc_steps"
+            milestone = "M1-sc03"
+            rewrote = "REF-CASE-KB, REF-MISSIONS, REF-COURSE-04"
+        elif is_sc02:
             assertions = [
                 Assertion(
                     id="A-001",
@@ -218,6 +249,7 @@ class Orchestrator:
                 "assertion_count": len(assertions),
                 "sc01": is_sc01,
                 "sc02": is_sc02,
+                "sc03": is_sc03,
             },
         )
 
