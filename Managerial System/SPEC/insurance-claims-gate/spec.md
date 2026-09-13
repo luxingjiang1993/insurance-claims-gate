@@ -7,7 +7,7 @@
 | Status | `ready-for-agent` |
 | 主测试接缝 | HTTP 黑盒 + `machine_check` 类型注册表（人闸令牌与 KB 引用门为支撑） |
 | 术语 | 见仓库根 `CONTEXT.md` |
-| 修订 | `2.2` — 挂载参考项目 `REF_*`（改写基线，避免造轮子） |
+| 修订 | `2.3` — REF 本期剩余/入库上限与扩面补充文档指针（评委会终稿） |
 | 参考目录 | `docs/agents/ref-projects.md` |
 
 ---
@@ -75,27 +75,31 @@
 
 ## Reference Projects（改写用 REF_*）
 
-完整目录与路径映射见 `docs/agents/ref-projects.md`。下列为 **本 SPEC 能力 → 优先改写源**；agent 实现对应模块时必须先打开所列 `ref_id`，禁止无依据空写。
+完整目录、**Issues 01–09 已占用**、**本期仍可供改写（入库上限）**、协议阅读降级列见 `docs/agents/ref-projects.md`。  
+扩面 / 第二阶段草案（N1–N11、清单二配额）：`docs/agents/ref-projects-phase2-supplement.md`（`draft-supplement`；未修宪不得执行放松）。
+
+下列为 **本 SPEC 能力 → 优先改写源**；agent 实现对应模块时必须先打开所列 `ref_id`，禁止无依据空写。
 
 | 能力 / 决策簇 | 优先 ref_id | 次选 ref_id | 说明 |
 |---------------|-------------|-------------|------|
 | Missions 中继、契约、`machine_check`、人闸、schemas、换垂直 | `REF-MISSIONS` | — | **唯一主基线**；同中继换域 |
 | HTTP 黑盒验收 / TestClient 模式 | `REF-MISSIONS` | — | 对齐既有 Validator→checks |
 | 条款 KB 版本化 / 切块 / 健康检查 | `REF-CASE-KB` | `REF-MISSIONS`（`knowledge_base/`） | 效力栈内容换保险条款 |
-| 检索 / RAG（轨 B 或检索画像） | `REF-RAG-CY` | `REF-CASE-RECALL`, `REF-CASE-RERANK`, `REF-OPENMANUS-RAG` | 不得替代轨 A 确定性绿门 |
+| 检索 / RAG（轨 B 或检索画像） | `REF-RAG-CY` | `REF-CASE-RECALL`, `REF-CASE-RERANK`, `REF-OPENMANUS-RAG` | 不得替代轨 A 确定性绿门；本期剩余优先吃 RAG-CY/RECALL |
 | 结构化输出 / 裁决 JSON 外形 | `REF-COURSE-03` | `REF-MISSIONS`（schemas） | 契约与 API 响应 |
 | 状态机 / 多步作业流 | `REF-COURSE-04` | `REF-MISSIONS`（runner 回路） | 门禁态 + 文书态 |
 | Router / 冲突仲裁 / 复杂回路 | `REF-COURSE-12` | `REF-CASE-HYBRID` | Router 为硬层策略表（P1-1） |
-| 工具调用与最小权限外形 | `REF-CASE-FC` | `REF-CASE-MCP` | 无支付工具；ACL |
-| Eval / 负例 / 回归入口 | `REF-CASE-OPENEVALS` | `REF-CASE-EVAL-ADVISOR` | 配合 machine_check；金标运营见 P2 |
+| 工具调用与最小权限外形 | `REF-CASE-FC` | `REF-CASE-MCP` | 无支付工具；ACL；MCP 与 FastMCP 外形二选一 |
+| Eval / 负例 / 回归入口 | `REF-CASE-OPENEVALS` | `REF-CASE-EVAL-ADVISOR` | 配合 machine_check；**本期剩余可新切票**；金标运营见 P2 |
 | 混合式规则+模型（轨 A/B 分治） | `REF-CASE-HYBRID` | `REF-COURSE-12` | 默认绿门仍为轨 A |
-| 可观测 / 追踪（可选） | `REF-CASE-LANGFUSE` | — | 次于 ledger；P2 |
+| 可观测 / 追踪（可选） | `REF-CASE-LANGFUSE` | — | 次于 ledger；P2 / 扩面补充文档 |
 | 深思熟虑推理（仅轨 B） | `REF-CASE-DELIBERATIVE` | — | 禁止并入默认 CI |
 | 条款问答（非门禁主链） | `REF-CASE-REACTIVE-QA` | — | 勿做成主 Orchestrator |
 | OpenManus 通用框架 | `REF-OPENMANUS-CY` | `REF-OPENMANUS-GUI` | **勿替代** `REF-MISSIONS` |
-| 沙箱 / GUI 自动化 | `REF-CASE-DAYTONA` | `REF-CASE-GUI-PLUS`, `REF-COURSE-05`, `REF-COURSE-11` | 本期非目标 |
+| 沙箱 / GUI 自动化 | `REF-CASE-DAYTONA` | `REF-CASE-GUI-PLUS`, `REF-COURSE-05`, `REF-COURSE-11` | 本期非目标；扩面见补充文档 N6 |
 
-**改写口令（写入 ticket / handoff）：** `Rewrote from: REF-…`（可多选，主基线必含 `REF-MISSIONS` 若动中继或合门禁）。
+**改写口令（写入 ticket / handoff）：** `Rewrote from: REF-…`（可多选，主基线必含 `REF-MISSIONS` 若动中继或合门禁）。  
+**本期新票：** 遵守 `ref-projects.md` 入库上限；勿与 Issues 01–09 已占用主路径平行重复。
 
 ---
 
@@ -170,7 +174,7 @@ ValidationContract.assertions[]
 - 下一动作：按 `docs/agents/issue-tracker.md` 在 `Managerial System/Issues/insurance-claims-gate/` 切带 `Blocked by` 的任务图；实现只写入 `本项目代码/claims-gate/`。
 - 价值映射继续只引用 `VP-*`（契约先行、独立裁判、失败关闭、人闸、薄切片、同中继换域等）。
 - 硅谷合成评委会（2026-09-13）均分 8.1；P0 已写入 Implementation/Testing；P1/P2 见下方 Backlog，切票与扩面时消费。
-- 参考项目 ID 目录：`docs/agents/ref-projects.md`；本 SPEC「Reference Projects」表为能力→REF 映射。切票时在正文写 `ref_id:` / `Rewrote from:`。
+- 参考项目 ID 目录：`docs/agents/ref-projects.md`（含本期剩余与入库上限）；扩面草案：`docs/agents/ref-projects-phase2-supplement.md`。本 SPEC「Reference Projects」表为能力→REF 映射。切票时在正文写 `ref_id:` / `Rewrote from:`。
 
 ---
 
@@ -209,6 +213,7 @@ ValidationContract.assertions[]
 | P2-4 | 轨 B（`llm_optional`）独立质量门与方差预算 | 确定性轨稳定后；不得并入默认 CI 绿 | `open` |
 | P2-5 | 完整生产凭证代理、多租户 Mission Control、监管报送 | Out of Scope 维持；另立项 | `open` |
 | P2-6 | Tracker 迁 GitHub Issues（local → remote） | 建 git remote 后跑 setup-matt-pocock-skills | `open` |
+| P2-7 | REF 扩面：N1–N11 修宪附录 + 首批至多 2 仓入库（LightRAG/RAGFlow 解析旁路与可观测二选一组合） | 消费 `docs/agents/ref-projects-phase2-supplement.md` → Constitution 附录 / 新 PRD / 本 SPEC 修订后再切票 | `open` |
 
 **消费规则：** 开 Issues 时在票首引用 `Backlog: P1-x` / `P2-x`；完成后把上表状态改为 `done` 并写 `→ Issues/…/NN-….md`。
 
@@ -220,3 +225,4 @@ ValidationContract.assertions[]
 - 2026-09-13：SPEC 修订 2.1 — 写入 P0-1/2/3（决策 16–18 + Testing #7）；登记 P1/P2 Backlog 供后续切票与扩面。
 - 2026-09-13：SPEC 修订 2.2 — 增加 Reference Projects 与决策级 `REF_*`；目录见 `docs/agents/ref-projects.md`。
 - 2026-09-13：to-tickets 落盘 `Issues/insurance-claims-gate/01`–`09`；消费 P1-5/P1-6。
+- 2026-09-13：SPEC 修订 2.3 — 挂载 REF 本期剩余/入库上限与扩面补充文档；Backlog 增 P2-7；对齐硅谷技术合成评委会终稿（清单一通过、清单二有条件通过）。

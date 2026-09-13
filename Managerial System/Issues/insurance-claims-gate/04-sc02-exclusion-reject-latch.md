@@ -40,7 +40,12 @@
 - [x] 叙事与字段禁止「秒赔」包装责任争议案
 - [x] handoff 含 `Rewrote from: REF-MISSIONS`
 
+## Answer
+
+SC-02 已在轨 A 落地并通过机检：疾病摔伤夹具产出 `reject_draft` + 条款项 citations + `appeal_path`；`DRAFT_EXPORT` 可无人闸，`EXTERNAL_NOTIFY` 须 `human_latch_token`；无人闸/`payout_ready` 恒 false。交付提交：`93c240b`。
+
 ## Comments
 
 - 2026-09-13：to-tickets 批准 defaults 后落盘。
 - 2026-09-13：实现落地 — `CLM-SC02-001` 确定性除外拒赔；`reject_notice` 文书分态；`/human-latch/approve|reject`；machine_check `sc02_exclusion_reject_latch` / `sc02_external_notify_requires_latch`。Rewrote from: REF-MISSIONS
+- 2026-09-13：正式关闭 — Status=resolved；Answer 已写；已随 main 推远程。

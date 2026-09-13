@@ -39,3 +39,4 @@
 2. 读 `Managerial System/Issues/insurance-claims-gate/*.md` 作为 ticket 图
 3. 实现只写入 `本项目代码/claims-gate/`；不得改 `历史项目代码供参考/` 作为交付
 4. 改写前按票内 `ref_id` 打开 `docs/agents/ref-projects.md` 对应文件夹；主中继/合门禁默认 `REF-MISSIONS`
+5. 新票 `ref_id` 须落在「本期仍可供改写」或既有占用票路径内；扩面 REF 须先有正式 SPEC/PRD，不得仅凭 `ref-projects-phase2-supplement.md` 切实现票

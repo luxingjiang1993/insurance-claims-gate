@@ -9,8 +9,9 @@
 3. `Managerial System/PRD/PRD_02_INSURANCE_CLAIMS_GATE.md` — 需求真源（当前 Ready for Spec）
 4. 若已存在：`Managerial System/SPEC/insurance-claims-gate/spec.md` 与对应 Issues
 5. `docs/agents/issue-tracker.md` — tickets 落盘约定
-6. 改写前读：`docs/agents/ref-projects.md`（`REF_*` ID）；主基线 **`REF-MISSIONS`** = `历史项目代码供参考/project 多agent/`（只读）
+6. 改写前读：`docs/agents/ref-projects.md`（`REF_*` ID、本期剩余与入库上限）；主基线 **`REF-MISSIONS`** = `历史项目代码供参考/project 多agent/`（只读）
 7. 若已存在：对应 Issues；票内应含 `ref_id:` 字段
+8. 扩面 / 第二阶段仅作草案参考：`docs/agents/ref-projects-phase2-supplement.md`（**未写入 Constitution/PRD/SPEC 前不得按草案放松 I1–I8**）
 
 ## 写边界
 
@@ -29,6 +30,9 @@
 - 默认从 **`REF-MISSIONS`** 裁剪；其他 `REF_*` 只补缺口，不另起三角色剧场。
 - handoff / ticket 写明：`Rewrote from: REF-…`。
 - OpenManus（`REF-OPENMANUS-*`）不得替代 Missions 中继主链。
+- 本期新开改写票遵守 `ref-projects.md`「本期仍可供改写」入库上限；Issues 01–09 已占用 `ref_id` 勿平行重复切票。
+- Gorilla / ToolLLM / mcp-marketplace 等仅协议阅读，不升为改写基线（见 `ref-projects.md`）。
+- 第二阶段候选与 N1–N11 见 `ref-projects-phase2-supplement.md`；正式修宪前禁止执行放松。
 
 ## 流水线
 
