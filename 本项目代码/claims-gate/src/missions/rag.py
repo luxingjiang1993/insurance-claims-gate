@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from claims_api.error_codes import ErrorCode
 from .models import RagCitation, RoleName
 from .retrieval_profiles import RETRIEVAL_PROFILES
 
@@ -141,12 +142,12 @@ class KnowledgeBase:
         clause_item: str,
         doc_version: str,
     ) -> Chunk | None:
-        """条款项级精确命中：必须同时匹配 doc_id + clause_item + doc_version。"""
+        """条款项级精确命中：doc_id + clause_item + (doc_version 或等价生效日)。"""
         for chunk in self.chunks:
-            if (
-                chunk.doc_id == doc_id
-                and chunk.clause_item == clause_item
-                and chunk.doc_version == doc_version
+            if chunk.doc_id != doc_id or chunk.clause_item != clause_item:
+                continue
+            if chunk.doc_version == doc_version or (
+                chunk.effective_date and chunk.effective_date == doc_version
             ):
                 return chunk
         return None
@@ -154,18 +155,20 @@ class KnowledgeBase:
     def validate_citation(self, citation: dict[str, Any]) -> CitationGateResult:
         """对外可用 citation 落库门：三联键精确匹配；可选摘录须落在库内条目。
 
-        禁止用全文最大相似冒充通过。
+        禁止用全文最大相似冒充通过。版本键可为 doc_version 或等价 effective_date。
         """
         doc_id = str(citation.get("doc_id") or "").strip()
         clause_item = str(citation.get("clause_item") or "").strip()
-        doc_version = str(citation.get("doc_version") or "").strip()
+        doc_version = str(
+            citation.get("doc_version") or citation.get("effective_date") or ""
+        ).strip()
         quote = str(citation.get("quote") or "").strip()
 
         if not doc_id or not clause_item or not doc_version:
             return CitationGateResult(
                 ok=False,
-                error_code="CITATION_NOT_IN_KB",
-                detail="缺少 doc_id/clause_item/doc_version",
+                error_code=ErrorCode.CITATION_NOT_IN_KB.value,
+                detail="缺少 doc_id/clause_item/doc_version(或 effective_date)",
             )
 
         chunk = self.resolve_clause(doc_id, clause_item, doc_version)
@@ -178,7 +181,7 @@ class KnowledgeBase:
             )
             return CitationGateResult(
                 ok=False,
-                error_code="CITATION_NOT_IN_KB",
+                error_code=ErrorCode.CITATION_NOT_IN_KB.value,
                 detail=detail,
             )
 
@@ -188,7 +191,7 @@ class KnowledgeBase:
             if needle not in hay:
                 return CitationGateResult(
                     ok=False,
-                    error_code="CITATION_NOT_IN_KB",
+                    error_code=ErrorCode.CITATION_NOT_IN_KB.value,
                     detail="摘录无法对应库内条目",
                     chunk=chunk,
                 )

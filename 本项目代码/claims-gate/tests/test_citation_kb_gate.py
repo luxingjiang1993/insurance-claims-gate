@@ -94,6 +94,34 @@ def test_machine_check_citation_in_kb_hallucination_fails() -> None:
     assert not outcome.ok
     assert ErrorCode.CITATION_NOT_IN_KB.value in outcome.detail
 
+    wrong_item = run_machine_check(
+        client,
+        MachineCheck(
+            type="citation_in_kb",
+            params={
+                "doc_id": "PA-ACC-MAIN",
+                "clause_item": "ART-999-HALLUCINATION",
+                "doc_version": "2024.1",
+            },
+        ),
+    )
+    assert not wrong_item.ok
+    assert ErrorCode.CITATION_NOT_IN_KB.value in wrong_item.detail
+
+    wrong_ver = run_machine_check(
+        client,
+        MachineCheck(
+            type="citation_in_kb",
+            params={
+                "doc_id": "PA-ACC-MAIN",
+                "clause_item": "ART-5-EXCL",
+                "doc_version": "2099.9",
+            },
+        ),
+    )
+    assert not wrong_ver.ok
+    assert ErrorCode.CITATION_NOT_IN_KB.value in wrong_ver.detail
+
     good = run_machine_check(
         client,
         MachineCheck(
@@ -106,6 +134,20 @@ def test_machine_check_citation_in_kb_hallucination_fails() -> None:
         ),
     )
     assert good.ok, good.detail
+
+
+def test_effective_date_as_version_key() -> None:
+    """生效日可作为 doc_version 的等价键。"""
+    kb = KnowledgeBase(KB_ROOT)
+    chunk = kb.resolve_clause("PA-ACC-MAIN", "ART-5-EXCL", "2024-01-01")
+    assert chunk is not None
+    assert kb.validate_citation(
+        {
+            "doc_id": "PA-ACC-MAIN",
+            "clause_item": "ART-5-EXCL",
+            "effective_date": "2024-01-01",
+        }
+    ).ok
 
 
 def test_gate_does_not_use_max_similarity_for_pass() -> None:

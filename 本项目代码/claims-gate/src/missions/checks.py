@@ -10,6 +10,8 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
+from claims_api.error_codes import ErrorCode
+
 from .models import Assertion, CommandResult, MachineCheck
 
 
@@ -87,10 +89,10 @@ def _check_citation_in_kb(client: TestClient, params: dict[str, Any]) -> CheckOu
         )
     detail = body.get("detail", body)
     if isinstance(detail, dict):
-        err = detail.get("error_code", "CITATION_NOT_IN_KB")
+        err = detail.get("error_code", ErrorCode.CITATION_NOT_IN_KB.value)
         msg = detail.get("message", str(detail))
     else:
-        err = "CITATION_NOT_IN_KB"
+        err = ErrorCode.CITATION_NOT_IN_KB.value
         msg = str(detail)
     return CheckOutcome(
         ok=False,

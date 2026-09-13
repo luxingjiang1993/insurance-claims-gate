@@ -36,10 +36,6 @@ def get_service() -> ClaimsService:
     return _service
 
 
-def get_kb() -> KnowledgeBase:
-    return _kb
-
-
 def reset_service() -> ClaimsService:
     """测试夹具：重建内存台账并重载条款 KB。"""
     global _service, _kb
