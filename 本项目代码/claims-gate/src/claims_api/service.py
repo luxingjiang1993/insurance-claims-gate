@@ -4,7 +4,8 @@ Rewrote from: REF-MISSIONS（transfer_api/service.py 换垂直）；补件法义
 SC-02 拒赔分态 REF-MISSIONS；效力栈减赔 / calc_steps REF-CASE-KB, REF-COURSE-04；
 金额档/通融/预赔/调查冻决/峰值降级 REF-MISSIONS（limits 表驱动换域，阈值取 PRD §7）；
 Router 策略表 + ledger REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS；
-L2 出款就绪/结案回写模拟 REF-MISSIONS, REF-CASE-FC
+L2 出款就绪/结案回写模拟 REF-MISSIONS, REF-CASE-FC；
+Issue 14 SQLite 持久化 + 种子 RBAC 登录 REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -31,9 +32,11 @@ from .models_domain import (
     ClaimCase,
     CoreMasterSnapshot,
     DecisionDraft,
+    LatchEvent,
     LedgerEntry,
     SupplementItem,
 )
+from .sqlite_store import SqliteCaseStore
 
 # 允许进入出款就绪的裁决类型（拒赔/补件/调查不得 PAYOUT_READY）
 _PAYOUT_ELIGIBLE_DECISIONS: frozenset[str] = frozenset(
@@ -125,19 +128,49 @@ class ClaimsDomainError(Exception):
 
 
 class ClaimsService:
-    """内存案件台账；SC-01 缺发票；SC-02 疾病摔伤除外；SC-03 批单缩责减赔；人闸矩阵。"""
+    """案件台账（默认 SQLite）；SC-01 缺发票；SC-02 疾病摔伤除外；SC-03 批单缩责减赔；人闸矩阵。"""
 
-    def __init__(self, kb: KnowledgeBase | None = None) -> None:
+    def __init__(
+        self,
+        kb: KnowledgeBase | None = None,
+        store: SqliteCaseStore | None = None,
+    ) -> None:
         self._kb = kb if kb is not None else KnowledgeBase(_DEFAULT_KB_ROOT)
         self._citation_validator: CitationValidator | None = None
-        self._cases: dict[str, ClaimCase] = {}
+        self._store = store
         # 银企/支付适配器调用计数：L2 回写路径禁止递增（Demo 可观察）
         self.payment_adapter_calls: int = 0
-        self._seed()
+        if store is not None and store.count_cases() > 0:
+            self._cases = store.load_all_cases()
+        else:
+            self._cases = {}
+            self._seed()
+            if store is not None:
+                store.save_all_cases(self._cases)
 
     def set_citation_validator(self, validator: CitationValidator) -> None:
         """注入条款落库校验（对外通知失败关闭）。"""
         self._citation_validator = validator
+
+    def _persist(self, case: ClaimCase) -> None:
+        """将单案写入 SQLite（若已注入 store）。"""
+        if self._store is not None:
+            self._store.save_case(case)
+
+    def _record_latch_event(self, event: LatchEvent) -> None:
+        """追加人闸事件并落库。"""
+        case = self.get_claim(event.case_id)
+        case.latch_events.append(event)
+        if self._store is not None:
+            self._store.append_latch_event(event)
+        self._persist(case)
+
+    def list_latch_events(self, case_id: str) -> list[dict[str, Any]]:
+        """查询人闸事件；有 store 时以表为唯一权威。"""
+        case = self.get_claim(case_id)
+        if self._store is not None:
+            return [e.to_dict() for e in self._store.list_latch_events(case_id)]
+        return [e.to_dict() for e in case.latch_events]
 
     def _seed_complete_case(
         self,
@@ -525,6 +558,7 @@ class ClaimsService:
                 arbitration_winner=routed.arbitration_winner,
             )
         case.latest_decision = decision
+        self._persist(case)
         return decision
 
     def _evaluate_reduction(
@@ -629,6 +663,7 @@ class ClaimsService:
                 arbitration_winner=routed.arbitration_winner,
             )
         case.latest_decision = decision
+        self._persist(case)
         return decision
 
     def evaluate(
@@ -682,6 +717,7 @@ class ClaimsService:
             decision.freeze_active = True
             case.gate_status = "INVESTIGATING"
             case.latest_decision = decision
+            self._persist(case)
             return decision
 
         # 峰值降级：禁止静默通赔，仅补件+人审队列
@@ -712,6 +748,7 @@ class ClaimsService:
                 arbitration_winner=None,
             )
             case.gate_status = "HUMAN_LATCH"
+            self._persist(case)
             raise ClaimsDomainError(
                 ErrorCode.LATCH_REQUIRED.value,
                 "规则与条款 RAG 冲突，失败关闭进人闸",
@@ -778,6 +815,7 @@ class ClaimsService:
                 arbitration_winner=routed.arbitration_winner,
             )
             case.latest_decision = decision
+            self._persist(case)
             return decision
 
         case.frozen_one_shot_hash = None
@@ -819,6 +857,7 @@ class ClaimsService:
             arbitration_winner=routed.arbitration_winner,
         )
         case.latest_decision = decision
+        self._persist(case)
         return decision
 
     def _peak_degrade_decision(self, case: ClaimCase) -> DecisionDraft:
@@ -848,6 +887,7 @@ class ClaimsService:
         decision.human_latch_required = True
         decision.peak_degraded = True
         case.latest_decision = decision
+        self._persist(case)
         return decision
 
     def decide_exgratia(
@@ -884,6 +924,7 @@ class ClaimsService:
         self._attach_latch_fields(decision, case, recommended_amount=recommended_amount)
         decision.human_latch_required = True
         case.latest_decision = decision
+        self._persist(case)
         return decision
 
     def decide_prepay(
@@ -909,6 +950,7 @@ class ClaimsService:
         self._attach_latch_fields(decision, case, recommended_amount=recommended_amount)
         decision.human_latch_required = True
         case.latest_decision = decision
+        self._persist(case)
         return decision
 
     def enter_investigation(
@@ -938,6 +980,7 @@ class ClaimsService:
         decision.freeze_active = True
         decision.human_latch_required = True
         case.latest_decision = decision
+        self._persist(case)
         return decision
 
     def unfreeze_investigation(
@@ -964,6 +1007,7 @@ class ClaimsService:
             case.latest_decision.freeze_active = False
             case.latest_decision.payout_ready = False
             case.latest_decision.gate_status = case.gate_status
+        self._persist(case)
         return {
             "case_id": case.case_id,
             "freeze_active": False,
@@ -979,6 +1023,7 @@ class ClaimsService:
         decision = self._peak_degrade_decision(case)
         if reason:
             decision.reason_summary = reason
+        self._persist(case)
         return decision
 
     def register_materials(
@@ -1007,6 +1052,7 @@ class ClaimsService:
             for img in image_ids:
                 if img not in case.image_ids:
                     case.image_ids.append(img)
+        self._persist(case)
         return case
 
     def notify_supplement(
@@ -1084,6 +1130,16 @@ class ClaimsService:
         }
         if case.latest_decision.dual_token_required:
             body["second_approver"] = second_approver
+        self._record_latch_event(
+            LatchEvent(
+                case_id=case.case_id,
+                event_type="approve",
+                actor=approved_by,
+                ts=datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+                human_latch_token=token,
+                second_approver=second_approver,
+            )
+        )
         return body
 
     def reject_human_latch(
@@ -1102,6 +1158,15 @@ class ClaimsService:
             case.latest_decision.human_latch_token = None
             case.latest_decision.payout_ready = False
             case.latest_decision.gate_status = case.gate_status
+        self._record_latch_event(
+            LatchEvent(
+                case_id=case.case_id,
+                event_type="reject",
+                actor=rejected_by,
+                ts=datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+                reason=reason,
+            )
+        )
         return {
             "case_id": case.case_id,
             "gate_status": case.gate_status,
@@ -1174,6 +1239,7 @@ class ClaimsService:
             decision_type="l2_payout_ready",
             validator_score=1.0,
         )
+        self._persist(case)
         return {
             "case_id": case.case_id,
             "gate_status": case.gate_status,
@@ -1217,6 +1283,7 @@ class ClaimsService:
             decision_type="l2_close",
             validator_score=1.0,
         )
+        self._persist(case)
         # 故意不包含 auto_pay / payment_instruction / bank_transfer
         return {
             "case_id": case.case_id,

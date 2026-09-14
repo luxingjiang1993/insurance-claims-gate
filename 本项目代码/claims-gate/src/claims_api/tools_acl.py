@@ -36,6 +36,10 @@ ALLOWED_TOOL_NAMES: frozenset[str] = frozenset(
         "read_ledger",
         "l2_payout_ready",
         "l2_close",
+        "auth_login",
+        "auth_me",
+        "auth_logout",
+        "read_latch_events",
     }
 )
 

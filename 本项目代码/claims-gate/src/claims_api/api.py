@@ -4,40 +4,67 @@ Rewrote from: REF-MISSIONS（transfer_api/api.py 换理赔域）；citation 门 
 SC-01 补件/裁决/文书 REF-COURSE-03；SC-02 拒赔分态与人闸 REF-MISSIONS；
 SC-03 减赔 REF-COURSE-04；Issue 06 人闸矩阵扩展 REF-MISSIONS；
 Issue 08 L2 出款就绪/结案回写 REF-MISSIONS, REF-CASE-FC；
-Issue 09 OCR/备注威胁负例 REF-CASE-HYBRID, REF-MISSIONS
+Issue 09 OCR/备注威胁负例 REF-CASE-HYBRID, REF-MISSIONS；
+Issue 14 SQLite + 种子登录会话 REF-MISSIONS
 """
 
 from __future__ import annotations
 
+import os
+import tempfile
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from missions.rag import KnowledgeBase
 
+from .auth import AuthError, AuthService
 from .error_codes import ErrorCode
 from .service import ClaimNotFoundError, ClaimsDomainError, ClaimsService
+from .sqlite_store import SqliteCaseStore
 from .tools_acl import assert_tool_allowed
 
 app = FastAPI(title="Claims Gate API", version="0.1.0")
 _KB_ROOT = Path(__file__).resolve().parents[2] / "knowledge_base"
+# 持久演示库路径提示：export CLAIMS_GATE_DB=<repo>/data/claims_gate.sqlite
 _kb = KnowledgeBase(_KB_ROOT)
+_store: SqliteCaseStore | None = None
+_auth: AuthService | None = None
 
 
-def _build_service() -> ClaimsService:
+def _resolve_db_path(db_path: Path | None) -> Path:
+    """解析库路径：显式参数 > CLAIMS_GATE_DB > 临时库（避免 import 污染 data/）。"""
+    if db_path is not None:
+        return Path(db_path)
+    env = os.environ.get("CLAIMS_GATE_DB")
+    if env:
+        return Path(env)
+    fd, name = tempfile.mkstemp(prefix="claims_gate_boot_", suffix=".sqlite")
+    os.close(fd)
+    path = Path(name)
+    path.unlink(missing_ok=True)
+    return path
+
+
+def _build_service(
+    db_path: Path | None = None,
+) -> tuple[ClaimsService, AuthService, SqliteCaseStore]:
     """重建服务；共享同一 KB 实例，拒赔对外通知经 KB 落库门失败关闭。"""
-    svc = ClaimsService(kb=_kb)
+    path = _resolve_db_path(db_path)
+    store = SqliteCaseStore(path)
+    svc = ClaimsService(kb=_kb, store=store)
 
     def _ok(payload: dict[str, Any]) -> bool:
         return _kb.validate_citation(payload).ok
 
     svc.set_citation_validator(_ok)
-    return svc
+    auth = AuthService(store)
+    return svc, auth, store
 
 
-_service = _build_service()
+_service, _auth, _store = _build_service()
 
 
 class CitationValidateRequest(BaseModel):
@@ -47,6 +74,13 @@ class CitationValidateRequest(BaseModel):
     clause_item: str
     doc_version: str
     quote: str = ""
+
+
+class LoginIn(BaseModel):
+    """演示登录：种子用户 viewer / adjuster / supervisor。"""
+
+    username: str = Field(min_length=1)
+    password: str = Field(min_length=1)
 
 
 class MaterialsIn(BaseModel):
@@ -154,12 +188,46 @@ def get_service() -> ClaimsService:
     return _service
 
 
-def reset_service() -> ClaimsService:
-    """测试夹具：重建内存台账并重载条款 KB。"""
-    global _service, _kb
+def get_auth() -> AuthService:
+    assert _auth is not None
+    return _auth
+
+
+def reset_service(db_path: Path | None = None) -> ClaimsService:
+    """测试夹具：重建 SQLite 台账并重载条款 KB。
+
+    - 未传 db_path：新建临时库，保证用例隔离。
+    - 传入已有路径：同库重开（模拟进程重启后续读）。
+    """
+    global _service, _kb, _store, _auth
+    if _store is not None:
+        _store.close()
     _kb = KnowledgeBase(_KB_ROOT)
-    _service = _build_service()
+    if db_path is None:
+        fd, name = tempfile.mkstemp(prefix="claims_gate_", suffix=".sqlite")
+        os.close(fd)
+        path = Path(name)
+        path.unlink(missing_ok=True)
+        _service, _auth, _store = _build_service(db_path=path)
+    else:
+        _service, _auth, _store = _build_service(db_path=Path(db_path))
     return _service
+
+
+def _bearer_token(authorization: str | None) -> str | None:
+    if not authorization:
+        return None
+    parts = authorization.split(None, 1)
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        return None
+    return parts[1].strip() or None
+
+
+def _http_auth_error(exc: AuthError) -> HTTPException:
+    return HTTPException(
+        status_code=401,
+        detail={"error_code": exc.error_code, "message": exc.message},
+    )
 
 
 def _http_domain_error(exc: ClaimsDomainError) -> HTTPException:
@@ -183,13 +251,40 @@ def root() -> dict:
         "status": "ok",
         "docs": "/docs",
         "health": "/health",
-        "hint": "试用夹具: GET /claims/CLM-SC01-001 ；OpenAPI: /docs",
+        "hint": "试用夹具: GET /claims/CLM-SC01-001 ；登录: POST /auth/login ；OpenAPI: /docs",
     }
 
 
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok", "inference_track": "deterministic"}
+
+
+@app.post("/auth/login")
+def auth_login(body: LoginIn) -> dict[str, Any]:
+    """种子三角色登录；返回会话令牌与角色。"""
+    assert_tool_allowed("auth_login")
+    try:
+        return get_auth().login(body.username, body.password)
+    except AuthError as exc:
+        raise _http_auth_error(exc) from exc
+
+
+@app.get("/auth/me")
+def auth_me(authorization: str | None = Header(default=None)) -> dict[str, Any]:
+    """解析当前会话角色。"""
+    assert_tool_allowed("auth_me")
+    try:
+        return get_auth().resolve_session(_bearer_token(authorization))
+    except AuthError as exc:
+        raise _http_auth_error(exc) from exc
+
+
+@app.post("/auth/logout")
+def auth_logout(authorization: str | None = Header(default=None)) -> dict[str, Any]:
+    """注销当前会话。"""
+    assert_tool_allowed("auth_logout")
+    return get_auth().logout(_bearer_token(authorization))
 
 
 @app.get("/claims/{case_id}")
@@ -221,6 +316,23 @@ def get_claim(case_id: str) -> dict:
         "ocr_text": case.ocr_text,
         "customer_remark": case.customer_remark,
     }
+
+
+@app.get("/claims/{case_id}/latch-events")
+def get_latch_events(case_id: str) -> dict[str, Any]:
+    """人闸事件摘要（批准/驳回可回放）。"""
+    assert_tool_allowed("read_latch_events")
+    try:
+        items = _service.list_latch_events(case_id)
+    except ClaimNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": ErrorCode.VALIDATION_FAILED.value,
+                "message": f"案件不存在: {exc.case_id}",
+            },
+        ) from exc
+    return {"case_id": case_id, "items": items}
 
 
 @app.post("/claims/{case_id}/evaluate")
