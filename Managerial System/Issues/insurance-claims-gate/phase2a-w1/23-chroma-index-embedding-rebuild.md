@@ -2,7 +2,7 @@
 
 **github_issue:** #10
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** 22
 
@@ -30,13 +30,26 @@
 
 ## Acceptance criteria
 
-- [ ] Chroma 可索引约定条款子集并持久化；提供可重复执行的 rebuild 入口
-- [ ] 默认本地 embedding 可用；云 embedding 可通过配置切换（写入 `.env.example`）
-- [ ] 规则 evaluate 零向量/Chroma 依赖（S0 不因本票变红）
-- [ ] 票内或 handoff 声明 W0（22）已满足或豁免列表
-- [ ] handoff 含 `Rewrote from:` 所用 REF
+- [x] Chroma 可索引约定条款子集并持久化；提供可重复执行的 rebuild 入口
+- [x] 默认本地 embedding 可用；云 embedding 可通过配置切换（写入 `.env.example`）
+- [x] 规则 evaluate 零向量/Chroma 依赖（S0 不因本票变红）
+- [x] 票内或 handoff 声明 W0（22）已满足或豁免列表
+- [x] handoff 含 `Rewrote from:` 所用 REF
+
+## Answer
+
+**Rewrote from: REF-CASE-RECALL, REF-RAG-CY, REF-MISSIONS**
+
+**W0（票 22）声明：** 已 `resolved`；本票在 W0 DoD 关闭后实现，无豁免项。
+
+- `src/missions/chroma_index/`：`rebuild_index` 将 `knowledge_base/` 全部条款块写入持久 Chroma（默认 `data/chroma`，collection `clauses_v1`）
+- 默认 `EMBEDDING_PROVIDER=local`（确定性本地向量，无模型下载）；`cloud` 使用独立 `CLAIMS_GATE_EMBEDDING_API_KEY` / `EMBEDDING_*`
+- 重建入口：`python scripts/rebuild_chroma_index.py`（可重复执行；KB 非空校验后再删同名 collection 全量写入）
+- `.env.example` / `requirements.txt`（chromadb）已更新；规则 evaluate 源码零 chroma 依赖
+- 测试：`tests/test_chroma_index_rebuild.py`（含 reopen 计数与 mock 云重建）；默认 `pytest -q`：`126 passed, 8 deselected`
 
 ## Comments
 
 - 2026-09-14：to-tickets 批准 defaults；落盘于 `phase2a-w1/`。
 - 2026-09-14：同步 GitHub Issue #10。
+- 2026-09-14：实现落地并 resolved。

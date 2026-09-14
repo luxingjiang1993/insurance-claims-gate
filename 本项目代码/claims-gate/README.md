@@ -226,4 +226,15 @@ python -m missions.eval_entry
 
 已落地：详情页 AI 辅助区须显式点击才调用；无 Key 降级提示可见；辅助建议与裁决草案分标签；「送交规则校验（采纳）」走 `assist/adopt`→evaluate；UI 标明非终裁、无秒赔误导；`viewer` 不展示该写入口。
 
+## Issue 23 Chroma 索引 + embedding + 可重建
+
+`Rewrote from: REF-CASE-RECALL, REF-RAG-CY, REF-MISSIONS`
+
+已落地：
+
+- `missions/chroma_index/`：将 `knowledge_base/` 条款块写入持久 Chroma（默认 `data/chroma`）
+- 默认 `EMBEDDING_PROVIDER=local`（确定性本地向量）；`cloud` 走独立 embedding Key
+- 重建入口：`python scripts/rebuild_chroma_index.py`（可重复执行）
+- 规则 evaluate 路径不依赖 Chroma（见 `tests/test_chroma_index_rebuild.py`）
+
 勿在仓库根直接执行 `uvicorn ... --app-dir src`（会找不到 `claims_api`）；请用 `python scripts/run_api.py` 或先 `cd` 进 `claims-gate`。
