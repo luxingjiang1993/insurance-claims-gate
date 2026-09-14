@@ -4,6 +4,7 @@ import { ApiClientError, type ClaimsApiClient } from "../api/client";
 import type { ClaimDetail, DecisionDraft, LoginResult } from "../api/types";
 import { AiAssistPanel } from "../components/AiAssistPanel";
 import { ApiErrorView } from "../components/ApiErrorView";
+import { CaseLedgerPanel } from "../components/CaseLedgerPanel";
 import { DecisionDraftView } from "../components/DecisionDraftView";
 import { DocumentExportPanel } from "../components/DocumentExportPanel";
 import { HumanLatchPanel } from "../components/HumanLatchPanel";
@@ -33,6 +34,7 @@ export function CaseDetailPage({
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<ApiClientError | Error | null>(null);
   const [latchToken, setLatchToken] = useState("");
+  const [ledgerRefreshKey, setLedgerRefreshKey] = useState(0);
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -48,6 +50,7 @@ export function CaseDetailPage({
         setDraft(null);
         setDraftError(err instanceof Error ? err : new Error(String(err)));
       }
+      setLedgerRefreshKey((n) => n + 1);
     } catch (err) {
       setClaim(null);
       setError(err instanceof Error ? err : new Error(String(err)));
@@ -135,6 +138,7 @@ export function CaseDetailPage({
             onDraftUpdated={(next) => {
               setDraft(next);
               setDraftError(null);
+              setLedgerRefreshKey((n) => n + 1);
             }}
           />
           <AiAssistPanel
@@ -144,6 +148,7 @@ export function CaseDetailPage({
             onDraftUpdated={(next) => {
               setDraft(next);
               setDraftError(null);
+              setLedgerRefreshKey((n) => n + 1);
             }}
             onClaimUpdated={async () => {
               await load();
@@ -170,6 +175,11 @@ export function CaseDetailPage({
             onClaimUpdated={async () => {
               await load();
             }}
+          />
+          <CaseLedgerPanel
+            api={api}
+            caseId={caseId}
+            refreshKey={ledgerRefreshKey}
           />
         </>
       ) : null}

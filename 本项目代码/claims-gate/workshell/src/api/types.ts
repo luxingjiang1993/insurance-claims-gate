@@ -129,3 +129,24 @@ export type ApiErrorBody = {
   detail?: unknown;
   [key: string]: unknown;
 };
+
+/** 本案流水 ledger 条目（evaluate / assist / latch 等可回放）。 */
+export type LedgerEntry = {
+  case_id: string;
+  route_id: string;
+  retrieval_profile: string;
+  decision_type: string;
+  validator_score: number;
+  ts: string;
+  arbitration_winner?: string | null;
+};
+
+export type LatchEventRow = {
+  case_id: string;
+  event_type: string;
+  actor: string;
+  ts: string;
+  human_latch_token?: string | null;
+  reason?: string;
+  second_approver?: string | null;
+};

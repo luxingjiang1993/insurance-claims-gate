@@ -47,6 +47,7 @@ export function AiAssistPanel({
     try {
       const next = await api.assistClaim(caseId, { query: trimmed });
       setSuggestion(next);
+      await onClaimUpdated();
       if (next.degraded) {
         setOkMessage(null);
       } else {

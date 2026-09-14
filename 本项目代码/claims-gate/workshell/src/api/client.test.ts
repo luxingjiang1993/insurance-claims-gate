@@ -550,6 +550,68 @@ describe("createClaimsApiClient", () => {
     expect(draft.payout_ready).toBe(false);
   });
 
+  it("getLedger returns case ledger items newest-first", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        case_id: "CLM-SC02-001",
+        items: [
+          {
+            case_id: "CLM-SC02-001",
+            route_id: "LATCH-APPROVE",
+            retrieval_profile: "clause_v_current",
+            decision_type: "human_latch_approve",
+            validator_score: 1.0,
+            ts: "2026-09-14T12:00:00+00:00",
+          },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-view",
+    });
+    const items = await client.getLedger("CLM-SC02-001");
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:8000/claims/CLM-SC02-001/ledger",
+    );
+    expect(callHeaders(fetchMock).get("Authorization")).toBe("Bearer sess-view");
+    expect(items).toHaveLength(1);
+    expect(items[0]?.decision_type).toBe("human_latch_approve");
+  });
+
+  it("getLatchEvents returns latch event rows", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        case_id: "CLM-SC02-001",
+        items: [
+          {
+            case_id: "CLM-SC02-001",
+            event_type: "approve",
+            actor: "supervisor",
+            ts: "2026-09-14T12:00:00+00:00",
+            human_latch_token: "HLT-abc",
+          },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-view",
+    });
+    const items = await client.getLatchEvents("CLM-SC02-001");
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:8000/claims/CLM-SC02-001/latch-events",
+    );
+    expect(items[0]?.event_type).toBe("approve");
+    expect(items[0]?.human_latch_token).toBe("HLT-abc");
+  });
+
   it("surfaces adoptAssist API rejection without rewriting message", async () => {
     const detail = {
       error_code: "CITATION_FAILED",

@@ -6,7 +6,8 @@ SC-02 拒赔分态 REF-MISSIONS；效力栈减赔 / calc_steps REF-CASE-KB, REF-
 Router 策略表 + ledger REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS；
 L2 出款就绪/结案回写模拟 REF-MISSIONS, REF-CASE-FC；
 Issue 14 SQLite 持久化 + 种子 RBAC 登录 REF-MISSIONS；
-Issue 19 AI 辅助建议降级/关键词/采纳再 evaluate REF-MISSIONS, REF-COURSE-03, REF-CASE-HYBRID, REF-RAG-CY
+Issue 19 AI 辅助建议降级/关键词/采纳再 evaluate REF-MISSIONS, REF-COURSE-03, REF-CASE-HYBRID, REF-RAG-CY；
+Issue 21 本案流水 + 本地 JSONL span（LangSmith 仅配置位）REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ from missions.track_llm_optional.pipeline import draft_assist
 
 from .error_codes import ErrorCode
 from .latch_matrix import is_fake_exgratia_clause_approve_citation, resolve_latch
+from .local_trace import emit_span
 from .user_text import absorb_user_controlled_text
 from .models_domain import (
     ClaimCase,
@@ -49,6 +51,25 @@ _PAYOUT_ELIGIBLE_DECISIONS: frozenset[str] = frozenset(
         "prepay",
     }
 )
+
+
+def _span_name_for_ledger(decision_type: str) -> str | None:
+    """ledger decision_type → 本地 span 名；非关键动作不写 span。"""
+    if decision_type == "assist_suggestion":
+        return "assist"
+    if decision_type.startswith("human_latch_"):
+        return "latch"
+    # L2 回写等非 W0 关键排障路径：不导出为 evaluate
+    if decision_type.startswith("l2_"):
+        return None
+    return "evaluate"
+
+
+def _ledger_retrieval_profile(case: ClaimCase) -> str:
+    """ledger 用检索画像；缺省 clause_v_current。"""
+    if case.latest_decision and case.latest_decision.retrieval_profile:
+        return case.latest_decision.retrieval_profile
+    return "clause_v_current"
 
 # 《保险法》第22条一次性补正义务 — 法务审定锚点文案（轨 A 固定常量）
 LEGAL_BASIS_ARTICLE_22 = (
@@ -325,7 +346,7 @@ class ClaimsService:
         validator_score: float,
         arbitration_winner: str | None = None,
     ) -> LedgerEntry:
-        """写入每案 ledger（最新在前）。"""
+        """写入每案 ledger（最新在前）；可选本地 JSONL span。"""
         entry = LedgerEntry(
             case_id=case.case_id,
             route_id=route_id,
@@ -336,6 +357,19 @@ class ClaimsService:
             arbitration_winner=arbitration_winner,
         )
         case.ledger.insert(0, entry)
+        span_name = _span_name_for_ledger(decision_type)
+        if span_name is not None:
+            emit_span(
+                span_name,
+                case_id=case.case_id,
+                attributes={
+                    "route_id": route_id,
+                    "retrieval_profile": retrieval_profile,
+                    "decision_type": decision_type,
+                    "validator_score": validator_score,
+                    "arbitration_winner": arbitration_winner,
+                },
+            )
         return entry
 
     def _stamp_route(
@@ -1155,6 +1189,13 @@ class ClaimsService:
         }
         if case.latest_decision.dual_token_required:
             body["second_approver"] = second_approver
+        self._append_ledger(
+            case,
+            route_id="LATCH-APPROVE",
+            retrieval_profile=_ledger_retrieval_profile(case),
+            decision_type="human_latch_approve",
+            validator_score=1.0,
+        )
         self._record_latch_event(
             LatchEvent(
                 case_id=case.case_id,
@@ -1183,6 +1224,13 @@ class ClaimsService:
             case.latest_decision.human_latch_token = None
             case.latest_decision.payout_ready = False
             case.latest_decision.gate_status = case.gate_status
+        self._append_ledger(
+            case,
+            route_id="LATCH-REJECT",
+            retrieval_profile=_ledger_retrieval_profile(case),
+            decision_type="human_latch_reject",
+            validator_score=0.0,
+        )
         self._record_latch_event(
             LatchEvent(
                 case_id=case.case_id,

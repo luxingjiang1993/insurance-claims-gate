@@ -11,6 +11,8 @@ import type {
   DocumentExportResult,
   HumanLatchApproveResult,
   HumanLatchRejectResult,
+  LatchEventRow,
+  LedgerEntry,
   LoginResult,
   MaterialsRegisterResult,
   SupplementNotifyResult,
@@ -281,6 +283,24 @@ export function createClaimsApiClient(options: ClaimsApiClientOptions) {
           body: JSON.stringify(payload),
         },
       );
+    },
+
+    /** 本案流水：evaluate / assist / latch 等关键动作摘要（最新在前）。 */
+    async getLedger(caseId: string): Promise<LedgerEntry[]> {
+      const body = await request<{ case_id: string; items: LedgerEntry[] }>(
+        `/claims/${encodeURIComponent(caseId)}/ledger`,
+        { method: "GET" },
+      );
+      return body.items;
+    },
+
+    /** 人闸事件明细（批准/驳回可回放）。 */
+    async getLatchEvents(caseId: string): Promise<LatchEventRow[]> {
+      const body = await request<{ case_id: string; items: LatchEventRow[] }>(
+        `/claims/${encodeURIComponent(caseId)}/latch-events`,
+        { method: "GET" },
+      );
+      return body.items;
     },
   };
 }

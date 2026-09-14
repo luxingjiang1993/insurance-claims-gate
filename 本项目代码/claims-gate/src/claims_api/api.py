@@ -8,7 +8,8 @@ Issue 09 OCR/备注威胁负例 REF-CASE-HYBRID, REF-MISSIONS；
 Issue 14 SQLite + 种子登录会话 REF-MISSIONS；
 Issue 15 人闸 RBAC 硬门 + S0 负例 REF-MISSIONS；
 Issue 16 作业壳列表/详情可读字段 + CORS REF-MISSIONS；
-Issue 19 AI 辅助建议降级/关键词/采纳再 evaluate REF-MISSIONS, REF-COURSE-03, REF-CASE-HYBRID, REF-RAG-CY
+Issue 19 AI 辅助建议降级/关键词/采纳再 evaluate REF-MISSIONS, REF-COURSE-03, REF-CASE-HYBRID, REF-RAG-CY；
+Issue 21 本案流水 + 本地 JSONL span（LangSmith 仅配置位）REF-MISSIONS
 """
 
 from __future__ import annotations
