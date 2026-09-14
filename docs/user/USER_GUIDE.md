@@ -1,8 +1,8 @@
 # Claims Gate User Guide
 
-> **Pilot · Phase 1 shipped (Issues 01–13)**  
+> **Pilot · Phase 1 shipped (Issues 01–13) · Phase 2a W0 Dev Complete (Issues 14–22)**  
 > Last updated: 2026-09-14 · Product code: `本项目代码/claims-gate/`  
-> Status badge: **Developer Preview** — 作业壳已可登录，adjuster 可走 SC 规则路径与显式 AI 辅助建议；supervisor 可在壳内人闸并预览文书分态；本案流水可回放；生产 UI / 真连核心 L2 仍延后。
+> Status badge: **Developer Preview（W0）** — 作业壳可登录；`adjuster` 走 SC 规则路径与显式 AI 辅助；`supervisor` 壳内人闸与文书分态；本案流水可回放。**不含** W1 向量检索 / 真 LangSmith、**不含** W2 OpenEval 排行榜；生产 UI / 真连核心 L2 仍延后。
 
 条款门禁是个人意外险（含附加意外医疗）理赔的裁决辅助产品：输出结构化草案、条款项级引用、一次补件清单与人闸令牌门；**不替代**持牌核赔终裁，**不触发**银企支付。
 
@@ -13,7 +13,7 @@
 | 你是谁 | 你要做什么 | 跳到 |
 |--------|------------|------|
 | 个人开发 / 验收 | 5 分钟跑通 SC-01/02/03 | [§3 Quickstart](#3-quickstart) |
-| 演示 / 核赔浏览 | 浏览器登录作业壳看案 | [§3.1 作业壳](#31-作业壳登录sc规则路径人闸文书ai-辅助与本案流水preview) |
+| 演示 / 核赔浏览 | 浏览器登录作业壳看案（W0） | [§3.1 作业壳](#31-作业壳w0登录角色规则路径人闸文书ai-降级与本案流水preview) |
 | 核赔初审 | 材料受理 → 一次补件 / 进入初审 | [§5.1](#51-材料受理与一次补件-sc-01) |
 | 核赔员 | 除外拒赔草案 / 效力栈减赔 | [§5.2](#52-除外拒赔与文书分态-sc-02) · [§5.3](#53-批单效力栈减赔-sc-03) |
 | 主管 | 人闸批准 / 驳回；出款就绪 | [§5.4](#54-人闸与出款就绪) |
@@ -22,8 +22,10 @@
 
 **诚实边界（读完再操作）：**
 
-- 本期交付面以 **HTTP API + Demo 脚本** 为主；作业壳（套餐 C）当前为 **登录 + 案件浏览 + SC 规则路径 + 人闸 + 文书分态 + AI 辅助建议区（显式点击、非终裁）+ 本案流水**。
-- 裁决结果是 **草案**，不具对外最终效力。
+- **Phase 1** 交付面以 **HTTP API + Demo 脚本** 为主（已合门禁）。
+- **Phase 2a W0（本手册当前作业壳）**：登录 + 三角色 RBAC + 案件浏览 + SC 规则路径 + 人闸 + 文书分态 + AI 辅助建议区（显式点击、无 Key 降级、非终裁）+ 本案流水 / 本地 trace。默认 `pytest -q` **不要求** LLM Key 与 LangSmith。
+- **尚未上线（勿按已交付操作）：** W1 的 Chroma / 混合检索 / 真 LangSmith 跨度；W2 的 OpenEval 排行榜与多人协作。
+- 裁决结果是 **草案**，不具对外最终效力；AI 辅助建议 **不是** 终裁。
 - `PAYOUT_READY` ≠ 已打款；支付仍走核心人工流程。
 - 禁止用「秒赔」叙事包装责任争议案。
 
@@ -57,7 +59,7 @@
 
 ### 2.3 Surface maturity
 
-| 能力 | Phase 1 | 备注 |
+| 能力 | 成熟度 | 备注 |
 |------|---------|------|
 | 轨 A 确定性裁决 + `machine_check` | Shipped | 默认合门禁 |
 | SC-01 / SC-02 / SC-03 HTTP 黑盒 | Shipped | Solo Demo |
@@ -65,11 +67,14 @@
 | L2 出款就绪 / 结案模拟 | Shipped | 无真连现网 |
 | 轨 B 最小 RAG 起草 | Preview | 不挡轨 A |
 | Eval 负例旁路 / 合成抽检表 | Preview | 不冒充金标 |
-| 作业壳登录 + 案件只读浏览 | Preview | Issue 16 |
-| 作业壳 SC 规则路径（材料 / evaluate / 一次补件 / 草案） | Preview | Issue 17；无 LLM Key 可点完；语义同 `machine_check` |
-| 作业壳人闸 + 文书分态 | Preview | Issue 18；supervisor 批/驳获令牌；adjuster 批闸被拒；拒赔 DRAFT 可预览；EXTERNAL_NOTIFY 无人闸不假成功 |
-| 作业壳 AI 辅助建议区 | Preview | Issue 20；显式点击才调用；无 Key 降级可见；采纳须再过规则 evaluate；UI 标明非终裁 |
-| 作业壳本案流水 | Preview | Issue 21；ledger + 人闸事件可回放；本地 JSONL span 可配置开启；不要求真 LangSmith |
+| 作业壳登录 + 案件只读浏览 | Preview（W0） | Issue 16 |
+| 作业壳 SC 规则路径（材料 / evaluate / 一次补件 / 草案） | Preview（W0） | Issue 17；无 LLM Key 可点完；语义同 `machine_check` |
+| 作业壳人闸 + 文书分态 | Preview（W0） | Issue 18；supervisor 批/驳获令牌；adjuster 批闸被拒；拒赔 DRAFT 可预览；EXTERNAL_NOTIFY 无人闸不假成功 |
+| 作业壳 AI 辅助建议区 | Preview（W0） | Issue 20；显式点击才调用；无 Key 降级可见；采纳须再过规则 evaluate；UI 标明非终裁 |
+| 作业壳本案流水 + 本地 trace | Preview（W0） | Issue 21；ledger + 人闸事件可回放；本地 JSONL 可配置；不要求真 LangSmith |
+| Chroma / 混合检索挂 assist | Deferred（W1） | 未上线 |
+| 真 LangSmith 跨度 / OpenEval 历史对比 | Deferred（W1） | 未上线 |
+| OpenEval 排行榜 / 多人协作 | Deferred（W2） | 未上线 |
 | 核赔作业 UI 全作业流 | Deferred | 真连 L2 / 生产壳等后续 |
 | 真连核心 L2 / 真 OCR | Deferred | 有干系人后 |
 | ≥300 人工金标运营 | Deferred | 机检入口已占位 |
@@ -122,12 +127,14 @@ curl http://127.0.0.1:8000/health
 pytest -q
 ```
 
-### 3.1 作业壳：登录、SC 规则路径、人闸、文书、AI 辅助与本案流水（Preview）
+### 3.1 作业壳（W0）：登录角色、规则路径、人闸、文书、AI 降级与本案流水（Preview）
 
-`Rewrote from: REF-MISSIONS, REF-CASE-HYBRID` · Issue 16 / 17 / 18 / 20 / 21
+`Rewrote from: REF-MISSIONS` · Issues 14–22（壳面 16 / 17 / 18 / 20 / 21；手册与 CI 绿 22）
 
-1. 先启动 API（见上）。规则路径无需 LLM Key；AI 辅助无 Key 时会明确降级，不阻断规则路径。本地 trace / LangSmith 均非启动前置。
-2. 另开终端：
+**W0 启动（两进程）：**
+
+1. 先启动 API（见 §3）。规则路径**无需** LLM Key；AI 辅助无 Key 时明确降级，不阻断规则路径。本地 trace / LangSmith **均非**启动前置。
+2. 另开终端启动作业壳：
 
 ```bash
 cd 本项目代码/claims-gate/workshell
@@ -135,17 +142,25 @@ npm install
 npm run dev
 ```
 
-3. 浏览器打开 `http://127.0.0.1:5173/`，用演示账号登录（用户名=密码）：`viewer` / `adjuster` / `supervisor`。
-4. 登录后可浏览案件列表与详情字段：`gate_status`、`document_status`、`inference_track`、`payout_ready`。
-5. `adjuster` / `supervisor` 可在详情页登记材料、触发 evaluate、发起一次补件，并查看裁决草案。清单与 `decision_type` 等字段来自 API，壳不另立规则。
-6. `supervisor` 可在详情页批准/驳回人闸；成功时展示 API 返回的 `human_latch_token`（壳不自行签发）。`adjuster` 也可点「批准人闸」，API 拒绝体原样展示，界面不记为成功。
-7. 文书区须显式选择 `DRAFT_EXPORT` 或 `EXTERNAL_NOTIFY`。拒赔 `reject_notice` + `DRAFT_EXPORT` 可预览；选 `EXTERNAL_NOTIFY` 且无人闸令牌时 API 失败，界面不把草稿当成已对外通知。
-8. **AI 辅助建议区**（与「裁决草案」分标签）：须显式点击「AI 辅助建议」才会调用；无 Key 时展示降级提示且 `used_llm=false`。点「送交规则校验（采纳）」才走 `assist/adopt`→evaluate；失败时拒绝体原样展示。UI 标明裁决辅助非终裁，不使用「秒赔」叙事。
-9. **本案流水**：详情页可浏览 `GET /claims/{id}/ledger` 与人闸事件；evaluate / AI 辅助 / 人闸批准等关键动作可回放。开发排障可在 `.env` 设 `CLAIMS_GATE_LOCAL_TRACE=1` 导出本地 JSONL span；LangSmith 仅配置位预留，无 Key 不阻塞。
-10. `viewer` 在壳内**不展示写操作入口**，仍可查看已有草案、人闸只读字段与本案流水。
-11. API 拒绝体原样展示，界面不把失败标成成功（无 BFF）。
+3. 浏览器打开 `http://127.0.0.1:5173/`。
 
-可选：`VITE_CLAIMS_API_BASE`（默认 `http://127.0.0.1:8000`）。配置 LLM / 本地 trace / LangSmith 见产品目录 `.env.example`。
+**登录角色（用户名=密码）：**
+
+| 角色 | 可做什么 | 不可做什么 |
+|------|----------|------------|
+| `viewer` | 只读案件列表/详情、草案、人闸字段、本案流水 | 无写操作入口 |
+| `adjuster` | 材料登记、evaluate、一次补件、看裁决草案、点 AI 辅助与采纳送交 | 批准人闸 → API `PERMISSION_DENIED`，UI 不记成功 |
+| `supervisor` | 上述写路径 + 批准/驳回人闸（获 API 令牌）+ 文书分态 | 壳不自行签发令牌；出款就绪仍走 HTTP L2 |
+
+**规则路径（与 `machine_check` 同语义）：** `adjuster` / `supervisor` 在详情页登记材料 → evaluate → 一次补件 → 查看裁决草案。字段来自 API，壳不另立规则。无 LLM Key 即可点完 SC-01/02/03。
+
+**人闸与文书：** `supervisor` 批准后展示 `human_latch_token`。文书须显式选 `DRAFT_EXPORT` 或 `EXTERNAL_NOTIFY`；拒赔草稿可预览；无人闸对外通知失败时 UI **不**升为已通知。
+
+**AI 降级与非终裁：** 「AI 辅助建议」须显式点击；无 Key → 降级提示且 `used_llm=false`。采纳走 `assist/adopt`→evaluate，失败拒绝体原样展示。UI 标明**裁决辅助非终裁**，禁止「秒赔」叙事。
+
+**本案流水：** 详情页浏览 ledger / 人闸事件。可选 `.env`：`CLAIMS_GATE_LOCAL_TRACE=1` 导出 JSONL；LangSmith 仅配置位，无 Key 不阻塞。
+
+可选：`VITE_CLAIMS_API_BASE`（默认 `http://127.0.0.1:8000`）。LLM / 本地 trace / LangSmith 见 `.env.example`。
 
 ---
 
@@ -400,6 +415,6 @@ OpenAPI：启动服务后访问 `/docs`（FastAPI 自动生成）。
 | 字段 | 值 |
 |------|----|
 | doc_id | `USER-GUIDE-CLAIMS-GATE` |
-| phase_covered | Phase 1（Issues 01–13） |
-| next_update_trigger | 任一阶段 DoD 关闭，或用户可见 API/作业流变更合入 |
+| phase_covered | Phase 1（01–13）+ Phase 2a W0 Dev Complete（14–22） |
+| next_update_trigger | W1/W2 DoD 关闭，或用户可见 API/作业流变更合入 |
 | owner | 产品 Owner（人类）；agents 按 `MAINTENANCE.md` 代写修订 |

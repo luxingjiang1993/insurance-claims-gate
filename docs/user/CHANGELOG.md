@@ -36,16 +36,11 @@
 
 ---
 
-## Phase 2 — （占位）
+## Phase 2a · W0 — Dev Complete（2026-09）
 
-**Status:** Not started.  
-启动条件：`docs/agents/current-phase-remaining.md` §1 DoD 满足，且修宪 / 新 PRD·SPEC 条目写入后。
-
-本节目程用户可见能力落地后，在此追加 `Added` / `Changed` / `Deprecated`，并同步修订 [`USER_GUIDE.md`](./USER_GUIDE.md) 成熟度表与 How-to。
-
----
-
-## Unreleased
+**Status:** Developer Preview closed for W0 DoD（Issues 14–22）。  
+**Scope:** 作业壳 + SQLite + RBAC + AI 降级 + 本地 trace；默认 `pytest -q` 无 LLM / 无 LangSmith 全绿。  
+**Not in W0：** Chroma / 混合检索、真 LangSmith 完工、OpenEval 排行榜与多人（属 W1/W2）。
 
 ### Added
 
@@ -54,8 +49,28 @@
 - 作业壳人闸与文书分态（Issue 18）：`supervisor` 可批/驳人闸并看到 API 令牌；`adjuster` 批闸被拒且不假成功；拒赔 `DRAFT_EXPORT` 可预览；`EXTERNAL_NOTIFY` 无人闸失败时 UI 不升对外。`Rewrote from: REF-MISSIONS`。
 - 作业壳 AI 辅助建议区（Issue 20）：显式点击「AI 辅助建议」；无 Key 降级可见；辅助建议与裁决草案分标签；「送交规则校验（采纳）」再 evaluate；UI 标明非终裁、无秒赔误导。`Rewrote from: REF-MISSIONS, REF-CASE-HYBRID`。
 - 作业壳本案流水 + 本地 trace（Issue 21）：详情页可浏览 ledger / 人闸事件；`CLAIMS_GATE_LOCAL_TRACE=1` 可导出 evaluate/assist/latch JSONL span；LangSmith 仅 `.env.example` 配置位，默认 pytest 不要求 Key。`Rewrote from: REF-MISSIONS`。
-- HTTP：`GET /claims` 案件列表摘要；`GET /claims/{id}` 补充 `document_status` / `payout_ready` 可读字段。
+- HTTP：`GET /claims` 案件列表摘要；`GET /claims/{id}` 补充 `document_status` / `payout_ready` 可读字段；SQLite 种子三角色登录会话（Issue 14）；人闸 RBAC 硬门含 S0 负例（Issue 15）。
+- 用户手册 W0 启动 / 角色 / 规则路径 / AI 降级与非终裁诚实边界（Issue 22）。`Rewrote from: REF-MISSIONS`。
 
 ### Changed
 
 - Quickstart：仓库根可用 `python scripts/run_api.py` 启动 API；避免在根目录误用 `--app-dir src` 导致 `ModuleNotFoundError: claims_api`。
+- `USER_GUIDE` 页眉与成熟度表区分 Phase 1 Shipped 与 Phase 2a W0 Preview；明确 W1/W2 未上线。
+
+### Guarantees (user-visible)
+
+- 默认 `pytest -q` 在无 LLM Key、无 LangSmith 下全绿（含 S0 RBAC 负例）。
+- AI 辅助不签发人闸令牌、不写 `payout_ready`；采纳须再过规则 evaluate。
+
+---
+
+## Phase 2a · W1 / W2 — （未启动实现主路径）
+
+**Status:** Not started as shipped surface.  
+W0 DoD 关闭后方可将实现重心转到 W1；W1 关闭后再开 W2。用户可见能力落地前，勿将向量检索 / 真 LangSmith / OpenEval 排行榜写成已上线。
+
+---
+
+## Unreleased
+
+（空 — W0 用户可见条目已折叠进上一节。后续 W1/W2 用户可见变更先记于此，再在对应波 DoD 关闭时折叠。）
