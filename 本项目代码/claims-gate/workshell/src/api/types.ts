@@ -103,6 +103,27 @@ export type DocumentExportResult = {
   [key: string]: unknown;
 };
 
+/** AI 辅助建议：POST /assist 响应；非裁决草案权威字段。 */
+export type AssistSuggestion = {
+  case_id?: string;
+  assist_invocation_id: string;
+  inference_track: string;
+  query: string;
+  retrieval_profile: string;
+  draft_text: string;
+  used_llm: boolean;
+  degraded: boolean;
+  degrade_reason?: string | null;
+  suggested_stance?: string;
+  citations?: unknown[];
+  retrieval?: Record<string, unknown>;
+  notes?: string[];
+  payout_ready?: boolean;
+  human_latch_token?: string | null;
+  enable_llm?: boolean;
+  human_latch_required?: boolean;
+};
+
 /** API 拒绝体外形（原样展示，不二次包装文案）。 */
 export type ApiErrorBody = {
   detail?: unknown;

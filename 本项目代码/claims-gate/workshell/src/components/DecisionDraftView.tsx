@@ -10,10 +10,13 @@ type Props = {
 /** 裁决草案只读展示：字段来自 GET /decision 或 evaluate 响应。 */
 export function DecisionDraftView({ draft, loadError }: Props) {
   return (
-    <section className="action-panel">
-      <h2>裁决草案</h2>
+    <section className="action-panel" aria-labelledby="decision-draft-title">
+      <div className="panel-title-row">
+        <h2 id="decision-draft-title">裁决草案</h2>
+        <span className="tag tag-decision">裁决草案 · 规则路径</span>
+      </div>
       <p className="muted">
-        系统建议，不具对外最终效力。权威以服务端门禁与人闸为准。
+        系统经规则 evaluate 产出的建议，不具对外最终效力；与上方「AI 辅助建议」分标签，权威以服务端门禁与人闸为准。
       </p>
       {!draft && loadError instanceof ApiClientError && loadError.status === 404 ? (
         <p className="muted">尚无裁决草案（请先 evaluate）。</p>

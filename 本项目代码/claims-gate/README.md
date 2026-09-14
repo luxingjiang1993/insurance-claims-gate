@@ -220,4 +220,10 @@ python -m missions.eval_entry
 
 已落地：详情页人闸批准/驳回（supervisor 获 API 令牌；adjuster 批闸拒绝不假成功）；拒赔 `DRAFT_EXPORT` 可预览；`EXTERNAL_NOTIFY` 无人闸失败时 UI 不升对外。
 
+## Issue 20 作业壳：AI 辅助建议区
+
+`Rewrote from: REF-MISSIONS, REF-CASE-HYBRID`
+
+已落地：详情页 AI 辅助区须显式点击才调用；无 Key 降级提示可见；辅助建议与裁决草案分标签；「送交规则校验（采纳）」走 `assist/adopt`→evaluate；UI 标明非终裁、无秒赔误导；`viewer` 不展示该写入口。
+
 勿在仓库根直接执行 `uvicorn ... --app-dir src`（会找不到 `claims_api`）；请用 `python scripts/run_api.py` 或先 `cd` 进 `claims-gate`。

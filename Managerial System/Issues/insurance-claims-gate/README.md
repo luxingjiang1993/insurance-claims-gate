@@ -36,8 +36,8 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 | 16 | 作业壳：登录 + 案件只读浏览 | 14 | resolved |
 | 17 | 作业壳：材料 / evaluate / 一次补件 / 裁决草案（SC 规则路径） | 16 | resolved |
 | 18 | 作业壳：人闸 + 文书分态诚实展示 | 15, 17 | resolved |
-| 19 | AI 辅助建议 API：降级 + 关键词提名 + 采纳再 evaluate | 14 | ready-for-agent |
-| 20 | 作业壳：AI 辅助区 + 非终裁标注 + 采纳 | 17, 19 | ready-for-agent |
+| 19 | AI 辅助建议 API：降级 + 关键词提名 + 采纳再 evaluate | 14 | resolved |
+| 20 | 作业壳：AI 辅助区 + 非终裁标注 + 采纳 | 17, 19 | resolved |
 | 21 | 本案流水 + 本地 trace 导出 | 14 | ready-for-agent |
 | 22 | W0 用户手册 + 默认 CI 无 LLM 绿确认 | 18, 20, 21 | ready-for-agent |
 

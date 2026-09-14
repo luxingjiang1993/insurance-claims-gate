@@ -1,9 +1,10 @@
 /**
  * 作业壳 HTTP 客户端：直连 Claims API，无 BFF；错误体原样抛出。
- * Rewrote from: REF-MISSIONS
+ * Rewrote from: REF-MISSIONS, REF-CASE-HYBRID
  */
 
 import type {
+  AssistSuggestion,
   ClaimDetail,
   ClaimSummary,
   DecisionDraft,
@@ -213,6 +214,68 @@ export function createClaimsApiClient(options: ClaimsApiClientOptions) {
       }
       return request<DocumentExportResult>(
         `/claims/${encodeURIComponent(caseId)}/documents/export`,
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+      );
+    },
+
+    /** 显式触发 AI 辅助建议；无 Key 时服务端降级，壳不静默调用。 */
+    async assistClaim(
+      caseId: string,
+      body: { query: string; retrieval_profile?: string; top_k?: number },
+    ): Promise<AssistSuggestion> {
+      const payload: {
+        query: string;
+        retrieval_profile?: string;
+        top_k?: number;
+      } = { query: body.query };
+      if (body.retrieval_profile !== undefined) {
+        payload.retrieval_profile = body.retrieval_profile;
+      }
+      if (body.top_k !== undefined) {
+        payload.top_k = body.top_k;
+      }
+      return request<AssistSuggestion>(
+        `/claims/${encodeURIComponent(caseId)}/assist`,
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+      );
+    },
+
+    /** 采纳辅助建议：唯一权威更新路径为服务端再跑 evaluate。 */
+    async adoptAssist(
+      caseId: string,
+      body: {
+        assist_invocation_id?: string;
+        draft_text?: string;
+        suggested_stance?: string;
+        retrieval_profile?: string;
+      },
+    ): Promise<DecisionDraft> {
+      const payload: {
+        assist_invocation_id?: string;
+        draft_text?: string;
+        suggested_stance?: string;
+        retrieval_profile?: string;
+      } = {};
+      if (body.assist_invocation_id !== undefined) {
+        payload.assist_invocation_id = body.assist_invocation_id;
+      }
+      if (body.draft_text !== undefined) {
+        payload.draft_text = body.draft_text;
+      }
+      if (body.suggested_stance !== undefined) {
+        payload.suggested_stance = body.suggested_stance;
+      }
+      if (body.retrieval_profile !== undefined) {
+        payload.retrieval_profile = body.retrieval_profile;
+      }
+      return request<DecisionDraft>(
+        `/claims/${encodeURIComponent(caseId)}/assist/adopt`,
         {
           method: "POST",
           body: JSON.stringify(payload),

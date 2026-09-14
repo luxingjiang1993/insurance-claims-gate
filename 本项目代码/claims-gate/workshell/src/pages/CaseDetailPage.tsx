@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { ApiClientError, type ClaimsApiClient } from "../api/client";
 import type { ClaimDetail, DecisionDraft, LoginResult } from "../api/types";
+import { AiAssistPanel } from "../components/AiAssistPanel";
 import { ApiErrorView } from "../components/ApiErrorView";
 import { DecisionDraftView } from "../components/DecisionDraftView";
 import { DocumentExportPanel } from "../components/DocumentExportPanel";
@@ -134,6 +135,18 @@ export function CaseDetailPage({
             onDraftUpdated={(next) => {
               setDraft(next);
               setDraftError(null);
+            }}
+          />
+          <AiAssistPanel
+            api={api}
+            role={session.role}
+            caseId={caseId}
+            onDraftUpdated={(next) => {
+              setDraft(next);
+              setDraftError(null);
+            }}
+            onClaimUpdated={async () => {
+              await load();
             }}
           />
           <DecisionDraftView draft={draft} loadError={draftError} />

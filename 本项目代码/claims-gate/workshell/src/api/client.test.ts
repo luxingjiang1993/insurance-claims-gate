@@ -1,6 +1,6 @@
 /**
- * 接缝：作业壳 API 客户端（login / list / detail / SC 规则路径 + 错误原样）。
- * Rewrote from: REF-MISSIONS
+ * 接缝：作业壳 API 客户端（login / list / detail / SC / 人闸文书 / assist·adopt + 错误原样）。
+ * Rewrote from: REF-MISSIONS, REF-CASE-HYBRID
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -463,6 +463,114 @@ describe("createClaimsApiClient", () => {
     ).rejects.toMatchObject({
       name: "ApiClientError",
       status: 403,
+      body: { detail },
+    });
+  });
+
+  it("assistClaim posts query and returns degraded assist fields as-is", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        case_id: "CLM-SC02-001",
+        assist_invocation_id: "assist-abc123",
+        inference_track: "llm_optional",
+        query: "疾病摔伤是否除外",
+        retrieval_profile: "clause_v_current",
+        draft_text: "【辅助建议】仅供人审，非终裁。",
+        used_llm: false,
+        degraded: true,
+        degrade_reason: "未配置 OPENAI_API_KEY，已降级为关键词提名草稿",
+        suggested_stance: "deny",
+        citations: [{ doc_id: "PA-ACC-2024.1", clause_item: "2.1" }],
+        retrieval: { mode: "keyword", vector_enabled: false },
+        payout_ready: false,
+        human_latch_token: null,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-adj",
+    });
+    const suggestion = await client.assistClaim("CLM-SC02-001", {
+      query: "疾病摔伤是否除外",
+    });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:8000/claims/CLM-SC02-001/assist",
+    );
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: "POST",
+      body: JSON.stringify({ query: "疾病摔伤是否除外" }),
+    });
+    expect(callHeaders(fetchMock).get("Authorization")).toBe("Bearer sess-adj");
+    expect(suggestion.degraded).toBe(true);
+    expect(suggestion.used_llm).toBe(false);
+    expect(suggestion.assist_invocation_id).toBe("assist-abc123");
+    expect(suggestion.payout_ready).toBe(false);
+    expect(suggestion.draft_text).toContain("非终裁");
+  });
+
+  it("adoptAssist posts invocation id and returns evaluate decision as-is", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        case_id: "CLM-SC02-001",
+        decision_type: "reject_draft",
+        gate_status: "HUMAN_LATCH",
+        document_status: "DRAFT_EXPORT",
+        payout_ready: false,
+        inference_track: "deterministic",
+        human_latch_token: null,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-adj",
+    });
+    const draft = await client.adoptAssist("CLM-SC02-001", {
+      assist_invocation_id: "assist-abc123",
+      draft_text: "【辅助建议】仅供人审，非终裁。",
+      suggested_stance: "deny",
+    });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:8000/claims/CLM-SC02-001/assist/adopt",
+    );
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: "POST",
+      body: JSON.stringify({
+        assist_invocation_id: "assist-abc123",
+        draft_text: "【辅助建议】仅供人审，非终裁。",
+        suggested_stance: "deny",
+      }),
+    });
+    expect(draft.decision_type).toBe("reject_draft");
+    expect(draft.payout_ready).toBe(false);
+  });
+
+  it("surfaces adoptAssist API rejection without rewriting message", async () => {
+    const detail = {
+      error_code: "CITATION_FAILED",
+      message: "citation 三联门未通过，不得落库裁决草案",
+    };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(422, { detail }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-adj",
+    });
+
+    await expect(
+      client.adoptAssist("CLM-SC02-001", {
+        assist_invocation_id: "assist-bad",
+        draft_text: "幻觉条款",
+      }),
+    ).rejects.toMatchObject({
+      name: "ApiClientError",
+      status: 422,
       body: { detail },
     });
   });

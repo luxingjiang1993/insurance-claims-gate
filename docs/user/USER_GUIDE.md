@@ -2,7 +2,7 @@
 
 > **Pilot · Phase 1 shipped (Issues 01–13)**  
 > Last updated: 2026-09-14 · Product code: `本项目代码/claims-gate/`  
-> Status badge: **Developer Preview** — 作业壳已可登录，adjuster 可走 SC 规则路径；supervisor 可在壳内人闸并预览文书分态；AI 区与生产 UI / 真连核心 L2 仍延后。
+> Status badge: **Developer Preview** — 作业壳已可登录，adjuster 可走 SC 规则路径与显式 AI 辅助建议；supervisor 可在壳内人闸并预览文书分态；生产 UI / 真连核心 L2 仍延后。
 
 条款门禁是个人意外险（含附加意外医疗）理赔的裁决辅助产品：输出结构化草案、条款项级引用、一次补件清单与人闸令牌门；**不替代**持牌核赔终裁，**不触发**银企支付。
 
@@ -13,7 +13,7 @@
 | 你是谁 | 你要做什么 | 跳到 |
 |--------|------------|------|
 | 个人开发 / 验收 | 5 分钟跑通 SC-01/02/03 | [§3 Quickstart](#3-quickstart) |
-| 演示 / 核赔浏览 | 浏览器登录作业壳看案 | [§3.1 作业壳](#31-作业壳登录sc规则路径人闸与文书分态preview) |
+| 演示 / 核赔浏览 | 浏览器登录作业壳看案 | [§3.1 作业壳](#31-作业壳登录sc规则路径人闸文书与-ai-辅助preview) |
 | 核赔初审 | 材料受理 → 一次补件 / 进入初审 | [§5.1](#51-材料受理与一次补件-sc-01) |
 | 核赔员 | 除外拒赔草案 / 效力栈减赔 | [§5.2](#52-除外拒赔与文书分态-sc-02) · [§5.3](#53-批单效力栈减赔-sc-03) |
 | 主管 | 人闸批准 / 驳回；出款就绪 | [§5.4](#54-人闸与出款就绪) |
@@ -22,7 +22,7 @@
 
 **诚实边界（读完再操作）：**
 
-- 本期交付面以 **HTTP API + Demo 脚本** 为主；作业壳（套餐 C）当前为 **登录 + 案件浏览 + SC 规则路径 + 人闸 + 文书分态诚实展示**。AI 辅助区属后续票。
+- 本期交付面以 **HTTP API + Demo 脚本** 为主；作业壳（套餐 C）当前为 **登录 + 案件浏览 + SC 规则路径 + 人闸 + 文书分态 + AI 辅助建议区（显式点击、非终裁）**。
 - 裁决结果是 **草案**，不具对外最终效力。
 - `PAYOUT_READY` ≠ 已打款；支付仍走核心人工流程。
 - 禁止用「秒赔」叙事包装责任争议案。
@@ -68,7 +68,8 @@
 | 作业壳登录 + 案件只读浏览 | Preview | Issue 16 |
 | 作业壳 SC 规则路径（材料 / evaluate / 一次补件 / 草案） | Preview | Issue 17；无 LLM Key 可点完；语义同 `machine_check` |
 | 作业壳人闸 + 文书分态 | Preview | Issue 18；supervisor 批/驳获令牌；adjuster 批闸被拒；拒赔 DRAFT 可预览；EXTERNAL_NOTIFY 无人闸不假成功 |
-| 核赔作业 UI 全作业流 | Deferred | AI 辅助区等后续票 |
+| 作业壳 AI 辅助建议区 | Preview | Issue 20；显式点击才调用；无 Key 降级可见；采纳须再过规则 evaluate；UI 标明非终裁 |
+| 核赔作业 UI 全作业流 | Deferred | 真连 L2 / 生产壳等后续 |
 | 真连核心 L2 / 真 OCR | Deferred | 有干系人后 |
 | ≥300 人工金标运营 | Deferred | 机检入口已占位 |
 
@@ -120,11 +121,11 @@ curl http://127.0.0.1:8000/health
 pytest -q
 ```
 
-### 3.1 作业壳：登录、SC 规则路径、人闸与文书分态（Preview）
+### 3.1 作业壳：登录、SC 规则路径、人闸、文书与 AI 辅助（Preview）
 
-`Rewrote from: REF-MISSIONS` · Issue 16 / 17 / 18
+`Rewrote from: REF-MISSIONS, REF-CASE-HYBRID` · Issue 16 / 17 / 18 / 20
 
-1. 先启动 API（见上）。无需配置 LLM Key。
+1. 先启动 API（见上）。规则路径无需 LLM Key；AI 辅助无 Key 时会明确降级，不阻断规则路径。
 2. 另开终端：
 
 ```bash
@@ -138,10 +139,11 @@ npm run dev
 5. `adjuster` / `supervisor` 可在详情页登记材料、触发 evaluate、发起一次补件，并查看裁决草案。清单与 `decision_type` 等字段来自 API，壳不另立规则。
 6. `supervisor` 可在详情页批准/驳回人闸；成功时展示 API 返回的 `human_latch_token`（壳不自行签发）。`adjuster` 也可点「批准人闸」，API 拒绝体原样展示，界面不记为成功。
 7. 文书区须显式选择 `DRAFT_EXPORT` 或 `EXTERNAL_NOTIFY`。拒赔 `reject_notice` + `DRAFT_EXPORT` 可预览；选 `EXTERNAL_NOTIFY` 且无人闸令牌时 API 失败，界面不把草稿当成已对外通知。
-8. `viewer` 在壳内**不展示写操作入口**，仍可查看已有草案与人闸只读字段。
-9. API 拒绝体原样展示，界面不把失败标成成功（无 BFF）。
+8. **AI 辅助建议区**（与「裁决草案」分标签）：须显式点击「AI 辅助建议」才会调用；无 Key 时展示降级提示且 `used_llm=false`。点「送交规则校验（采纳）」才走 `assist/adopt`→evaluate；失败时拒绝体原样展示。UI 标明裁决辅助非终裁，不使用「秒赔」叙事。
+9. `viewer` 在壳内**不展示写操作入口**，仍可查看已有草案与人闸只读字段。
+10. API 拒绝体原样展示，界面不把失败标成成功（无 BFF）。
 
-可选：`VITE_CLAIMS_API_BASE`（默认 `http://127.0.0.1:8000`）。AI 辅助区属后续票，本 Preview 不宣称已上线。
+可选：`VITE_CLAIMS_API_BASE`（默认 `http://127.0.0.1:8000`）。配置 LLM Key 见产品目录 `.env.example`（`OPENAI_API_KEY` 等）。
 
 ---
 
@@ -156,6 +158,7 @@ npm run dev
 | **出款就绪** | 门禁态 `PAYOUT_READY`；仅人闸后可置位；不触发支付 |
 | **文书分态** | `DRAFT_EXPORT` 可草稿导出；`EXTERNAL_NOTIFY` 对外通知须人闸 |
 | **轨 A / 轨 B** | 轨 A = 确定性默认可回归；轨 B = LLM 可选，失败不挡轨 A |
+| **AI 辅助建议** | 显式点击才调用；产物非裁决草案；采纳须再过规则 evaluate；UI 标明非终裁 |
 
 ### 4.1 门禁状态（作业可读）
 
