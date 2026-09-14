@@ -5,7 +5,7 @@
 | feature_slug | `insurance-claims-gate` |
 | spec_id | `SPEC-02A-W1-PILOT-COMPLETE` |
 | wave | `W1` |
-| Status | `ready-for-agent` |
+| Status | `closed`（W1 DoD 已勾选；实现侧 Issues 23–28） |
 | 父索引 | [`spec-2a-runnable-product-floor.md`](./spec-2a-runnable-product-floor.md) |
 | 前置 | [`spec-2a-w0-dev-complete.md`](./spec-2a-w0-dev-complete.md) DoD 已关闭（或书面豁免项列出）；[`spec.md`](./spec.md) 决策 16–18 有效 |
 | 后继 | [`spec-2a-w2-eval-ops.md`](./spec-2a-w2-eval-ops.md) |
@@ -33,18 +33,18 @@ W0 已能本地演示作业壳与规则门禁，但试点仍缺少：**语义+�
 
 ## DoD Checklist（W1）
 
-- [ ] W0 DoD 仍成立  
-- [ ] Chroma 索引条款 KB（或约定子集）可重建  
-- [ ] 混合检索挂在 assist 路径；规则路径零向量依赖  
-- [ ] `keyword_weight`/`vector_weight` 可配置，默认 0.7/0.3  
-- [ ] 条款号/clause_item 查询关键词短路  
-- [ ] 提名过 doc+clause_item+version 门方可作可采纳引用  
-- [ ] 向量故障降级可测  
-- [ ] LangSmith Key 配置后关键操作有 trace  
-- [ ] OpenEval 跑通且 LangSmith 可做实验历史对比  
-- [ ] 套餐 L 录像/清单完成  
-- [ ] 默认 `pytest -q` 仍不要求 LangSmith/LLM  
-- [ ] `docs/user/` 标明 Pilot 配置要求（与 W0 演示降级区分）  
+- [x] W0 DoD 仍成立  
+- [x] Chroma 索引条款 KB（或约定子集）可重建  
+- [x] 混合检索挂在 assist 路径；规则路径零向量依赖  
+- [x] `keyword_weight`/`vector_weight` 可配置，默认 0.7/0.3  
+- [x] 条款号/clause_item 查询关键词短路  
+- [x] 提名过 doc+clause_item+version 门方可作可采纳引用  
+- [x] 向量故障降级可测  
+- [x] LangSmith Key 配置后关键操作有 trace  
+- [x] OpenEval 跑通且 LangSmith 可做实验历史对比  
+- [x] 套餐 L 录像/清单完成  
+- [x] 默认 `pytest -q` 仍不要求 LangSmith/LLM  
+- [x] `docs/user/` 标明 Pilot 配置要求（与 W0 演示降级区分）  
 
 ## User Stories
 
@@ -112,3 +112,4 @@ W0 已能本地演示作业壳与规则门禁，但试点仍缺少：**语义+�
 
 - 2026-09-14：按波次拆分独立 SPEC；Status=`ready-for-agent`。
 - 2026-09-14：to-tickets 批准 defaults；Issues 23–28 落盘 `phase2a-w1/`。
+- 2026-09-15：Issue 28 收口；DoD 勾选；Status=`closed`。

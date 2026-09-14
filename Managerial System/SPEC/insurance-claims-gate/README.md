@@ -10,7 +10,7 @@
 |------|------|--------|
 | 总览索引 | [`spec-2a-runnable-product-floor.md`](./spec-2a-runnable-product-floor.md) | `ready-for-agent` |
 | **W0** Dev Complete | [`spec-2a-w0-dev-complete.md`](./spec-2a-w0-dev-complete.md) | `closed` |
-| **W1** Pilot Complete | [`spec-2a-w1-pilot-complete.md`](./spec-2a-w1-pilot-complete.md) | `ready-for-agent` |
+| **W1** Pilot Complete | [`spec-2a-w1-pilot-complete.md`](./spec-2a-w1-pilot-complete.md) | `closed` |
 | **W2** Eval Ops | [`spec-2a-w2-eval-ops.md`](./spec-2a-w2-eval-ops.md) | `ready-for-agent` |
 
 实现 / 切票：**按波打开对应 W0/W1/W2 文件**；总览仅作导航与跨波约束。

@@ -2,7 +2,7 @@
 
 **github_issue:** #11
 
-**Status:** done
+**Status:** resolved
 
 **Blocked by:** 22, 23
 
@@ -40,7 +40,7 @@
 
 ## Handoff
 
-**Status:** done
+**Status:** resolved
 
 **Rewrote from:** REF-CASE-RECALL, REF-RAG-CY, REF-CASE-HYBRID, REF-MISSIONS
 

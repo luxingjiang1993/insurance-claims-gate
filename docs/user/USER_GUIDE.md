@@ -1,8 +1,8 @@
 # Claims Gate User Guide
 
-> **Pilot · Phase 1 shipped (Issues 01–13) · Phase 2a W0 Dev Complete (Issues 14–22)**  
+> **Pilot · Phase 1 shipped (Issues 01–13) · Phase 2a W0 Dev Complete (14–22) · Phase 2a W1 Pilot Complete (23–28)**  
 > Last updated: 2026-09-15 · Product code: `本项目代码/claims-gate/`  
-> Status badge: **Developer Preview（W0 + 部分 W1 Preview）** — 作业壳可登录；`adjuster` 走 SC 规则路径与显式 AI 辅助（含检索来源摘要）；`supervisor` 壳内人闸与文书分态；本案流水可回放；配置 LangSmith Key 后 evaluate/assist/latch 可上报并在 ledger 见 `trace_id`；OpenEval 旁路可写入 LangSmith 实验并做历史对比（非排行榜）。W2 OpenEval 排行榜仍未上线；生产 UI / 真连核心 L2 仍延后。
+> Status badge: **W1 / Pilot Complete（Developer Preview）** — 作业壳 + 混合检索挂 assist + 真 LangSmith + OpenEval 实验历史对比。W2 OpenEval 排行榜 / 多人协作评测台**未上线**；生产 UI / 真连核心 L2 仍延后。
 
 条款门禁是个人意外险（含附加意外医疗）理赔的裁决辅助产品：输出结构化草案、条款项级引用、一次补件清单与人闸令牌门；**不替代**持牌核赔终裁，**不触发**银企支付。
 
@@ -13,7 +13,8 @@
 | 你是谁 | 你要做什么 | 跳到 |
 |--------|------------|------|
 | 个人开发 / 验收 | 5 分钟跑通 SC-01/02/03 | [§3 Quickstart](#3-quickstart) |
-| 演示 / 核赔浏览 | 浏览器登录作业壳看案（W0） | [§3.1 作业壳](#31-作业壳w0登录角色规则路径人闸文书ai-降级与本案流水preview) |
+| 演示 / 核赔浏览 | 浏览器登录作业壳看案（可无 Key） | [§3.1 作业壳](#31-作业壳w0登录角色规则路径人闸文书ai-降级与本案流水preview) |
+| Pilot 验收 | 满配 + 关向量 + 关 LLM（套餐 L） | [§3.2 Pilot / 套餐 L](#32-pilot-completew1演示可无-key-vs-pilot-须-langsmith) |
 | 核赔初审 | 材料受理 → 一次补件 / 进入初审 | [§5.1](#51-材料受理与一次补件-sc-01) |
 | 核赔员 | 除外拒赔草案 / 效力栈减赔 | [§5.2](#52-除外拒赔与文书分态-sc-02) · [§5.3](#53-批单效力栈减赔-sc-03) |
 | 主管 | 人闸批准 / 驳回；出款就绪 | [§5.4](#54-人闸与出款就绪) |
@@ -23,8 +24,9 @@
 **诚实边界（读完再操作）：**
 
 - **Phase 1** 交付面以 **HTTP API + Demo 脚本** 为主（已合门禁）。
-- **Phase 2a W0（本手册当前作业壳）**：登录 + 三角色 RBAC + 案件浏览 + SC 规则路径 + 人闸 + 文书分态 + AI 辅助建议区（显式点击、无 Key 降级、非终裁）+ 本案流水 / 本地 trace。默认 `pytest -q` **不要求** LLM Key 与 LangSmith。
-- **尚未上线（勿按已交付操作）：** W2 的 OpenEval 排行榜与多人协作。混合检索挂 assist / 来源摘要 / 真 LangSmith span / OpenEval 实验历史对比为 W1 Preview，勿当生产终裁 UI；评测分 **不**替代 `machine_check`。
+- **演示可无 Key（W0 地板仍成立）：** 登录 + 三角色 RBAC + SC 规则路径 + 人闸 + 文书分态 + AI 无 Key 降级 + 本地 trace。默认 `pytest -q` **不要求** LLM Key 与 LangSmith。
+- **Pilot 须 LangSmith 等（W1 / Pilot Complete）：** 满配验收须配置 LLM Key、LangSmith（`LANGCHAIN_TRACING_V2` + Key）、可重建 Chroma 索引；混合检索挂 assist、来源摘要、真 span、OpenEval 实验历史对比按套餐 L 验收。详见 [§3.2](#32-pilot-completew1演示可无-key-vs-pilot-须-langsmith)。勿当生产终裁 UI；评测分 **不**替代 `machine_check`。
+- **尚未上线（勿按已交付操作）：** W2 Eval Ops — OpenEval 排行榜与多人协作评测台。
 - 裁决结果是 **草案**，不具对外最终效力；AI 辅助建议 **不是** 终裁。
 - `PAYOUT_READY` ≠ 已打款；支付仍走核心人工流程。
 - 禁止用「秒赔」叙事包装责任争议案。
@@ -73,10 +75,11 @@
 | 作业壳 AI 辅助建议区 | Preview（W0） | Issue 20；显式点击才调用；无 Key 降级可见；采纳须再过规则 evaluate；UI 标明非终裁 |
 | 作业壳 AI 区检索来源摘要 | Preview（W1） | Issue 25；展示 doc/条款项/版本；可采纳 vs 不可采纳诚实标注；壳不持有门禁权威 |
 | 作业壳本案流水 + 本地 trace | Preview（W0） | Issue 21；ledger + 人闸事件可回放；本地 JSONL 可配置；无 Key 不阻塞 |
-| Chroma / 混合检索挂 assist | Preview（W1） | Issue 24；assist 路径混合检索 + 三联门 `adoptable`；evaluate 不调向量 |
-| 真 LangSmith span + ledger `trace_id` | Preview（W1） | Issue 26；`LANGCHAIN_TRACING_V2=true` + Key 后 evaluate/assist/latch 上报；无 Key 不阻断；默认 pytest 不要求；不替代 `machine_check` |
-| OpenEval ↔ LangSmith 实验历史对比 | Preview（W1） | Issue 27；`python -m missions.openeval_langsmith`；同 dataset 多 experiment 可历史对比；不含排行榜；不替代 `machine_check`；默认 pytest 不要求 Key |
-| OpenEval 排行榜 / 多人协作 | Deferred（W2） | 未上线 |
+| Chroma / 混合检索挂 assist | Preview（W1） | Issue 24；assist 路径混合检索 + 三联门 `adoptable`；evaluate 不调向量；关向量可降级 |
+| 真 LangSmith span + ledger `trace_id` | Preview（W1） | Issue 26；**Pilot 满配须** `LANGCHAIN_TRACING_V2=true` + Key；无 Key 不阻断演示；默认 pytest 不要求；不替代 `machine_check` |
+| OpenEval ↔ LangSmith 实验历史对比 | Preview（W1） | Issue 27；`python -m missions.openeval_langsmith`；同 dataset 多 experiment 可历史对比；**不含**排行榜；不替代 `machine_check`；默认 pytest 不要求 Key |
+| 套餐 L 验收清单 | Preview（W1） | Issue 28；满配 / 关向量 / 关 LLM；见 `本项目代码/claims-gate/docs/acceptance/package-l.md`；不进默认 pytest |
+| OpenEval 排行榜 / 多人协作 | Deferred（W2） | **未上线**；勿与 W1 Pilot Complete 混淆 |
 | 核赔作业 UI 全作业流 | Deferred | 真连 L2 / 生产壳等后续 |
 | 真连核心 L2 / 真 OCR | Deferred | 有干系人后 |
 | ≥300 人工金标运营 | Deferred | 机检入口已占位 |
@@ -163,6 +166,23 @@ npm run dev
 **本案流水：** 详情页浏览 ledger / 人闸事件（含 `retrieval_profile`；有上报时含 `trace_id`）。可选 `.env`：`CLAIMS_GATE_LOCAL_TRACE=1` 导出 JSONL；`LANGCHAIN_TRACING_V2=true` + `LANGCHAIN_API_KEY` 后 evaluate/assist/latch 上报 LangSmith；无 Key 不阻塞规则路径。不替代 `machine_check`。
 
 可选：`VITE_CLAIMS_API_BASE`（默认 `http://127.0.0.1:8000`）。LLM / 本地 trace / LangSmith 见 `.env.example`。
+
+### 3.2 Pilot Complete（W1）：演示可无 Key vs Pilot 须 LangSmith
+
+Issues 23–28 · 波次名：**W1 / Pilot Complete**
+
+| 口径 | 何时用 | Key / 云 | 覆盖能力 |
+|------|--------|----------|----------|
+| **演示可无 Key** | 本地演示、规则路径验收、无云账号 | 可不配 LLM / LangSmith；AI 区显示降级 | W0 地板 + 关 LLM 路径（套餐 L 路径 C） |
+| **Pilot 须 LangSmith（等）** | 向试点方宣称 **W1 / Pilot Complete** | **须** LLM Key + LangSmith Key（`LANGCHAIN_TRACING_V2=true`）；向量索引可重建 | 满配路径 A；另验关向量路径 B |
+
+**套餐 L（人工验收，不进默认 pytest）：** 逐步清单见  
+[`本项目代码/claims-gate/docs/acceptance/package-l.md`](../../本项目代码/claims-gate/docs/acceptance/package-l.md)  
+（满配 / 关向量 / 关 LLM）。勾选完成后可对照 `spec-2a-w1-pilot-complete.md` DoD。
+
+**本波不做 / 未上线：** OpenEval 排行榜、多人协作评测台（**W2 Eval Ops**）。对外文案勿暗示 Eval Ops 已交付。
+
+**默认 CI：** `pytest -q` 仍不要求 LangSmith / LLM；S2 可选测带 `langsmith_integration` / `track_llm_optional` / `eval_bypass` 等标记。
 
 ---
 
@@ -417,6 +437,6 @@ OpenAPI：启动服务后访问 `/docs`（FastAPI 自动生成）。
 | 字段 | 值 |
 |------|----|
 | doc_id | `USER-GUIDE-CLAIMS-GATE` |
-| phase_covered | Phase 1（01–13）+ Phase 2a W0 Dev Complete（14–22） |
-| next_update_trigger | W1/W2 DoD 关闭，或用户可见 API/作业流变更合入 |
+| phase_covered | Phase 1（01–13）+ Phase 2a W0（14–22）+ Phase 2a W1 Pilot Complete（23–28） |
+| next_update_trigger | W2 DoD 关闭，或用户可见 API/作业流变更合入 |
 | owner | 产品 Owner（人类）；agents 按 `MAINTENANCE.md` 代写修订 |

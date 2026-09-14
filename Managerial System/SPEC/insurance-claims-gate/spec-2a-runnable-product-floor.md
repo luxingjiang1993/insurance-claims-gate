@@ -55,12 +55,12 @@
 
 在 W0 之上：
 
-- [ ] Chroma + 本地默认 embedding（并支持云 embedding API）  
-- [ ] 混合检索：硬过滤 →（条款号短路｜并行关键词+向量）→ 融合默认 0.7/0.3 → citation 三联门  
-- [ ] 向量不可用时自动关键词降级，规则评估不受影响  
-- [ ] **真实 LangSmith** 上报 evaluate / assist / latch 等关键 span  
-- [ ] OpenEval 旁路跑通，且实验结果可在 LangSmith 查看（含**历史对比**外形）  
-- [ ] 完工录像套餐 L（关向量、关 LLM 的降级检查 + 满配路径）
+- [x] Chroma + 本地默认 embedding（并支持云 embedding API）  
+- [x] 混合检索：硬过滤 →（条款号短路｜并行关键词+向量）→ 融合默认 0.7/0.3 → citation 三联门  
+- [x] 向量不可用时自动关键词降级，规则评估不受影响  
+- [x] **真实 LangSmith** 上报 evaluate / assist / latch 等关键 span  
+- [x] OpenEval 旁路跑通，且实验结果可在 LangSmith 查看（含**历史对比**外形）  
+- [x] 完工录像套餐 L（关向量、关 LLM 的降级检查 + 满配路径）
 
 ### W2 — Eval Ops（评测台产品化）
 

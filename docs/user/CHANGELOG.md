@@ -64,19 +64,41 @@
 
 ---
 
-## Phase 2a · W1 / W2 — （未启动实现主路径）
+## Phase 2a · W1 — Pilot Complete（2026-09）
+
+**Status:** Developer Preview closed for W1 DoD（Issues 23–28）。  
+**Scope:** Chroma + 混合检索挂 assist + 来源摘要 + 真 LangSmith + OpenEval 实验历史对比 + 套餐 L 验收清单；默认 `pytest -q` 仍无 LLM / 无 LangSmith 全绿。  
+**Not in W1：** OpenEval 排行榜、多人协作评测台（属 **W2 Eval Ops**，未上线）。
+
+### Added
+
+- Chroma 索引 + 本地/云 embedding + 可重建（Issue 23）：`python scripts/rebuild_chroma_index.py`；规则 evaluate 零向量依赖。
+- 混合检索挂 assist（Issue 24）：硬过滤 / 条款号短路 / 0.7·0.3 加权 / 三联门 / 关向量关键词降级；evaluate 不调向量。
+- 作业壳 AI 辅助区检索来源摘要（Issue 25）：可见 doc / 条款项 / 版本；可采纳 vs 不可采纳诚实标注；不静默改写裁决草案。
+- 真 LangSmith span + ledger `trace_id`（Issue 26）：配置 `LANGCHAIN_TRACING_V2` + Key 后 evaluate / assist / latch 上报；无 Key 不阻断；默认 `pytest -q` 不要求；S2 标记 `langsmith_integration`。
+- OpenEval ↔ LangSmith 实验历史对比（Issue 27）：`python -m missions.openeval_langsmith`；不含排行榜/多人；不替代 `machine_check`。
+- 套餐 L 验收清单 + Pilot 手册区分（Issue 28）：`本项目代码/claims-gate/docs/acceptance/package-l.md`（满配 / 关向量 / 关 LLM）；USER_GUIDE 区分「演示可无 Key」与「Pilot 须 LangSmith」；不进默认 pytest。
+
+### Changed
+
+- `USER_GUIDE` 页眉与 §3.2 标明 **W1 / Pilot Complete**；明确 W2 排行榜未上线。
+
+### Guarantees (user-visible)
+
+- 默认 `pytest -q` 在无 LLM Key、无 LangSmith 下仍全绿（S2 可选测有标记）。
+- 对外宣称须带波次名；不得暗示 Eval Ops（W2）已上线。
+
+---
+
+## Phase 2a · W2 — Eval Ops（未启动实现主路径）
 
 **Status:** Not started as shipped surface.  
-W0 DoD 关闭后方可将实现重心转到 W1；W1 关闭后再开 W2。用户可见能力落地前，勿将向量检索 / 真 LangSmith / OpenEval 排行榜写成已上线。
+W1 DoD 关闭后方可将实现重心转到 W2。用户可见能力落地前，勿将排行榜 / 多人评测台写成已上线。
 
 ---
 
 ## Unreleased
 
-### Added
-
-- 作业壳 AI 辅助区检索来源摘要（Issue 25）：可见 doc / 条款项 / 版本；可采纳 vs 不可采纳诚实标注；不静默改写裁决草案；无秒赔/终裁误导。`Rewrote from: REF-MISSIONS, REF-CASE-HYBRID`。
-- 真 LangSmith span + ledger `trace_id`（Issue 26）：配置 `LANGCHAIN_TRACING_V2` + Key 后 evaluate / assist / latch 上报；ledger 含 `retrieval_profile` 与 `trace_id`（有上报时）；本地 JSONL 仍可用；无 Key 不阻断；默认 `pytest -q` 不要求；S2 标记 `langsmith_integration`。`Rewrote from: REF-CASE-EVAL-ADVISOR, REF-MISSIONS`。
-- OpenEval ↔ LangSmith 实验历史对比（Issue 27）：旁路最小集 `python -m missions.openeval_langsmith`；同 dataset 多 experiment 可历史对比；不含排行榜/多人协作；不替代 `machine_check`；默认 pytest 不要求 Key。`Rewrote from: REF-CASE-OPENEVALS, REF-CASE-EVAL-ADVISOR, REF-MISSIONS`。
+（暂无。）
 
 ---

@@ -15,8 +15,8 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 ## Frontier（可立即开工）
 
 **W0：** 已关闭（14–22 resolved）。  
-**W1：** 开放；frontier 为 **23、26**（均仅依赖 22）。  
-**W2：** 须 **28 resolved** 后开放；届时 frontier 为 29。  
+**W1：** 已关闭（23–28 resolved；SPEC Status=`closed`）。  
+**W2：** 开放；frontier 为 **29**（仅依赖 28）。  
 开工前将对应票 `Status` 改为 `claimed`。
 
 ## Phase 1 任务图（01–13 · 均已 resolved）
@@ -52,18 +52,18 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 
 | NN | 标题 | Blocked by | Status |
 |----|------|------------|--------|
-| 23 | Chroma 索引 + 本地/云 embedding + 可重建 | 22 | ready-for-agent |
-| 24 | 混合检索挂 assist：硬过滤 / 条款号短路 / 加权融合 / 三联门 / 向量降级 | 22, 23 | ready-for-agent |
-| 25 | 作业壳 AI 区展示检索来源摘要 | 20, 24 | ready-for-agent |
-| 26 | 真 LangSmith：evaluate / assist / latch + ledger 对齐 | 22 | ready-for-agent |
-| 27 | OpenEval 旁路 ↔ LangSmith 实验历史对比 | 26 | ready-for-agent |
-| 28 | 套餐 L 验收 + Pilot 手册区分 + 默认 CI 仍绿 | 24, 25, 26, 27 | ready-for-agent |
+| 23 | Chroma 索引 + 本地/云 embedding + 可重建 | 22 | resolved |
+| 24 | 混合检索挂 assist：硬过滤 / 条款号短路 / 加权融合 / 三联门 / 向量降级 | 22, 23 | resolved |
+| 25 | 作业壳 AI 区展示检索来源摘要 | 20, 24 | resolved |
+| 26 | 真 LangSmith：evaluate / assist / latch + ledger 对齐 | 22 | resolved |
+| 27 | OpenEval 旁路 ↔ LangSmith 实验历史对比 | 26 | resolved |
+| 28 | 套餐 L 验收 + Pilot 手册区分 + 默认 CI 仍绿 | 24, 25, 26, 27 | resolved |
 
 ```text
 22 (W0 close)
  ├── 23 ── 24 ── 25 ──┐
  │              │      │
- └── 26 ── 27 ──┴──────┴── 28
+ └── 26 ── 27 ──┴──────┴── 28 (W1 close)
 ```
 
 ## Phase 2a · W2 任务图（29–33）
