@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS ledger_summary (
     validator_score REAL NOT NULL,
     ts TEXT NOT NULL,
     arbitration_winner TEXT,
+    trace_id TEXT,
     FOREIGN KEY (case_id) REFERENCES cases(case_id)
 );
 """
@@ -70,7 +71,19 @@ class SqliteCaseStore:
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA foreign_keys = ON")
         self._conn.executescript(_SCHEMA)
+        self._ensure_ledger_trace_id_column()
         self._conn.commit()
+
+    def _ensure_ledger_trace_id_column(self) -> None:
+        """旧库补齐 ledger_summary.trace_id（Issue 26）。"""
+        cols = {
+            str(r[1])
+            for r in self._conn.execute("PRAGMA table_info(ledger_summary)").fetchall()
+        }
+        if "trace_id" not in cols:
+            self._conn.execute(
+                "ALTER TABLE ledger_summary ADD COLUMN trace_id TEXT"
+            )
 
     def close(self) -> None:
         self._conn.close()
@@ -115,8 +128,8 @@ class SqliteCaseStore:
                     """
                     INSERT INTO ledger_summary(
                         case_id, route_id, retrieval_profile, decision_type,
-                        validator_score, ts, arbitration_winner
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        validator_score, ts, arbitration_winner, trace_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         entry.case_id,
@@ -126,6 +139,7 @@ class SqliteCaseStore:
                         entry.validator_score,
                         entry.ts,
                         entry.arbitration_winner,
+                        entry.trace_id,
                     ),
                 )
             self._conn.commit()

@@ -225,7 +225,7 @@ class DecisionDraft:
 
 @dataclass
 class LedgerEntry:
-    """每案审计 ledger：路由与检索配置可回放。"""
+    """每案审计 ledger：路由与检索配置可回放；有上报时含 trace_id。"""
 
     case_id: str
     route_id: str
@@ -234,6 +234,8 @@ class LedgerEntry:
     validator_score: float
     ts: str = ""
     arbitration_winner: str | None = None
+    # Issue 26：LangSmith run/trace id（有上报时）
+    trace_id: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         body: dict[str, Any] = {
@@ -246,10 +248,13 @@ class LedgerEntry:
         }
         if self.arbitration_winner is not None:
             body["arbitration_winner"] = self.arbitration_winner
+        if self.trace_id:
+            body["trace_id"] = self.trace_id
         return body
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> LedgerEntry:
+        tid = data.get("trace_id")
         return cls(
             case_id=str(data["case_id"]),
             route_id=str(data["route_id"]),
@@ -258,6 +263,7 @@ class LedgerEntry:
             validator_score=float(data.get("validator_score") or 0.0),
             ts=str(data.get("ts") or ""),
             arbitration_winner=data.get("arbitration_winner"),
+            trace_id=str(tid) if tid else None,
         )
 
 

@@ -151,6 +151,8 @@ export type LedgerEntry = {
   validator_score: number;
   ts: string;
   arbitration_winner?: string | null;
+  /** LangSmith run/trace id；有上报时存在。 */
+  trace_id?: string | null;
 };
 
 export type LatchEventRow = {

@@ -17,6 +17,8 @@ def test_pytest_ini_excludes_track_llm_optional_from_default() -> None:
     assert "not track_llm_optional" in ini
     assert "requires_llm" in ini
     assert "not requires_llm" in ini
+    assert "langsmith_integration" in ini
+    assert "not langsmith_integration" in ini
 
 
 def test_track_llm_optional_isolation_dir_exists() -> None:

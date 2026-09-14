@@ -49,7 +49,7 @@ export function CaseLedgerPanel({ api, caseId, refreshKey = 0 }: Props) {
       <h2>本案流水</h2>
       <p className="muted">
         只读回放 evaluate / AI 辅助 / 人闸等关键动作摘要。本地 JSONL
-        span 由服务端配置开启，本区不替代审计真源。
+        span 与 LangSmith 由服务端配置开启；本区不替代 machine_check。
       </p>
       <div className="header-actions">
         <button type="button" className="secondary" onClick={() => void load()} disabled={busy}>
@@ -70,6 +70,7 @@ export function CaseLedgerPanel({ api, caseId, refreshKey = 0 }: Props) {
               <th>decision_type</th>
               <th>route_id</th>
               <th>retrieval_profile</th>
+              <th>trace_id</th>
               <th>validator_score</th>
             </tr>
           </thead>
@@ -87,6 +88,9 @@ export function CaseLedgerPanel({ api, caseId, refreshKey = 0 }: Props) {
                 </td>
                 <td>
                   <code>{row.retrieval_profile}</code>
+                </td>
+                <td>
+                  <code>{row.trace_id || "—"}</code>
                 </td>
                 <td>
                   <code>{String(row.validator_score)}</code>

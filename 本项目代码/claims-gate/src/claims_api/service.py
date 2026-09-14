@@ -7,7 +7,8 @@ Router 策略表 + ledger REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS；
 L2 出款就绪/结案回写模拟 REF-MISSIONS, REF-CASE-FC；
 Issue 14 SQLite 持久化 + 种子 RBAC 登录 REF-MISSIONS；
 Issue 19 AI 辅助建议降级/关键词/采纳再 evaluate REF-MISSIONS, REF-COURSE-03, REF-CASE-HYBRID, REF-RAG-CY；
-Issue 21 本案流水 + 本地 JSONL span（LangSmith 仅配置位）REF-MISSIONS
+Issue 21 本案流水 + 本地 JSONL span（LangSmith 仅配置位）REF-MISSIONS；
+Issue 26 真 LangSmith span + ledger trace_id REF-CASE-EVAL-ADVISOR, REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ from missions.track_llm_optional.pipeline import draft_assist
 
 from .error_codes import ErrorCode
 from .latch_matrix import is_fake_exgratia_clause_approve_citation, resolve_latch
+from .langsmith_trace import emit_langsmith_span
 from .local_trace import emit_span
 from .user_text import absorb_user_controlled_text
 from .models_domain import (
@@ -346,7 +348,29 @@ class ClaimsService:
         validator_score: float,
         arbitration_winner: str | None = None,
     ) -> LedgerEntry:
-        """写入每案 ledger（最新在前）；可选本地 JSONL span。"""
+        """写入每案 ledger（最新在前）；本地 JSONL + 可选 LangSmith span。"""
+        span_name = _span_name_for_ledger(decision_type)
+        attrs = {
+            "route_id": route_id,
+            "retrieval_profile": retrieval_profile,
+            "decision_type": decision_type,
+            "validator_score": validator_score,
+            "arbitration_winner": arbitration_winner,
+        }
+        trace_id: str | None = None
+        if span_name is not None:
+            emit_span(
+                span_name,
+                case_id=case.case_id,
+                attributes=attrs,
+            )
+            # 仅 evaluate / assist / latch 上报 LangSmith（票 26 关键路径）
+            if span_name in ("evaluate", "assist", "latch"):
+                trace_id = emit_langsmith_span(
+                    span_name,
+                    case_id=case.case_id,
+                    attributes=attrs,
+                )
         entry = LedgerEntry(
             case_id=case.case_id,
             route_id=route_id,
@@ -355,21 +379,9 @@ class ClaimsService:
             validator_score=validator_score,
             ts=datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
             arbitration_winner=arbitration_winner,
+            trace_id=trace_id,
         )
         case.ledger.insert(0, entry)
-        span_name = _span_name_for_ledger(decision_type)
-        if span_name is not None:
-            emit_span(
-                span_name,
-                case_id=case.case_id,
-                attributes={
-                    "route_id": route_id,
-                    "retrieval_profile": retrieval_profile,
-                    "decision_type": decision_type,
-                    "validator_score": validator_score,
-                    "arbitration_winner": arbitration_winner,
-                },
-            )
         return entry
 
     def _stamp_route(

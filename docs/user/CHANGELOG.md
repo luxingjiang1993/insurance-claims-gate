@@ -76,5 +76,6 @@ W0 DoD 关闭后方可将实现重心转到 W1；W1 关闭后再开 W2。用户�
 ### Added
 
 - 作业壳 AI 辅助区检索来源摘要（Issue 25）：可见 doc / 条款项 / 版本；可采纳 vs 不可采纳诚实标注；不静默改写裁决草案；无秒赔/终裁误导。`Rewrote from: REF-MISSIONS, REF-CASE-HYBRID`。
+- 真 LangSmith span + ledger `trace_id`（Issue 26）：配置 `LANGCHAIN_TRACING_V2` + Key 后 evaluate / assist / latch 上报；ledger 含 `retrieval_profile` 与 `trace_id`（有上报时）；本地 JSONL 仍可用；无 Key 不阻断；默认 `pytest -q` 不要求；S2 标记 `langsmith_integration`。`Rewrote from: REF-CASE-EVAL-ADVISOR, REF-MISSIONS`。
 
 ---

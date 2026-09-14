@@ -4,7 +4,7 @@
 - CLAIMS_GATE_LOCAL_TRACE=1|true|yes 开启
 - CLAIMS_GATE_LOCAL_TRACE_PATH 指定 JSONL 路径（开启时必填或用默认）
 
-LangSmith 仅读配置位，不在此模块上报。
+真 LangSmith 上报见 langsmith_trace.emit_langsmith_span。
 
 Rewrote from: REF-MISSIONS
 """
@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .langsmith_trace import langsmith_config_snapshot as langsmith_config_snapshot
 
 _TRUE = frozenset({"1", "true", "yes", "on"})
 
@@ -33,16 +34,6 @@ def resolve_trace_path() -> Path:
     if env:
         return Path(env)
     return Path("data") / "local_traces" / "spans.jsonl"
-
-
-def langsmith_config_snapshot() -> dict[str, Any]:
-    """LangSmith 配置位快照（不要求真 Key；仅供观察/预留）。"""
-    key = (os.environ.get("LANGCHAIN_API_KEY") or "").strip()
-    return {
-        "tracing_v2": (os.environ.get("LANGCHAIN_TRACING_V2") or "false").strip(),
-        "api_key_set": bool(key),
-        "project": (os.environ.get("LANGCHAIN_PROJECT") or "").strip(),
-    }
 
 
 def emit_span(
