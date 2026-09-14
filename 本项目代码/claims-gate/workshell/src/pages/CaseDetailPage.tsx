@@ -59,6 +59,12 @@ export function CaseDetailPage({
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (draft?.human_latch_token) {
+      setLatchToken(draft.human_latch_token);
+    }
+  }, [draft?.human_latch_token]);
+
   return (
     <section className="card">
       <header className="page-header">

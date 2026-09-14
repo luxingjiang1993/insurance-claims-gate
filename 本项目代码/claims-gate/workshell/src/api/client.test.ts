@@ -387,7 +387,7 @@ describe("createClaimsApiClient", () => {
 
   it("surfaces adjuster latch approve rejection without rewriting message", async () => {
     const detail = {
-      error_code: "ROLE_FORBIDDEN",
+      error_code: "PERMISSION_DENIED",
       message: "仅 supervisor 可执行人闸: approve_human_latch",
     };
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(403, { detail }));

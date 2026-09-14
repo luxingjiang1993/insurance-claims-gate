@@ -91,7 +91,7 @@ export function DocumentExportPanel({
       ) : null}
       {error ? (
         <div>
-          <p className="error-title">未记为成功（本次未升对外）</p>
+          <p className="error-title">未记为成功</p>
           <ApiErrorView error={error} />
         </div>
       ) : null}
