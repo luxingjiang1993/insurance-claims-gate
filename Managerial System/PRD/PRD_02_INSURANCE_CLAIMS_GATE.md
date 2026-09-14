@@ -14,7 +14,7 @@
 | 实现骨架 | **Missions 中继**（Orchestrator / Worker / Validator；同中继换垂直） |
 | 上游 | `Managerial System/Background/BACKGROUND_02_INSURANCE.md`；`Managerial System/Sources/SIM-CUST-02-INSURANCE-CLAIMS-ACCIDENT.yaml`；同目录 `…ANSWER.md` |
 | 价值目录 | 仅引用 `Managerial System/Value/PRODUCT_VALUE_CATALOG.md` 的 `VP-*` |
-| 设计不变量 | 对齐 `Managerial System/Constitution/DESIGN_PHILOSOPHY.md`（契约先行、失败关闭、人闸、薄切片） |
+| 设计不变量 | 对齐 `Managerial System/Constitution/DESIGN_PHILOSOPHY.md` **Formal v1.0**（I1–I8、A0–A5、契约先行、失败关闭、人闸、薄切片） |
 | 代码根 | `本项目代码/claims-gate/`（主改写：`REF-MISSIONS` = `历史项目代码供参考/project 多agent/`；目录见 `docs/agents/ref-projects.md`） |
 
 **相对 v1.0：** 状态升为 Ready for Spec；真源路径收拢至 Managerial System；Demo 升格为验收场景 `SC-01..03`；增补下游工件与路径约定；§14 改为试点假设清单。

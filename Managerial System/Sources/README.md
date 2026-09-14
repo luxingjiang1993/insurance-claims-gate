@@ -8,6 +8,6 @@
 | `SIM-CUST-02-INSURANCE-CLAIMS-ACCIDENT.ANSWER.md` | 填写完整版叙事 |
 | `TASK_02_INSURANCE_CUSTOMER_SIM.md` | 模拟任务说明 |
 | `BACKGROUND_02_INSURANCE.zh.md` | 保险行业背景中文存档（自 Background） |
-| `DESIGN_PHILOSOPHY.zh.md` | 设计哲学中文译本（自 Constitution；冲突以英文原版为准） |
+| `DESIGN_PHILOSOPHY.zh.md` | 设计哲学中文译本（对齐 Constitution **Formal v1.0**；冲突以英文原版为准） |
 
 需求裁决以 `Managerial System/PRD/` 为准；本目录为追溯证据，不是实现说明。

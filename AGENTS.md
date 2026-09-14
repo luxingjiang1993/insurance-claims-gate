@@ -5,13 +5,13 @@
 ## 读序（开工前）
 
 1. `CONTEXT.md` — 领域术语（禁止与 glossary 打架）
-2. `Managerial System/Constitution/DESIGN_PHILOSOPHY.md` — 不变量 I1–I8
+2. `Managerial System/Constitution/DESIGN_PHILOSOPHY.md` — **Formal v1.0**；不变量 I1–I8；自治阶梯 **A0–A5**（勿与产品 Integration L1/L2/L3 混淆）；先读该文件 §0 加载面，勿整篇 always-on；中文镜像 `Managerial System/Sources/DESIGN_PHILOSOPHY.zh.md`（冲突以英文为准）
 3. `Managerial System/PRD/PRD_02_INSURANCE_CLAIMS_GATE.md` — 需求真源（当前 Ready for Spec）
-4. 若已存在：`Managerial System/SPEC/insurance-claims-gate/spec.md` 与对应 Issues
-5. `docs/agents/issue-tracker.md` — tickets 落盘约定
+4. 若已存在：`Managerial System/SPEC/insurance-claims-gate/spec.md`（及 Phase 2a 各波 `spec-2a-w*.md`）与对应 Issues
+5. `docs/agents/issue-tracker.md` — tickets 落盘约定（按 `phase1/` / `phase2a-w0/` 等子目录）
 6. 改写前读：`docs/agents/ref-projects.md`（`REF_*` ID、本期剩余与入库上限）；主基线 **`REF-MISSIONS`** = `历史项目代码供参考/project 多agent/`（只读）
-6b. 当前阶段剩余 / 进阶段 2 前：`docs/agents/current-phase-remaining.md`（Issues 10–13；真实用户项可延后）
-7. 若已存在：对应 Issues；票内应含 `ref_id:` 字段
+6b. Phase 1 历史门禁：`docs/agents/current-phase-remaining.md`（Issues `phase1/10`–`13`；真实用户项可延后）
+7. 若已存在：对应 Issues（见 `Issues/insurance-claims-gate/README.md`）；票内应含 `ref_id:` 字段
 8. 扩面 / 第二阶段仅作草案参考：`docs/agents/ref-projects-phase2-supplement.md`（**未写入 Constitution/PRD/SPEC 前不得按草案放松 I1–I8**；且须先满足 `current-phase-remaining.md` DoD）
 9. 用户可见操作 / 阶段交付说明：`docs/user/USER_GUIDE.md`（Changelog：`docs/user/CHANGELOG.md`；更新义务：`docs/user/MAINTENANCE.md`）
 
@@ -39,7 +39,7 @@
 
 ## 流水线
 
-`PRD` → `SPEC/insurance-claims-gate/spec.md` → `Issues/insurance-claims-gate/NN-*.md` → 实现（日后 git / PR）。  
+`PRD` → `SPEC/insurance-claims-gate/`（按波选 SPEC）→ `Issues/insurance-claims-gate/<phase-or-wave>/NN-*.md` → 实现（日后 git / PR）。  
 未写 SPEC 前不要切实现票；未人闸令牌不得设计自动出款。
 
 ## 用户手册（阶段完结必同步）
