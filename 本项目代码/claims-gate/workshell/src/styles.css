@@ -9,6 +9,8 @@
   --danger: #f07178;
   --warn-bg: #3a2f14;
   --warn-text: #f0c674;
+  --ok-bg: #163226;
+  --ok-text: #9ad4b3;
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   line-height: 1.5;
 }
@@ -24,6 +26,8 @@
     --danger: #b42318;
     --warn-bg: #fff4ce;
     --warn-text: #7a5b00;
+    --ok-bg: #e6f6ec;
+    --ok-text: #1b6b3a;
   }
 }
 
@@ -189,4 +193,45 @@ button.linkish {
 code {
   font-family: ui-monospace, Consolas, monospace;
   font-size: 0.9em;
+}
+
+.action-panel {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.action-panel h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.1rem;
+}
+
+.action-row {
+  margin: 0.85rem 0;
+}
+
+.ok-banner {
+  background: var(--ok-bg);
+  color: var(--ok-text);
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.json-block {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: auto;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.data-table caption {
+  text-align: left;
+  caption-side: top;
+  color: var(--muted);
+  padding-bottom: 0.4rem;
 }

@@ -3,7 +3,14 @@
  * Rewrote from: REF-MISSIONS
  */
 
-import type { ClaimDetail, ClaimSummary, LoginResult } from "./types";
+import type {
+  ClaimDetail,
+  ClaimSummary,
+  DecisionDraft,
+  LoginResult,
+  MaterialsRegisterResult,
+  SupplementNotifyResult,
+} from "./types";
 
 export type ClaimsApiClientOptions = {
   baseUrl: string;
@@ -90,6 +97,61 @@ export function createClaimsApiClient(options: ClaimsApiClientOptions) {
       return request<ClaimDetail>(`/claims/${encodeURIComponent(caseId)}`, {
         method: "GET",
       });
+    },
+
+    async evaluateClaim(caseId: string): Promise<DecisionDraft> {
+      return request<DecisionDraft>(
+        `/claims/${encodeURIComponent(caseId)}/evaluate`,
+        {
+          method: "POST",
+          body: JSON.stringify({}),
+        },
+      );
+    },
+
+    async registerMaterials(
+      caseId: string,
+      body: { material_codes: string[]; image_ids?: string[] },
+    ): Promise<MaterialsRegisterResult> {
+      return request<MaterialsRegisterResult>(
+        `/claims/${encodeURIComponent(caseId)}/materials`,
+        {
+          method: "POST",
+          body: JSON.stringify(
+            body.image_ids === undefined
+              ? { material_codes: body.material_codes }
+              : {
+                  material_codes: body.material_codes,
+                  image_ids: body.image_ids,
+                },
+          ),
+        },
+      );
+    },
+
+    async notifySupplement(
+      caseId: string,
+      body: { one_shot_hash: string; missing_item_codes: string[] },
+    ): Promise<SupplementNotifyResult> {
+      return request<SupplementNotifyResult>(
+        `/claims/${encodeURIComponent(caseId)}/supplement/notify`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            one_shot_hash: body.one_shot_hash,
+            missing_item_codes: body.missing_item_codes,
+          }),
+        },
+      );
+    },
+
+    async getDecision(caseId: string): Promise<DecisionDraft> {
+      return request<DecisionDraft>(
+        `/claims/${encodeURIComponent(caseId)}/decision`,
+        {
+          method: "GET",
+        },
+      );
     },
   };
 }

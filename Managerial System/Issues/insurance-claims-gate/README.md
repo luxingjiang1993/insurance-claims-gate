@@ -14,7 +14,7 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 
 ## Frontier（可立即开工）
 
-**W0：** 17、19、21（17 已解阻于 16；19/21 仅依赖已 resolved 的 14）。  
+**W0：** 18（17 已 resolved）、19、21（19/21 仅依赖已 resolved 的 14）。  
 **W1：** 须 **22 resolved** 后开放；届时 frontier 为 23、26。  
 **W2：** 须 **28 resolved** 后开放；届时 frontier 为 29。  
 开工前将对应票 `Status` 改为 `claimed`。
@@ -34,7 +34,7 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 | 14 | SQLite 持久化 + 种子三角色 + 登录会话 | — | resolved |
 | 15 | 人闸 RBAC 硬门 + S0 负例机检 | 14 | resolved |
 | 16 | 作业壳：登录 + 案件只读浏览 | 14 | resolved |
-| 17 | 作业壳：材料 / evaluate / 一次补件 / 裁决草案（SC 规则路径） | 16 | ready-for-agent |
+| 17 | 作业壳：材料 / evaluate / 一次补件 / 裁决草案（SC 规则路径） | 16 | resolved |
 | 18 | 作业壳：人闸 + 文书分态诚实展示 | 15, 17 | ready-for-agent |
 | 19 | AI 辅助建议 API：降级 + 关键词提名 + 采纳再 evaluate | 14 | ready-for-agent |
 | 20 | 作业壳：AI 辅助区 + 非终裁标注 + 采纳 | 17, 19 | ready-for-agent |

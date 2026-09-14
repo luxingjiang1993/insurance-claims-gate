@@ -208,4 +208,10 @@ python -m missions.eval_entry
 - `viewer` 壳内无写操作入口
 - 启动：`cd workshell && npm install && npm run dev`（API 先起）
 
+## Issue 17 作业壳：SC 规则路径
+
+`Rewrote from: REF-MISSIONS`
+
+已落地：详情页材料登记 / evaluate / 一次补件 / 裁决草案查看；无 LLM Key 可点完；拒绝不假成功。人闸与文书分态见后续票。
+
 勿在仓库根直接执行 `uvicorn ... --app-dir src`（会找不到 `claims_api`）；请用 `python scripts/run_api.py` 或先 `cd` 进 `claims-gate`。

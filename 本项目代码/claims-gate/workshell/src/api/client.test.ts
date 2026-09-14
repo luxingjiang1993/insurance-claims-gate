@@ -1,5 +1,5 @@
 /**
- * 接缝：作业壳 API 客户端（login / list / detail + 错误原样）。
+ * 接缝：作业壳 API 客户端（login / list / detail / SC 规则路径 + 错误原样）。
  * Rewrote from: REF-MISSIONS
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -149,5 +149,169 @@ describe("createClaimsApiClient", () => {
       expect(JSON.stringify(apiErr.body)).toContain("用户名或密码错误");
       expect(apiErr.body).toEqual({ detail });
     }
+  });
+
+  it("evaluateClaim posts empty body and returns API decision fields as-is", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        case_id: "CLM-SC01-001",
+        decision_type: "supplement",
+        gate_status: "PENDING_SUPPLEMENT",
+        document_status: "DRAFT_EXPORT",
+        payout_ready: false,
+        inference_track: "deterministic",
+        one_shot_hash: "hash-sc01",
+        supplement_checklist: [
+          { code: "ID_CARD", name_zh: "投保人/被保险人身份证件", required: true },
+          { code: "CLAIM_FORM", name_zh: "理赔申请书", required: true },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-adj",
+    });
+    const draft = await client.evaluateClaim("CLM-SC01-001");
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:8000/claims/CLM-SC01-001/evaluate",
+    );
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+    expect(callHeaders(fetchMock).get("Authorization")).toBe("Bearer sess-adj");
+    expect(draft.decision_type).toBe("supplement");
+    expect(draft.gate_status).toBe("PENDING_SUPPLEMENT");
+    expect(draft.payout_ready).toBe(false);
+    expect(draft.one_shot_hash).toBe("hash-sc01");
+    expect(draft.supplement_checklist?.map((i) => i.code)).toEqual([
+      "ID_CARD",
+      "CLAIM_FORM",
+    ]);
+  });
+
+  it("registerMaterials posts codes from caller without inventing checklist", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        case_id: "CLM-SC01-001",
+        material_codes: ["ID_CARD", "CLAIM_FORM"],
+        image_ids: ["IMG-ID_CARD"],
+        gate_status: "PENDING_SUPPLEMENT",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-adj",
+    });
+    const result = await client.registerMaterials("CLM-SC01-001", {
+      material_codes: ["ID_CARD", "CLAIM_FORM"],
+      image_ids: ["IMG-ID_CARD"],
+    });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:8000/claims/CLM-SC01-001/materials",
+    );
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: "POST",
+      body: JSON.stringify({
+        material_codes: ["ID_CARD", "CLAIM_FORM"],
+        image_ids: ["IMG-ID_CARD"],
+      }),
+    });
+    expect(result.material_codes).toEqual(["ID_CARD", "CLAIM_FORM"]);
+  });
+
+  it("notifySupplement posts frozen hash and full missing_item_codes from caller", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        case_id: "CLM-SC01-001",
+        document_type: "supplement_notice",
+        document_status: "DRAFT_EXPORT",
+        one_shot_hash: "hash-sc01",
+        legal_basis: "保险法第二十二条",
+        missing_items: [{ code: "ID_CARD", name_zh: "身份证件", required: true }],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-adj",
+    });
+    const notify = await client.notifySupplement("CLM-SC01-001", {
+      one_shot_hash: "hash-sc01",
+      missing_item_codes: ["ID_CARD", "CLAIM_FORM"],
+    });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:8000/claims/CLM-SC01-001/supplement/notify",
+    );
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: "POST",
+      body: JSON.stringify({
+        one_shot_hash: "hash-sc01",
+        missing_item_codes: ["ID_CARD", "CLAIM_FORM"],
+      }),
+    });
+    expect(notify.one_shot_hash).toBe("hash-sc01");
+    expect(notify.legal_basis).toContain("第二十二条");
+  });
+
+  it("getDecision returns latest draft fields", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        case_id: "CLM-SC02-001",
+        decision_type: "reject_draft",
+        gate_status: "HUMAN_LATCH",
+        document_status: "DRAFT_EXPORT",
+        payout_ready: false,
+        inference_track: "deterministic",
+        appeal_path: "申诉/人工复核",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-adj",
+    });
+    const draft = await client.getDecision("CLM-SC02-001");
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:8000/claims/CLM-SC02-001/decision",
+    );
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: "GET" });
+    expect(draft.decision_type).toBe("reject_draft");
+    expect(draft.payout_ready).toBe(false);
+  });
+
+  it("surfaces evaluate API rejection without rewriting message", async () => {
+    const detail = {
+      error_code: "VALIDATION_FAILED",
+      message: "同 one_shot_hash 禁止拆轮补件：通知清单须与一次完整缺项一致",
+    };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(422, { detail }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-adj",
+    });
+
+    await expect(
+      client.notifySupplement("CLM-SC01-001", {
+        one_shot_hash: "hash-sc01",
+        missing_item_codes: ["ID_CARD"],
+      }),
+    ).rejects.toMatchObject({
+      name: "ApiClientError",
+      status: 422,
+      body: { detail },
+    });
   });
 });

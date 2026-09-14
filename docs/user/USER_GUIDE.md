@@ -2,7 +2,7 @@
 
 > **Pilot · Phase 1 shipped (Issues 01–13)**  
 > Last updated: 2026-09-14 · Product code: `本项目代码/claims-gate/`  
-> Status badge: **Developer Preview** — 作业壳已可登录只读浏览；生产 UI / 真连核心 L2 仍延后。
+> Status badge: **Developer Preview** — 作业壳已可登录，adjuster 可走 SC 规则路径；人闸/文书/AI 区与生产 UI / 真连核心 L2 仍延后。
 
 条款门禁是个人意外险（含附加意外医疗）理赔的裁决辅助产品：输出结构化草案、条款项级引用、一次补件清单与人闸令牌门；**不替代**持牌核赔终裁，**不触发**银企支付。
 
@@ -13,7 +13,7 @@
 | 你是谁 | 你要做什么 | 跳到 |
 |--------|------------|------|
 | 个人开发 / 验收 | 5 分钟跑通 SC-01/02/03 | [§3 Quickstart](#3-quickstart) |
-| 演示 / 核赔浏览 | 浏览器登录作业壳只读看案 | [§3.1 作业壳](#31-作业壳登录与只读浏览-preview) |
+| 演示 / 核赔浏览 | 浏览器登录作业壳看案 | [§3.1 作业壳](#31-作业壳登录与sc规则路径-preview) |
 | 核赔初审 | 材料受理 → 一次补件 / 进入初审 | [§5.1](#51-材料受理与一次补件-sc-01) |
 | 核赔员 | 除外拒赔草案 / 效力栈减赔 | [§5.2](#52-除外拒赔与文书分态-sc-02) · [§5.3](#53-批单效力栈减赔-sc-03) |
 | 主管 | 人闸批准 / 驳回；出款就绪 | [§5.4](#54-人闸与出款就绪) |
@@ -22,7 +22,7 @@
 
 **诚实边界（读完再操作）：**
 
-- 本期交付面以 **HTTP API + Demo 脚本** 为主；作业壳（套餐 C）当前仅 **登录 + 案件只读浏览**（后续票再补作业动作）。
+- 本期交付面以 **HTTP API + Demo 脚本** 为主；作业壳（套餐 C）当前为 **登录 + 案件浏览 + SC 规则路径**（材料 / evaluate / 一次补件 / 裁决草案）。人闸、文书分态、AI 辅助区属后续票。
 - 裁决结果是 **草案**，不具对外最终效力。
 - `PAYOUT_READY` ≠ 已打款；支付仍走核心人工流程。
 - 禁止用「秒赔」叙事包装责任争议案。
@@ -65,8 +65,9 @@
 | L2 出款就绪 / 结案模拟 | Shipped | 无真连现网 |
 | 轨 B 最小 RAG 起草 | Preview | 不挡轨 A |
 | Eval 负例旁路 / 合成抽检表 | Preview | 不冒充金标 |
-| 作业壳登录 + 案件只读浏览 | Preview | Issue 16；写操作后续票 |
-| 核赔作业 UI 全作业流 | Deferred | evaluate / 人闸 / AI 等后续票 |
+| 作业壳登录 + 案件只读浏览 | Preview | Issue 16 |
+| 作业壳 SC 规则路径（材料 / evaluate / 一次补件 / 草案） | Preview | Issue 17；无 LLM Key 可点完；语义同 `machine_check` |
+| 核赔作业 UI 全作业流 | Deferred | 人闸 / 文书 / AI 等后续票 |
 | 真连核心 L2 / 真 OCR | Deferred | 有干系人后 |
 | ≥300 人工金标运营 | Deferred | 机检入口已占位 |
 
@@ -118,11 +119,11 @@ curl http://127.0.0.1:8000/health
 pytest -q
 ```
 
-### 3.1 作业壳：登录与只读浏览（Preview）
+### 3.1 作业壳：登录与 SC 规则路径（Preview）
 
-`Rewrote from: REF-MISSIONS` · Issue 16
+`Rewrote from: REF-MISSIONS` · Issue 16 / 17
 
-1. 先启动 API（见上）。
+1. 先启动 API（见上）。无需配置 LLM Key。
 2. 另开终端：
 
 ```bash
@@ -132,10 +133,12 @@ npm run dev
 ```
 
 3. 浏览器打开 `http://127.0.0.1:5173/`，用演示账号登录（用户名=密码）：`viewer` / `adjuster` / `supervisor`。
-4. 登录后可浏览持久化案件列表与详情字段：`gate_status`、`document_status`、`inference_track`、`payout_ready`。
-5. `viewer` 在壳内**不展示写操作入口**；API 拒绝体原样展示（无 BFF）。
+4. 登录后可浏览案件列表与详情字段：`gate_status`、`document_status`、`inference_track`、`payout_ready`。
+5. `adjuster` / `supervisor` 可在详情页登记材料、触发 evaluate、发起一次补件，并查看裁决草案。清单与 `decision_type` 等字段来自 API，壳不另立规则。
+6. `viewer` 在壳内**不展示写操作入口**，仍可查看已有草案。
+7. API 拒绝体原样展示，界面不把失败标成成功（无 BFF）。
 
-可选：`VITE_CLAIMS_API_BASE`（默认 `http://127.0.0.1:8000`）。作业动作（evaluate / 人闸 / 文书 / AI）属后续票，本 Preview 不宣称已上线。
+可选：`VITE_CLAIMS_API_BASE`（默认 `http://127.0.0.1:8000`）。人闸、对外文书分态、AI 辅助区属后续票，本 Preview 不宣称已上线。
 
 ---
 
@@ -169,11 +172,15 @@ npm run dev
 
 ## 5. How-to（作业流）
 
-对齐 PRD 七步作业流。当前用 HTTP 完成；未来作业 UI 映射同一状态机。
+对齐 PRD 七步作业流。HTTP 与作业壳规则路径映射同一状态机；人闸 / 文书导出仍以 HTTP 为主（作业壳后续票）。
 
 ### 5.1 材料受理与一次补件（SC-01）
 
 **目标：** 缺件时一次说清；补齐后产出通赔建议草案（默认 `payout_ready=false`）。
+
+**作业壳（Preview）：** 以 `adjuster` 打开 `CLM-SC01-001` → 触发 evaluate → 用草案清单发起一次补件 → 按清单登记材料 → 再次 evaluate，查看 `approve_recommend` 且 `payout_ready=false`。同 hash 拆轮会在壳内原样展示 API 拒绝。
+
+**HTTP：**
 
 1. 读取案件头  
    `GET /claims/CLM-SC01-001`

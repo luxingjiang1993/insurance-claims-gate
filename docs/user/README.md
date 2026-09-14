@@ -4,7 +4,7 @@
 |------|------|
 | 产品 | **条款门禁**（Claims Gate） |
 | 受众 | 核赔作业 · 理赔主管 · 个人验收 / Demo · IT 联调 |
-| 成熟度 | **Pilot**（HTTP API + Solo Demo；作业 UI 尚未交付） |
+| 成熟度 | **Pilot**（HTTP API + Solo Demo；作业壳 Preview：登录 + SC 规则路径） |
 | 手册真源 | [`USER_GUIDE.md`](./USER_GUIDE.md) |
 | 变更日志 | [`CHANGELOG.md`](./CHANGELOG.md) |
 | 维护约定 | [`MAINTENANCE.md`](./MAINTENANCE.md) |
