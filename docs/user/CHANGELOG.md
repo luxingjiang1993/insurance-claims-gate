@@ -73,4 +73,8 @@ W0 DoD 关闭后方可将实现重心转到 W1；W1 关闭后再开 W2。用户�
 
 ## Unreleased
 
-（空 — W0 用户可见条目已折叠进上一节。后续 W1/W2 用户可见变更先记于此，再在对应波 DoD 关闭时折叠。）
+### Added
+
+- 作业壳 AI 辅助区检索来源摘要（Issue 25）：可见 doc / 条款项 / 版本；可采纳 vs 不可采纳诚实标注；不静默改写裁决草案；无秒赔/终裁误导。`Rewrote from: REF-MISSIONS, REF-CASE-HYBRID`。
+
+---

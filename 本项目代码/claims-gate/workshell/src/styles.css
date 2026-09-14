@@ -254,6 +254,53 @@ code {
   margin-top: 1rem;
 }
 
+.retrieval-source-summary {
+  margin: 1rem 0;
+}
+
+.retrieval-source-summary h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.retrieval-source-table {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.retrieval-source-table th,
+.retrieval-source-table td {
+  vertical-align: top;
+}
+
+.source-title {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+}
+
+.source-quote {
+  font-size: 0.85rem;
+  max-width: 18rem;
+}
+
+.tag-source-adoptable {
+  color: var(--ok-text);
+  background: var(--ok-bg);
+  border-color: transparent;
+}
+
+.tag-source-rejected {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
+  border-color: transparent;
+}
+
+.tag-source-unknown {
+  color: var(--warn-text);
+  background: var(--warn-bg);
+  border-color: transparent;
+}
+
 .warn-banner {
   background: var(--warn-bg);
   color: var(--warn-text);

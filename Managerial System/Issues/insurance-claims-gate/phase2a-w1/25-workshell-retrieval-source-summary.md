@@ -2,7 +2,7 @@
 
 **github_issue:** #12
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** 20, 24
 
@@ -29,13 +29,24 @@
 
 ## Acceptance criteria
 
-- [ ] AI 辅助区可见检索来源摘要（至少 doc 与条款项级信息，以 API 为准）
-- [ ] 可采纳 vs 不可采纳引用在 UI 上可区分或诚实标注
-- [ ] 不静默改写裁决草案；采纳仍走既有规则路径
-- [ ] 无秒赔/终裁误导文案
-- [ ] handoff 含 `Rewrote from: REF-MISSIONS`
+- [x] AI 辅助区可见检索来源摘要（至少 doc 与条款项级信息，以 API 为准）
+- [x] 可采纳 vs 不可采纳引用在 UI 上可区分或诚实标注
+- [x] 不静默改写裁决草案；采纳仍走既有规则路径
+- [x] 无秒赔/终裁误导文案
+- [x] handoff 含 `Rewrote from: REF-MISSIONS`
+
+## Answer / Handoff
+
+**Rewrote from:** REF-MISSIONS, REF-CASE-HYBRID
+
+**Delivered:**
+- `workshell/src/components/retrievalSourceSummary.ts` — 纯函数归一化 assist citations（doc / 条款项 / 版本 + adoptable 标注）
+- `workshell/src/components/RetrievalSourcesPanel.tsx` — AI 辅助区来源摘要表；可采纳 / 不可采纳 / 未知诚实标注
+- `AiAssistPanel` 挂载摘要面板；采纳路径未改（仍 `assist/adopt`→evaluate）
+- 接缝测：`retrievalSourceSummary.test.ts`；用户手册 / Changelog Unreleased 已同步
 
 ## Comments
 
 - 2026-09-14：to-tickets 批准 defaults；落盘于 `phase2a-w1/`。
 - 2026-09-14：同步 GitHub Issue #12。
+- 2026-09-15：agent 实现完成；Windows 下组件文件命名避免与纯模块大小写冲突。

@@ -103,6 +103,18 @@ export type DocumentExportResult = {
   [key: string]: unknown;
 };
 
+/** assist 返回的检索提名（字段以 API 为准；adoptable 由服务端三联门标记）。 */
+export type AssistCitation = {
+  doc_id?: string;
+  clause_item?: string;
+  doc_version?: string;
+  title?: string;
+  quote?: string;
+  adoptable?: boolean;
+  reject_reason?: string;
+  [key: string]: unknown;
+};
+
 /** AI 辅助建议：POST /assist 响应；非裁决草案权威字段。 */
 export type AssistSuggestion = {
   case_id?: string;
@@ -115,7 +127,7 @@ export type AssistSuggestion = {
   degraded: boolean;
   degrade_reason?: string | null;
   suggested_stance?: string;
-  citations?: unknown[];
+  citations?: AssistCitation[];
   retrieval?: Record<string, unknown>;
   notes?: string[];
   payout_ready?: boolean;

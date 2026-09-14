@@ -4,6 +4,7 @@ import { ApiClientError, type ClaimsApiClient } from "../api/client";
 import type { AssistSuggestion, DecisionDraft } from "../api/types";
 import { isReadonlyRole } from "../auth/session";
 import { ApiErrorView } from "./ApiErrorView";
+import { RetrievalSourcesPanel } from "./RetrievalSourcesPanel";
 
 type Props = {
   api: ClaimsApiClient;
@@ -165,11 +166,10 @@ export function AiAssistPanel({
             </dd>
           </dl>
           <pre className="json-block">{suggestion.draft_text}</pre>
-          {suggestion.citations && suggestion.citations.length > 0 ? (
-            <pre className="json-block">
-              {JSON.stringify(suggestion.citations, null, 2)}
-            </pre>
-          ) : null}
+          <RetrievalSourcesPanel
+            citations={suggestion.citations}
+            retrievalProfile={suggestion.retrieval_profile}
+          />
           <div className="action-row">
             <button
               type="button"
