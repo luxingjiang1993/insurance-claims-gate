@@ -2,7 +2,7 @@
 
 **github_issue:** #11
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Blocked by:** 22, 23
 
@@ -30,15 +30,29 @@
 
 ## Acceptance criteria
 
-- [ ] 混合检索仅挂 assist；规则 evaluate 不调用向量
-- [ ] `keyword_weight` / `vector_weight` 可配置，默认 0.7/0.3；写入 `.env.example`
-- [ ] 含明确条款号/clause_item 的查询走关键词短路（优先于加权融合）
-- [ ] 提名过 citation 三联门方可标为可采纳引用；否则标记不可采纳或拒绝
-- [ ] 向量故障/关闭时自动关键词降级可测（S2；可用假 embedding）
-- [ ] 默认 `pytest -q` 不要求 Chroma/LLM/LangSmith
-- [ ] handoff 含 `Rewrote from:` 所用 REF
+- [x] 混合检索仅挂 assist；规则 evaluate 不调用向量
+- [x] `keyword_weight` / `vector_weight` 可配置，默认 0.7/0.3；写入 `.env.example`
+- [x] 含明确条款号/clause_item 的查询走关键词短路（优先于加权融合）
+- [x] 提名过 citation 三联门方可标为可采纳引用；否则标记不可采纳或拒绝
+- [x] 向量故障/关闭时自动关键词降级可测（S2；可用假 embedding）
+- [x] 默认 `pytest -q` 不要求 Chroma/LLM/LangSmith
+- [x] handoff 含 `Rewrote from:` 所用 REF
+
+## Handoff
+
+**Status:** done
+
+**Rewrote from:** REF-CASE-RECALL, REF-RAG-CY, REF-CASE-HYBRID, REF-MISSIONS
+
+**Delivered:**
+- `missions/track_llm_optional/hybrid_retrieval.py` — 硬过滤 / 条款号短路 / 0.7·0.3 加权 / 三联门 `adoptable` / 向量降级
+- `missions/track_llm_optional/chroma_search.py` — Chroma 向量腿适配
+- `retrieve_chunks` / `draft_assist` 挂载混合检索；evaluate 路径零 chroma/hybrid 依赖（AST 门禁）
+- `.env.example`：`KEYWORD_WEIGHT` / `VECTOR_WEIGHT` / `CLAIMS_GATE_VECTOR_ENABLED`
+- 默认测：`tests/test_hybrid_retrieval.py`；S2 融合：`tests/track_llm_optional/test_hybrid_retrieval_fusion.py`
 
 ## Comments
 
 - 2026-09-14：to-tickets 批准 defaults；落盘于 `phase2a-w1/`。
 - 2026-09-14：同步 GitHub Issue #11。
+- 2026-09-14：agent 实现完成；接缝 defaults 已确认。

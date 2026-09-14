@@ -2,9 +2,10 @@
 
 允许确定性假检索（enable_llm=False，默认）；若调用 LLM 须显式打开且 CI 不依赖。
 规则 vs RAG 冲突仍 fail-closed 进人闸；handbook_ops 不得单独支撑对外拒赔。
+混合检索仅挂本路径；evaluate 不得调用向量。
 
 完整方差预算 / 金标门槛数值化仍属 P2-4；本模块只做最小可跑。
-Rewrote from: REF-RAG-CY, REF-MISSIONS, REF-CASE-HYBRID, REF-COURSE-03
+Rewrote from: REF-CASE-RECALL, REF-RAG-CY, REF-CASE-HYBRID, REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -175,12 +176,15 @@ def draft_assist(
 ) -> DraftAssistResult:
     """检索 → 辅助起草。默认 enable_llm=False（关键词确定性提名）。"""
     track_cfg = cfg or TrackBConfig()
-    citations = retrieve_chunks(
+    # 混合检索仅挂 assist；返回值含 adoptable / reject_reason
+    retrieved = retrieve_chunks(
         query,
         kb_root=kb_root,
         retrieval_profile=retrieval_profile,
         top_k=top_k,
+        return_portrait=True,
     )
+    citations, retrieval_portrait = retrieved
     stance = _infer_stance(citations, query)
     llm_text, used_llm, degrade_reason = _maybe_llm_draft(
         query, citations, enable_llm=enable_llm
@@ -220,14 +224,10 @@ def draft_assist(
 
     if degraded and degrade_reason:
         notes.append(f"LLM 降级: {degrade_reason}")
-
-    retrieval_portrait = {
-        "mode": "keyword",
-        "top_k": top_k,
-        "vector_enabled": False,
-        "embedding_model": None,
-        "chroma_collection": None,
-    }
+    if retrieval_portrait.get("vector_degraded"):
+        notes.append(
+            f"向量检索降级: {retrieval_portrait.get('degrade_reason') or 'keyword_only'}"
+        )
 
     return DraftAssistResult(
         inference_track=track_cfg.inference_track,

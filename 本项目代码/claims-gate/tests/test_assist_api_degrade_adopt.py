@@ -68,10 +68,22 @@ def test_assist_without_key_degrades_with_keyword_citations() -> None:
     assert body["draft_text"].strip()
     assert len(body["citations"]) >= 1
     assert body["citations"][0].get("doc_id")
-    # W0 关键词画像；为 W1 预留向量位
+    # W1：有 Chroma 时可 hybrid；无向量时 keyword / keyword_degraded
     retrieval = body["retrieval"]
-    assert retrieval["mode"] == "keyword"
-    assert retrieval["vector_enabled"] is False
+    assert retrieval["mode"] in (
+        "keyword",
+        "keyword_degraded",
+        "hybrid",
+        "keyword_short_circuit",
+    )
+    assert "vector_enabled" in retrieval
+    assert "keyword_weight" in retrieval or retrieval["mode"] != "hybrid"
+    # 提名须带可采纳标记（三联门）；每条要么 adoptable 要么有 reject_reason
+    assert "adoptable" in body["citations"][0]
+    for c in body["citations"]:
+        assert "adoptable" in c
+        if not c["adoptable"]:
+            assert c.get("reject_reason")
     assert "retrieval_profile" in body
     # assist 不得签发人闸令牌、不得写出款就绪
     assert body.get("payout_ready") is False
