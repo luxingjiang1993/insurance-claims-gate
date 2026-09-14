@@ -5,7 +5,8 @@ SC-02 拒赔分态 REF-MISSIONS；效力栈减赔 / calc_steps REF-CASE-KB, REF-
 金额档/通融/预赔/调查冻决/峰值降级 REF-MISSIONS（limits 表驱动换域，阈值取 PRD §7）；
 Router 策略表 + ledger REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS；
 L2 出款就绪/结案回写模拟 REF-MISSIONS, REF-CASE-FC；
-Issue 14 SQLite 持久化 + 种子 RBAC 登录 REF-MISSIONS
+Issue 14 SQLite 持久化 + 种子 RBAC 登录 REF-MISSIONS；
+Issue 19 AI 辅助建议降级/关键词/采纳再 evaluate REF-MISSIONS, REF-COURSE-03, REF-CASE-HYBRID, REF-RAG-CY
 """
 
 from __future__ import annotations
@@ -24,6 +25,7 @@ from missions.router import (
     assert_reject_not_handbook_alone,
     route as route_case,
 )
+from missions.track_llm_optional.pipeline import draft_assist
 
 from .error_codes import ErrorCode
 from .latch_matrix import is_fake_exgratia_clause_approve_citation, resolve_latch
@@ -1464,4 +1466,96 @@ class ClaimsService:
             body["human_approver"] = case.human_approver
             body["human_latch_token"] = case.human_latch_token
         return body
+
+    def assist(
+        self,
+        case_id: str,
+        *,
+        query: str,
+        retrieval_profile: str | None = None,
+        top_k: int = 3,
+        enable_llm: bool = True,
+    ) -> dict[str, Any]:
+        """AI 辅助建议：关键词提名 + 可选 LLM；永不写 payout_ready / 人闸令牌。
+
+        enable_llm=True 表示作业员显式请求辅助；无 Key 时 pipeline 明确降级。
+        """
+        case = self.get_claim(case_id)
+        profile = retrieval_profile or "clause_v_current"
+        # 查询仅用于关键词提名；不得解析改 latch / payout_ready
+        result = draft_assist(
+            query,
+            retrieval_profile=profile,
+            enable_llm=enable_llm,
+            top_k=top_k,
+        )
+        # 审计：assist 调用入 ledger；不改权威裁决草案
+        self._append_ledger(
+            case,
+            route_id="ASSIST-LLM-OPTIONAL",
+            retrieval_profile=result.retrieval_profile,
+            decision_type="assist_suggestion",
+            validator_score=0.0,
+        )
+        self._persist(case)
+        body = result.to_dict()
+        body["case_id"] = case_id
+        # 再次硬钉：assist 路径不得签发人闸或出款就绪
+        body["payout_ready"] = False
+        body["human_latch_token"] = None
+        return body
+
+    def adopt_assist(
+        self,
+        case_id: str,
+        *,
+        draft_text: str | None = None,
+        suggested_stance: str | None = None,
+        retrieval_profile: str | None = None,
+        assist_invocation_id: str | None = None,
+        proposed_deductible: int | None = None,
+        proposed_ratio: float | None = None,
+        sensitivity_flags: list[str] | None = None,
+        source_decisions: Mapping[str, str] | None = None,
+        ocr_text: str | None = None,
+        customer_remark: str | None = None,
+        force_reject_with_handbook_only: bool = False,
+    ) -> DecisionDraft:
+        """采纳辅助建议：必须再过规则 evaluate，不得直写权威裁决字段。
+
+        suggested_stance / draft_text 仅作可观察输入（经 absorb），
+        不得绕过门禁改 decision_type / payout_ready / 人闸令牌。
+        """
+        case = self.get_claim(case_id)
+        # 采纳重写草案前作废既有人闸令牌，防止旧令牌解锁 L2
+        case.human_latch_token = None
+        case.human_approver = None
+        if case.latest_decision is not None:
+            case.latest_decision.human_latch_token = None
+            case.latest_decision.payout_ready = False
+
+        # suggested_stance / assist_invocation_id 刻意不写入 DecisionDraft 权威字段
+        _ = suggested_stance
+        remark = customer_remark
+        if draft_text:
+            remark = f"{remark}\n{draft_text}".strip() if remark else draft_text
+        if assist_invocation_id:
+            tag = f"[assist_invocation_id={assist_invocation_id}]"
+            remark = f"{tag}\n{remark}" if remark else tag
+
+        decision = self.evaluate(
+            case_id,
+            proposed_deductible=proposed_deductible,
+            proposed_ratio=proposed_ratio,
+            sensitivity_flags=sensitivity_flags,
+            source_decisions=source_decisions,
+            retrieval_profile=retrieval_profile,
+            force_reject_with_handbook_only=force_reject_with_handbook_only,
+            ocr_text=ocr_text,
+            customer_remark=remark,
+        )
+        # evaluate 已保证 payout_ready=False（非 L2 路径）；采纳不得签发人闸
+        decision.payout_ready = False
+        decision.human_latch_token = None
+        return decision
 

@@ -7,7 +7,8 @@ Issue 08 L2 出款就绪/结案回写 REF-MISSIONS, REF-CASE-FC；
 Issue 09 OCR/备注威胁负例 REF-CASE-HYBRID, REF-MISSIONS；
 Issue 14 SQLite + 种子登录会话 REF-MISSIONS；
 Issue 15 人闸 RBAC 硬门 + S0 负例 REF-MISSIONS；
-Issue 16 作业壳列表/详情可读字段 + CORS REF-MISSIONS
+Issue 16 作业壳列表/详情可读字段 + CORS REF-MISSIONS；
+Issue 19 AI 辅助建议降级/关键词/采纳再 evaluate REF-MISSIONS, REF-COURSE-03, REF-CASE-HYBRID, REF-RAG-CY
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from missions.rag import KnowledgeBase
+from missions.track_llm_optional.llm_client import LlmCallError
 
 from .auth import AuthError, AuthService
 from .error_codes import ErrorCode
@@ -136,6 +138,30 @@ class EvaluateIn(BaseModel):
     retrieval_profile: str | None = None
     force_reject_with_handbook_only: bool = False
     # Issue 09：用户可控文本；收纳可观察，不得翻转人闸 / payout_ready
+    ocr_text: str | None = None
+    customer_remark: str | None = None
+
+
+class AssistIn(BaseModel):
+    """AI 辅助建议请求；显式触发，无 Key 时明确降级。"""
+
+    query: str = Field(min_length=1)
+    retrieval_profile: str | None = None
+    top_k: int = Field(default=3, ge=1, le=10)
+
+
+class AssistAdoptIn(BaseModel):
+    """采纳辅助建议：必须再过规则 evaluate，不得直写权威裁决。"""
+
+    assist_invocation_id: str | None = None
+    draft_text: str | None = None
+    suggested_stance: str | None = None
+    retrieval_profile: str | None = None
+    proposed_deductible: int | None = None
+    proposed_ratio: float | None = None
+    sensitivity_flags: list[str] = Field(default_factory=list)
+    source_decisions: dict[str, str] = Field(default_factory=dict)
+    force_reject_with_handbook_only: bool = False
     ocr_text: str | None = None
     customer_remark: str | None = None
 
@@ -423,6 +449,86 @@ def evaluate_claim(
             force_reject_with_handbook_only=payload.force_reject_with_handbook_only,
             ocr_text=payload.ocr_text,
             customer_remark=payload.customer_remark,
+        )
+    except ClaimNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": ErrorCode.VALIDATION_FAILED.value,
+                "message": f"案件不存在: {exc.case_id}",
+            },
+        ) from exc
+    except ClaimsDomainError as exc:
+        raise _http_domain_error(exc) from exc
+    out = decision.to_dict()
+    out["case_id"] = case_id
+    return out
+
+
+@app.post("/claims/{case_id}/assist")
+def assist_claim(
+    case_id: str,
+    body: AssistIn,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """AI 辅助建议：有 Key 可真调用；无 Key 明确降级；不写 payout_ready / 人闸令牌。"""
+    _authorize("assist_claim", authorization)
+    try:
+        return _service.assist(
+            case_id,
+            query=body.query,
+            retrieval_profile=body.retrieval_profile,
+            top_k=body.top_k,
+            enable_llm=True,
+        )
+    except ClaimNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": ErrorCode.VALIDATION_FAILED.value,
+                "message": f"案件不存在: {exc.case_id}",
+            },
+        ) from exc
+    except LlmCallError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "error_code": ErrorCode.VALIDATION_FAILED.value,
+                "message": str(exc),
+            },
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error_code": ErrorCode.VALIDATION_FAILED.value,
+                "message": str(exc),
+            },
+        ) from exc
+
+
+@app.post("/claims/{case_id}/assist/adopt")
+def adopt_assist(
+    case_id: str,
+    body: AssistAdoptIn,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """采纳辅助建议：唯一权威更新路径是再跑规则 evaluate。"""
+    _authorize("adopt_assist", authorization)
+    try:
+        decision = _service.adopt_assist(
+            case_id,
+            draft_text=body.draft_text,
+            suggested_stance=body.suggested_stance,
+            retrieval_profile=body.retrieval_profile,
+            assist_invocation_id=body.assist_invocation_id,
+            proposed_deductible=body.proposed_deductible,
+            proposed_ratio=body.proposed_ratio,
+            sensitivity_flags=body.sensitivity_flags or None,
+            source_decisions=body.source_decisions or None,
+            ocr_text=body.ocr_text,
+            customer_remark=body.customer_remark,
+            force_reject_with_handbook_only=body.force_reject_with_handbook_only,
         )
     except ClaimNotFoundError as exc:
         raise HTTPException(

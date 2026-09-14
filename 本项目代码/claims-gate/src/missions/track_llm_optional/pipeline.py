@@ -4,11 +4,12 @@
 规则 vs RAG 冲突仍 fail-closed 进人闸；handbook_ops 不得单独支撑对外拒赔。
 
 完整方差预算 / 金标门槛数值化仍属 P2-4；本模块只做最小可跑。
-Rewrote from: REF-RAG-CY, REF-MISSIONS, REF-CASE-HYBRID
+Rewrote from: REF-RAG-CY, REF-MISSIONS, REF-CASE-HYBRID, REF-COURSE-03
 """
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
@@ -16,6 +17,7 @@ from typing import Any, Literal
 from missions.retrieval_profiles import RETRIEVAL_PROFILES
 
 from .config import TrackBConfig
+from .llm_client import LlmConfigError, chat_completion, resolve_api_key
 from .retrieval import retrieve_chunks
 
 # 辅助起草立场：仅启发式，不得替代轨 A 裁决
@@ -24,6 +26,12 @@ DraftStance = Literal["pay", "deny", "reduce", "unclear"]
 _DENY_HINTS = ("责任免除", "除外", "不承担", "不予给付", "拒赔", "剔除")
 _PAY_HINTS = ("保险责任", "给付保险金", "承担给付")
 _REDUCE_HINTS = ("免赔", "赔付比例", "减赔", "缩小责任")
+
+_LLM_SYSTEM = (
+    "你是理赔条款辅助起草助手。仅根据给定摘录给出简短中文辅助建议；"
+    "不得签发人闸令牌、不得宣布出款就绪、不得改写 latch 规则。"
+    "输出须标明「仅供人审辅助，非终裁」。"
+)
 
 
 @dataclass
@@ -42,6 +50,11 @@ class DraftAssistResult:
     can_external_deny: bool = True
     enable_llm: bool = False
     notes: list[str] = field(default_factory=list)
+    assist_invocation_id: str = ""
+    degraded: bool = False
+    degrade_reason: str | None = None
+    # W0 关键词画像；W1 可填 vector_* 而不改契约
+    retrieval: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -57,6 +70,13 @@ class DraftAssistResult:
             "can_external_deny": self.can_external_deny,
             "enable_llm": self.enable_llm,
             "notes": list(self.notes),
+            "assist_invocation_id": self.assist_invocation_id,
+            "degraded": self.degraded,
+            "degrade_reason": self.degrade_reason,
+            "retrieval": dict(self.retrieval),
+            # 硬保证：assist 产物永不写出款就绪 / 人闸令牌
+            "payout_ready": False,
+            "human_latch_token": None,
         }
 
 
@@ -83,7 +103,7 @@ def _build_deterministic_draft(
 ) -> str:
     """无 LLM 时的确定性辅助草稿（模板拼接引用）。"""
     lines = [
-        f"[轨 B 辅助起草 · inference_track=llm_optional · 假检索]",
+        f"[轨 B 辅助起草 · inference_track=llm_optional · 关键词提名]",
         f"查询: {query}",
         f"建议立场(启发式): {stance}",
         "引用摘录:",
@@ -102,20 +122,44 @@ def _build_deterministic_draft(
     return "\n".join(lines)
 
 
+def _build_llm_user_prompt(query: str, citations: list[dict[str, Any]]) -> str:
+    """组装供模型阅读的用户提示（含关键词提名摘录）。"""
+    lines = [f"核赔员查询: {query}", "关键词检索提名摘录:"]
+    if not citations:
+        lines.append("- （无命中）")
+    for i, c in enumerate(citations, start=1):
+        doc_id = c.get("doc_id") or "?"
+        item = c.get("clause_item") or c.get("clause_id") or "?"
+        quote = (c.get("quote") or "").replace("\n", " ").strip()[:240]
+        lines.append(f"- [{i}] {doc_id} / {item}: {quote}")
+    lines.append("请输出简短中文辅助建议（非终裁）。")
+    return "\n".join(lines)
+
+
 def _maybe_llm_draft(
     query: str,
     citations: list[dict[str, Any]],
     *,
     enable_llm: bool,
-) -> tuple[str | None, bool]:
-    """LLM 起草旁路：默认关闭；无 key / 未启用时返回 (None, False)。
+) -> tuple[str | None, bool, str | None]:
+    """LLM 起草旁路。
 
-    本期不接入真实供应商；显式 enable_llm=True 且无实现时仍回落确定性草稿。
+    返回 (文本, used_llm, degrade_reason)。
+    - enable_llm=False 或无 Key：不调用，degrade_reason 说明原因。
+    - 有 Key 且启用：真实 OpenAI-compatible 调用；失败抛 LlmCallError（不静默回落）。
     """
     if not enable_llm:
-        return None, False
-    # 故意不读环境密钥做真实调用，避免 CI/本地隐式依赖
-    return None, False
+        return None, False, "llm_disabled"
+    if not resolve_api_key():
+        return None, False, "missing_openai_api_key"
+    try:
+        text = chat_completion(
+            system=_LLM_SYSTEM,
+            user=_build_llm_user_prompt(query, citations),
+        )
+    except LlmConfigError:
+        return None, False, "missing_openai_api_key"
+    return text, True, None
 
 
 def draft_assist(
@@ -129,7 +173,7 @@ def draft_assist(
     top_k: int = 3,
     cfg: TrackBConfig | None = None,
 ) -> DraftAssistResult:
-    """检索 → 辅助起草。默认 enable_llm=False（确定性假检索）。"""
+    """检索 → 辅助起草。默认 enable_llm=False（关键词确定性提名）。"""
     track_cfg = cfg or TrackBConfig()
     citations = retrieve_chunks(
         query,
@@ -138,8 +182,14 @@ def draft_assist(
         top_k=top_k,
     )
     stance = _infer_stance(citations, query)
-    llm_text, used_llm = _maybe_llm_draft(query, citations, enable_llm=enable_llm)
+    llm_text, used_llm, degrade_reason = _maybe_llm_draft(
+        query, citations, enable_llm=enable_llm
+    )
     draft_text = llm_text or _build_deterministic_draft(query, citations, stance)
+    # 仅在「本想用 LLM 但未用上」时标降级；显式 enable_llm=False 不算降级
+    degraded = bool(enable_llm and not used_llm)
+    if not degraded:
+        degrade_reason = None
 
     notes: list[str] = []
     human_latch = False
@@ -168,6 +218,17 @@ def draft_assist(
             f"规则结论={rules_conclusion} 与 RAG 辅助立场={stance} 冲突，失败关闭进人闸"
         )
 
+    if degraded and degrade_reason:
+        notes.append(f"LLM 降级: {degrade_reason}")
+
+    retrieval_portrait = {
+        "mode": "keyword",
+        "top_k": top_k,
+        "vector_enabled": False,
+        "embedding_model": None,
+        "chroma_collection": None,
+    }
+
     return DraftAssistResult(
         inference_track=track_cfg.inference_track,
         query=query,
@@ -181,4 +242,8 @@ def draft_assist(
         can_external_deny=can_external_deny,
         enable_llm=enable_llm,
         notes=notes,
+        assist_invocation_id=f"assist-{uuid.uuid4().hex[:16]}",
+        degraded=degraded,
+        degrade_reason=degrade_reason if degraded else None,
+        retrieval=retrieval_portrait,
     )

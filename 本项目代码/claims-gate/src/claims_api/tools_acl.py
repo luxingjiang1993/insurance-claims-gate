@@ -40,6 +40,8 @@ ALLOWED_TOOL_NAMES: frozenset[str] = frozenset(
         "auth_me",
         "auth_logout",
         "read_latch_events",
+        "assist_claim",
+        "adopt_assist",
     }
 )
 
