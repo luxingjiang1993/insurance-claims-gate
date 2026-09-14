@@ -2,7 +2,7 @@
 
 > **Pilot · Phase 1 shipped (Issues 01–13)**  
 > Last updated: 2026-09-14 · Product code: `本项目代码/claims-gate/`  
-> Status badge: **Developer Preview** — production UI and live core L2 are deferred.
+> Status badge: **Developer Preview** — 作业壳已可登录只读浏览；生产 UI / 真连核心 L2 仍延后。
 
 条款门禁是个人意外险（含附加意外医疗）理赔的裁决辅助产品：输出结构化草案、条款项级引用、一次补件清单与人闸令牌门；**不替代**持牌核赔终裁，**不触发**银企支付。
 
@@ -13,6 +13,7 @@
 | 你是谁 | 你要做什么 | 跳到 |
 |--------|------------|------|
 | 个人开发 / 验收 | 5 分钟跑通 SC-01/02/03 | [§3 Quickstart](#3-quickstart) |
+| 演示 / 核赔浏览 | 浏览器登录作业壳只读看案 | [§3.1 作业壳](#31-作业壳登录与只读浏览-preview) |
 | 核赔初审 | 材料受理 → 一次补件 / 进入初审 | [§5.1](#51-材料受理与一次补件-sc-01) |
 | 核赔员 | 除外拒赔草案 / 效力栈减赔 | [§5.2](#52-除外拒赔与文书分态-sc-02) · [§5.3](#53-批单效力栈减赔-sc-03) |
 | 主管 | 人闸批准 / 驳回；出款就绪 | [§5.4](#54-人闸与出款就绪) |
@@ -21,7 +22,7 @@
 
 **诚实边界（读完再操作）：**
 
-- 本期交付面是 **HTTP API + Demo 脚本**，不是核赔作业台 UI。
+- 本期交付面以 **HTTP API + Demo 脚本** 为主；作业壳（套餐 C）当前仅 **登录 + 案件只读浏览**（后续票再补作业动作）。
 - 裁决结果是 **草案**，不具对外最终效力。
 - `PAYOUT_READY` ≠ 已打款；支付仍走核心人工流程。
 - 禁止用「秒赔」叙事包装责任争议案。
@@ -64,7 +65,8 @@
 | L2 出款就绪 / 结案模拟 | Shipped | 无真连现网 |
 | 轨 B 最小 RAG 起草 | Preview | 不挡轨 A |
 | Eval 负例旁路 / 合成抽检表 | Preview | 不冒充金标 |
-| 核赔作业 UI | Deferred | 阶段 2+ |
+| 作业壳登录 + 案件只读浏览 | Preview | Issue 16；写操作后续票 |
+| 核赔作业 UI 全作业流 | Deferred | evaluate / 人闸 / AI 等后续票 |
 | 真连核心 L2 / 真 OCR | Deferred | 有干系人后 |
 | ≥300 人工金标运营 | Deferred | 机检入口已占位 |
 
@@ -115,6 +117,25 @@ curl http://127.0.0.1:8000/health
 ```bash
 pytest -q
 ```
+
+### 3.1 作业壳：登录与只读浏览（Preview）
+
+`Rewrote from: REF-MISSIONS` · Issue 16
+
+1. 先启动 API（见上）。
+2. 另开终端：
+
+```bash
+cd 本项目代码/claims-gate/workshell
+npm install
+npm run dev
+```
+
+3. 浏览器打开 `http://127.0.0.1:5173/`，用演示账号登录（用户名=密码）：`viewer` / `adjuster` / `supervisor`。
+4. 登录后可浏览持久化案件列表与详情字段：`gate_status`、`document_status`、`inference_track`、`payout_ready`。
+5. `viewer` 在壳内**不展示写操作入口**；API 拒绝体原样展示（无 BFF）。
+
+可选：`VITE_CLAIMS_API_BASE`（默认 `http://127.0.0.1:8000`）。作业动作（evaluate / 人闸 / 文书 / AI）属后续票，本 Preview 不宣称已上线。
 
 ---
 

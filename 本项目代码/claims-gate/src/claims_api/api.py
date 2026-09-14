@@ -6,7 +6,8 @@ SC-03 减赔 REF-COURSE-04；Issue 06 人闸矩阵扩展 REF-MISSIONS；
 Issue 08 L2 出款就绪/结案回写 REF-MISSIONS, REF-CASE-FC；
 Issue 09 OCR/备注威胁负例 REF-CASE-HYBRID, REF-MISSIONS；
 Issue 14 SQLite + 种子登录会话 REF-MISSIONS；
-Issue 15 人闸 RBAC 硬门 + S0 负例 REF-MISSIONS
+Issue 15 人闸 RBAC 硬门 + S0 负例 REF-MISSIONS；
+Issue 16 作业壳列表/详情可读字段 + CORS REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from missions.rag import KnowledgeBase
@@ -28,6 +30,19 @@ from .sqlite_store import SqliteCaseStore
 from .tools_acl import RolePermissionError, assert_role_allowed, assert_tool_allowed
 
 app = FastAPI(title="Claims Gate API", version="0.1.0")
+# 作业壳（Vite 默认 5173）直连 API；无 BFF
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+        "http://127.0.0.1:4173",
+        "http://localhost:4173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 _KB_ROOT = Path(__file__).resolve().parents[2] / "knowledge_base"
 # 持久演示库路径提示：export CLAIMS_GATE_DB=<repo>/data/claims_gate.sqlite
 _kb = KnowledgeBase(_KB_ROOT)
@@ -322,11 +337,18 @@ def auth_logout(authorization: str | None = Header(default=None)) -> dict[str, A
     return get_auth().logout(_bearer_token(authorization))
 
 
+@app.get("/claims")
+def list_claims(authorization: str | None = Header(default=None)) -> dict[str, Any]:
+    """持久化案件列表摘要（作业壳只读浏览）。"""
+    _authorize("list_gate_status", authorization)
+    return {"items": _service.list_claims()}
+
+
 @app.get("/claims/{case_id}")
 def get_claim(
     case_id: str, authorization: str | None = Header(default=None)
 ) -> dict:
-    """L1 只读案件头；默认推理轨为确定性轨。"""
+    """L1 只读案件头；含门禁可读字段 document_status / payout_ready。"""
     _authorize("read_claim_header", authorization)
     try:
         case = _service.get_claim(case_id)
@@ -338,6 +360,7 @@ def get_claim(
                 "message": f"案件不存在: {exc.case_id}",
             },
         ) from exc
+    summary = ClaimsService.claim_browse_summary(case)
     return {
         "case_id": case.case_id,
         "policy_no": case.policy_no,
@@ -350,6 +373,8 @@ def get_claim(
         "material_codes": list(case.material_codes),
         "gate_status": case.gate_status,
         "inference_track": case.inference_track,
+        "document_status": summary["document_status"],
+        "payout_ready": summary["payout_ready"],
         "ocr_text": case.ocr_text,
         "customer_remark": case.customer_remark,
     }

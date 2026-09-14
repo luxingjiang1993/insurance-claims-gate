@@ -13,3 +13,6 @@ __pycache__/
 htmlcov/
 .venv/
 venv/
+workshell/node_modules/
+workshell/dist/
+workshell/.env

@@ -360,6 +360,29 @@ class ClaimsService:
             raise ClaimNotFoundError(case_id)
         return case
 
+    def list_claims(self) -> list[dict[str, Any]]:
+        """案件列表摘要（作业壳只读浏览）；按 case_id 排序。"""
+        items: list[dict[str, Any]] = []
+        for case_id in sorted(self._cases.keys()):
+            case = self._cases[case_id]
+            items.append(self.claim_browse_summary(case))
+        return items
+
+    @staticmethod
+    def claim_browse_summary(case: ClaimCase) -> dict[str, Any]:
+        """列表/详情共用的门禁可读字段。"""
+        decision = case.latest_decision
+        return {
+            "case_id": case.case_id,
+            "policy_no": case.policy_no,
+            "product_code": case.product_code,
+            "claim_amount_claimed": case.claim_amount_claimed,
+            "gate_status": case.gate_status,
+            "inference_track": case.inference_track,
+            "document_status": decision.document_status if decision else None,
+            "payout_ready": bool(decision.payout_ready) if decision else False,
+        }
+
     def _missing_items(self, case: ClaimCase) -> list[SupplementItem]:
         present = set(case.material_codes)
         return [

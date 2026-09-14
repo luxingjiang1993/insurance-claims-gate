@@ -196,4 +196,16 @@ pytest -m eval_bypass -q
 python -m missions.eval_entry
 ```
 
+## Issue 16 作业壳：登录 + 案件只读浏览
+
+`Rewrote from: REF-MISSIONS`
+
+已落地：
+
+- `workshell/`：Vite + React + TS 薄客户端；登录、案件列表/详情只读浏览
+- HTTP：`GET /claims`；`GET /claims/{id}` 含 `document_status` / `payout_ready`
+- CORS 允许作业壳源；无 BFF；API 拒绝原样展示
+- `viewer` 壳内无写操作入口
+- 启动：`cd workshell && npm install && npm run dev`（API 先起）
+
 勿在仓库根直接执行 `uvicorn ... --app-dir src`（会找不到 `claims_api`）；请用 `python scripts/run_api.py` 或先 `cd` 进 `claims-gate`。
