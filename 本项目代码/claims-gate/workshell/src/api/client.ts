@@ -7,6 +7,9 @@ import type {
   ClaimDetail,
   ClaimSummary,
   DecisionDraft,
+  DocumentExportResult,
+  HumanLatchApproveResult,
+  HumanLatchRejectResult,
   LoginResult,
   MaterialsRegisterResult,
   SupplementNotifyResult,
@@ -150,6 +153,69 @@ export function createClaimsApiClient(options: ClaimsApiClientOptions) {
         `/claims/${encodeURIComponent(caseId)}/decision`,
         {
           method: "GET",
+        },
+      );
+    },
+
+    async approveHumanLatch(
+      caseId: string,
+      body: { approved_by: string; second_approver?: string },
+    ): Promise<HumanLatchApproveResult> {
+      const payload: { approved_by: string; second_approver?: string } = {
+        approved_by: body.approved_by,
+      };
+      if (body.second_approver) {
+        payload.second_approver = body.second_approver;
+      }
+      return request<HumanLatchApproveResult>(
+        `/claims/${encodeURIComponent(caseId)}/human-latch/approve`,
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+      );
+    },
+
+    async rejectHumanLatch(
+      caseId: string,
+      body: { rejected_by: string; reason?: string },
+    ): Promise<HumanLatchRejectResult> {
+      return request<HumanLatchRejectResult>(
+        `/claims/${encodeURIComponent(caseId)}/human-latch/reject`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            rejected_by: body.rejected_by,
+            reason: body.reason ?? "",
+          }),
+        },
+      );
+    },
+
+    async exportDocument(
+      caseId: string,
+      body: {
+        document_type: string;
+        document_status: string;
+        human_latch_token?: string;
+      },
+    ): Promise<DocumentExportResult> {
+      const payload: {
+        document_type: string;
+        document_status: string;
+        human_latch_token?: string;
+      } = {
+        document_type: body.document_type,
+        document_status: body.document_status,
+      };
+      if (body.human_latch_token) {
+        payload.human_latch_token = body.human_latch_token;
+      }
+      return request<DocumentExportResult>(
+        `/claims/${encodeURIComponent(caseId)}/documents/export`,
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
         },
       );
     },

@@ -314,4 +314,156 @@ describe("createClaimsApiClient", () => {
       body: { detail },
     });
   });
+
+  it("approveHumanLatch posts actor and returns human_latch_token as-is", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        case_id: "CLM-SC02-001",
+        human_latch_token: "HLT-deadbeef",
+        human_approver: "supervisor",
+        payout_ready: false,
+        gate_status: "HUMAN_LATCH",
+        decision_type: "reject_draft",
+        dual_token_required: false,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-sup",
+    });
+    const result = await client.approveHumanLatch("CLM-SC02-001", {
+      approved_by: "supervisor",
+    });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:8000/claims/CLM-SC02-001/human-latch/approve",
+    );
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: "POST",
+      body: JSON.stringify({ approved_by: "supervisor" }),
+    });
+    expect(callHeaders(fetchMock).get("Authorization")).toBe("Bearer sess-sup");
+    expect(result.human_latch_token).toBe("HLT-deadbeef");
+    expect(result.payout_ready).toBe(false);
+  });
+
+  it("rejectHumanLatch posts reject payload and returns null token", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        case_id: "CLM-SC02-001",
+        gate_status: "PRIMARY_REVIEW",
+        human_latch_token: null,
+        payout_ready: false,
+        rejected_by: "supervisor",
+        reason: "需补调查",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-sup",
+    });
+    const result = await client.rejectHumanLatch("CLM-SC02-001", {
+      rejected_by: "supervisor",
+      reason: "需补调查",
+    });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:8000/claims/CLM-SC02-001/human-latch/reject",
+    );
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: "POST",
+      body: JSON.stringify({
+        rejected_by: "supervisor",
+        reason: "需补调查",
+      }),
+    });
+    expect(result.human_latch_token).toBeNull();
+    expect(result.gate_status).toBe("PRIMARY_REVIEW");
+  });
+
+  it("surfaces adjuster latch approve rejection without rewriting message", async () => {
+    const detail = {
+      error_code: "ROLE_FORBIDDEN",
+      message: "仅 supervisor 可执行人闸: approve_human_latch",
+    };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(403, { detail }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-adj",
+    });
+
+    await expect(
+      client.approveHumanLatch("CLM-SC02-001", { approved_by: "adjuster" }),
+    ).rejects.toMatchObject({
+      name: "ApiClientError",
+      status: 403,
+      body: { detail },
+    });
+  });
+
+  it("exportDocument posts DRAFT_EXPORT reject_notice and keeps document_status", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        document_type: "reject_notice",
+        document_status: "DRAFT_EXPORT",
+        case_id: "CLM-SC02-001",
+        decision: "拒绝赔偿/拒绝给付",
+        payout_ready: false,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-adj",
+    });
+    const doc = await client.exportDocument("CLM-SC02-001", {
+      document_type: "reject_notice",
+      document_status: "DRAFT_EXPORT",
+    });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:8000/claims/CLM-SC02-001/documents/export",
+    );
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: "POST",
+      body: JSON.stringify({
+        document_type: "reject_notice",
+        document_status: "DRAFT_EXPORT",
+      }),
+    });
+    expect(doc.document_status).toBe("DRAFT_EXPORT");
+    expect(doc.document_type).toBe("reject_notice");
+  });
+
+  it("surfaces EXTERNAL_NOTIFY without latch as API rejection as-is", async () => {
+    const detail = {
+      error_code: "LATCH_REQUIRED",
+      message: "拒赔升 EXTERNAL_NOTIFY 须有效人闸令牌",
+    };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(403, { detail }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-sup",
+    });
+
+    await expect(
+      client.exportDocument("CLM-SC02-001", {
+        document_type: "reject_notice",
+        document_status: "EXTERNAL_NOTIFY",
+      }),
+    ).rejects.toMatchObject({
+      name: "ApiClientError",
+      status: 403,
+      body: { detail },
+    });
+  });
 });

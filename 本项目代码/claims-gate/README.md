@@ -212,6 +212,12 @@ python -m missions.eval_entry
 
 `Rewrote from: REF-MISSIONS`
 
-已落地：详情页材料登记 / evaluate / 一次补件 / 裁决草案查看；无 LLM Key 可点完；拒绝不假成功。人闸与文书分态见后续票。
+已落地：详情页材料登记 / evaluate / 一次补件 / 裁决草案查看；无 LLM Key 可点完；拒绝不假成功。
+
+## Issue 18 作业壳：人闸 + 文书分态
+
+`Rewrote from: REF-MISSIONS`
+
+已落地：详情页人闸批准/驳回（supervisor 获 API 令牌；adjuster 批闸拒绝不假成功）；拒赔 `DRAFT_EXPORT` 可预览；`EXTERNAL_NOTIFY` 无人闸失败时 UI 不升对外。
 
 勿在仓库根直接执行 `uvicorn ... --app-dir src`（会找不到 `claims_api`）；请用 `python scripts/run_api.py` 或先 `cd` 进 `claims-gate`。

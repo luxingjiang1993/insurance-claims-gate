@@ -52,6 +52,9 @@ export type DecisionDraft = {
   appeal_path?: string | null;
   reason_summary?: string | null;
   human_latch_required?: boolean;
+  human_latch_token?: string | null;
+  dual_token_required?: boolean;
+  latch_level_label?: string | null;
 };
 
 export type MaterialsRegisterResult = {
@@ -70,6 +73,34 @@ export type SupplementNotifyResult = {
   one_shot_hash?: string;
   legal_basis?: string;
   missing_items?: SupplementItem[];
+};
+
+export type HumanLatchApproveResult = {
+  case_id: string;
+  human_latch_token: string;
+  human_approver: string;
+  payout_ready: boolean;
+  gate_status: string;
+  decision_type?: string;
+  dual_token_required?: boolean;
+  second_approver?: string | null;
+};
+
+export type HumanLatchRejectResult = {
+  case_id: string;
+  gate_status: string;
+  human_latch_token: string | null;
+  payout_ready: boolean;
+  rejected_by: string;
+  reason?: string;
+};
+
+export type DocumentExportResult = {
+  document_type: string;
+  document_status: string;
+  case_id?: string;
+  payout_ready?: boolean;
+  [key: string]: unknown;
 };
 
 /** API 拒绝体外形（原样展示，不二次包装文案）。 */

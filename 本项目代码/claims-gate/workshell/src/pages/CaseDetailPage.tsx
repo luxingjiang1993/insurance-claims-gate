@@ -4,6 +4,8 @@ import { ApiClientError, type ClaimsApiClient } from "../api/client";
 import type { ClaimDetail, DecisionDraft, LoginResult } from "../api/types";
 import { ApiErrorView } from "../components/ApiErrorView";
 import { DecisionDraftView } from "../components/DecisionDraftView";
+import { DocumentExportPanel } from "../components/DocumentExportPanel";
+import { HumanLatchPanel } from "../components/HumanLatchPanel";
 import { ReadonlyBanner } from "../components/ReadonlyBanner";
 import { ScRulePanel } from "../components/ScRulePanel";
 
@@ -29,6 +31,7 @@ export function CaseDetailPage({
   );
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<ApiClientError | Error | null>(null);
+  const [latchToken, setLatchToken] = useState("");
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -128,6 +131,27 @@ export function CaseDetailPage({
             }}
           />
           <DecisionDraftView draft={draft} loadError={draftError} />
+          <HumanLatchPanel
+            api={api}
+            session={session}
+            caseId={caseId}
+            draft={draft}
+            onTokenIssued={setLatchToken}
+            onClaimUpdated={async () => {
+              await load();
+            }}
+          />
+          <DocumentExportPanel
+            api={api}
+            role={session.role}
+            caseId={caseId}
+            draft={draft}
+            latchToken={latchToken}
+            onLatchTokenChange={setLatchToken}
+            onClaimUpdated={async () => {
+              await load();
+            }}
+          />
         </>
       ) : null}
     </section>
