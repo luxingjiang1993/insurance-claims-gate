@@ -2,7 +2,7 @@
 
 > **Pilot · Phase 1 shipped (Issues 01–13) · Phase 2a W0 Dev Complete (Issues 14–22)**  
 > Last updated: 2026-09-15 · Product code: `本项目代码/claims-gate/`  
-> Status badge: **Developer Preview（W0 + 部分 W1 Preview）** — 作业壳可登录；`adjuster` 走 SC 规则路径与显式 AI 辅助（含检索来源摘要）；`supervisor` 壳内人闸与文书分态；本案流水可回放；配置 LangSmith Key 后 evaluate/assist/latch 可上报并在 ledger 见 `trace_id`。W2 OpenEval 排行榜仍未上线；生产 UI / 真连核心 L2 仍延后。
+> Status badge: **Developer Preview（W0 + 部分 W1 Preview）** — 作业壳可登录；`adjuster` 走 SC 规则路径与显式 AI 辅助（含检索来源摘要）；`supervisor` 壳内人闸与文书分态；本案流水可回放；配置 LangSmith Key 后 evaluate/assist/latch 可上报并在 ledger 见 `trace_id`；OpenEval 旁路可写入 LangSmith 实验并做历史对比（非排行榜）。W2 OpenEval 排行榜仍未上线；生产 UI / 真连核心 L2 仍延后。
 
 条款门禁是个人意外险（含附加意外医疗）理赔的裁决辅助产品：输出结构化草案、条款项级引用、一次补件清单与人闸令牌门；**不替代**持牌核赔终裁，**不触发**银企支付。
 
@@ -24,7 +24,7 @@
 
 - **Phase 1** 交付面以 **HTTP API + Demo 脚本** 为主（已合门禁）。
 - **Phase 2a W0（本手册当前作业壳）**：登录 + 三角色 RBAC + 案件浏览 + SC 规则路径 + 人闸 + 文书分态 + AI 辅助建议区（显式点击、无 Key 降级、非终裁）+ 本案流水 / 本地 trace。默认 `pytest -q` **不要求** LLM Key 与 LangSmith。
-- **尚未上线（勿按已交付操作）：** W2 的 OpenEval 排行榜与多人协作；OpenEval↔LangSmith 实验历史对比（Issue 27）。混合检索挂 assist / 来源摘要 / 真 LangSmith span 为 W1 Preview，勿当生产终裁 UI。
+- **尚未上线（勿按已交付操作）：** W2 的 OpenEval 排行榜与多人协作。混合检索挂 assist / 来源摘要 / 真 LangSmith span / OpenEval 实验历史对比为 W1 Preview，勿当生产终裁 UI；评测分 **不**替代 `machine_check`。
 - 裁决结果是 **草案**，不具对外最终效力；AI 辅助建议 **不是** 终裁。
 - `PAYOUT_READY` ≠ 已打款；支付仍走核心人工流程。
 - 禁止用「秒赔」叙事包装责任争议案。
@@ -75,7 +75,7 @@
 | 作业壳本案流水 + 本地 trace | Preview（W0） | Issue 21；ledger + 人闸事件可回放；本地 JSONL 可配置；无 Key 不阻塞 |
 | Chroma / 混合检索挂 assist | Preview（W1） | Issue 24；assist 路径混合检索 + 三联门 `adoptable`；evaluate 不调向量 |
 | 真 LangSmith span + ledger `trace_id` | Preview（W1） | Issue 26；`LANGCHAIN_TRACING_V2=true` + Key 后 evaluate/assist/latch 上报；无 Key 不阻断；默认 pytest 不要求；不替代 `machine_check` |
-| OpenEval ↔ LangSmith 实验历史对比 | Deferred（W1） | Issue 27；未上线 |
+| OpenEval ↔ LangSmith 实验历史对比 | Preview（W1） | Issue 27；`python -m missions.openeval_langsmith`；同 dataset 多 experiment 可历史对比；不含排行榜；不替代 `machine_check`；默认 pytest 不要求 Key |
 | OpenEval 排行榜 / 多人协作 | Deferred（W2） | 未上线 |
 | 核赔作业 UI 全作业流 | Deferred | 真连 L2 / 生产壳等后续 |
 | 真连核心 L2 / 真 OCR | Deferred | 有干系人后 |

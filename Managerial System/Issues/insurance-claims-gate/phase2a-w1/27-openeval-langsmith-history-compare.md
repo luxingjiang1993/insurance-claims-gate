@@ -2,7 +2,7 @@
 
 **github_issue:** #14
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** 26
 
@@ -30,13 +30,30 @@
 
 ## Acceptance criteria
 
-- [ ] OpenEval 旁路可跑通约定最小集（S2 / 可选入口）
-- [ ] 结果在 LangSmith 可见，并具备实验历史对比外形（非排行榜）
-- [ ] 明确不替代 `machine_check`；S0 默认绿不受影响
-- [ ] 不含排行榜、不含多人协作评测台
-- [ ] handoff 含 `Rewrote from:` 所用 REF
+- [x] OpenEval 旁路可跑通约定最小集（S2 / 可选入口）
+- [x] 结果在 LangSmith 可见，并具备实验历史对比外形（非排行榜）
+- [x] 明确不替代 `machine_check`；S0 默认绿不受影响
+- [x] 不含排行榜、不含多人协作评测台
+- [x] handoff 含 `Rewrote from:` 所用 REF
+
+## Answer
+
+**交付：**
+- `missions/openeval_langsmith.py`：`run_openeval_experiment` / `list_experiment_history`；复用 Issue 10 `DEFAULT_EVAL_SUITE`；可注入 Fake Client；真路径 `RealLangSmithExperimentClient`（dataset + project/reference_dataset）
+- 脚本：`python -m missions.openeval_langsmith`
+- 默认测：`tests/eval/test_openeval_langsmith_history.py`（S0 隔离 + `eval_bypass` Fake 双实验历史对比）
+- S2：`tests/langsmith_integration/test_openeval_experiment_real.py`（真 Key；缺则 skip）
+- 用户手册成熟度 Preview；CHANGELOG Unreleased
+
+**S2 / mock 策略（写明）：**
+1. **默认/S0：** `FakeLangSmithExperimentClient`（无网络）。**不得**用 mock 冒充 Pilot Complete。
+2. **真实验：** `pytest -m langsmith_integration`，需真实 Key；缺则 skip。
+3. LangSmith 实验分 / UI **不**替代 `machine_check`；不含排行榜。
+
+`Rewrote from: REF-CASE-OPENEVALS, REF-CASE-EVAL-ADVISOR, REF-MISSIONS`
 
 ## Comments
 
 - 2026-09-14：to-tickets 批准 defaults；落盘于 `phase2a-w1/`。
 - 2026-09-14：同步 GitHub Issue #14。
+- 2026-09-15：实现合入；S0 隔离 + Fake 历史对比绿；S2 真 Key 可选。

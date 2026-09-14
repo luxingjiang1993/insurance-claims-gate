@@ -194,7 +194,28 @@ pytest -m track_llm_optional -q
 # 显式跑 eval 负例旁路（不替代 machine_check）：
 pytest -m eval_bypass -q
 python -m missions.eval_entry
+# OpenEval → LangSmith 实验历史对比（旁路；需 Key 才真上报）：
+python -m missions.openeval_langsmith
+pytest tests/langsmith_integration/test_openeval_experiment_real.py -m langsmith_integration -o addopts=
 ```
+
+## Issue 27 OpenEval ↔ LangSmith 实验历史对比
+
+`Rewrote from: REF-CASE-OPENEVALS, REF-CASE-EVAL-ADVISOR, REF-MISSIONS`
+
+**旁路，非合门禁主缝。** 最小数据集 run + LangSmith 实验历史对比外形；**不含**排行榜与多人协作（W2）。不替代 `machine_check`；默认 `pytest -q` 不要求 LLM/LangSmith。
+
+已落地：
+
+- `src/missions/openeval_langsmith.py`：`run_openeval_experiment` / `list_experiment_history`；可注入 Fake Client
+- 复用 Issue 10 `DEFAULT_EVAL_SUITE` 负例最小集
+- 默认测：`tests/eval/test_openeval_langsmith_history.py`（S0 隔离 + `-m eval_bypass` Fake 实验）
+- S2：`tests/langsmith_integration/test_openeval_experiment_real.py`（真 Key；缺则 skip）
+
+**S2 / mock 策略：**
+1. **默认/S0：** FakeLangSmithExperimentClient（无网络）。不得用 mock 冒充 Pilot Complete。
+2. **真实验：** `pytest -m langsmith_integration`，需真实 Key；缺则 skip。
+3. LangSmith UI / 实验分 **不**替代 `machine_check`。
 
 ## Issue 16 作业壳：登录 + 案件只读浏览
 
