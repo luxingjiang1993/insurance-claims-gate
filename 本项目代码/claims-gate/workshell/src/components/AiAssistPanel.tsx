@@ -47,11 +47,11 @@ export function AiAssistPanel({
     try {
       const next = await api.assistClaim(caseId, { query: trimmed });
       setSuggestion(next);
-      setOkMessage(
-        next.degraded
-          ? "已返回降级辅助建议（未调用模型）。规则路径仍可独立使用。"
-          : "已返回 AI 辅助建议（非终裁）。",
-      );
+      if (next.degraded) {
+        setOkMessage(null);
+      } else {
+        setOkMessage("已返回 AI 辅助建议（非终裁）。");
+      }
     } catch (err) {
       setOkMessage(null);
       setError(err instanceof Error ? err : new Error(String(err)));
@@ -136,7 +136,8 @@ export function AiAssistPanel({
           </div>
           {suggestion.degraded ? (
             <p className="warn-banner" role="status">
-              降级：{suggestion.degrade_reason ?? "未使用 LLM（used_llm=false）"}
+              降级
+              {suggestion.degrade_reason ? `：${suggestion.degrade_reason}` : ""}
               。规则路径作业区仍可继续 evaluate / 人闸。
             </p>
           ) : null}
@@ -160,10 +161,6 @@ export function AiAssistPanel({
             <dt>inference_track</dt>
             <dd>
               <code>{suggestion.inference_track}</code>
-            </dd>
-            <dt>payout_ready</dt>
-            <dd>
-              <code>{String(suggestion.payout_ready ?? false)}</code>
             </dd>
           </dl>
           <pre className="json-block">{suggestion.draft_text}</pre>
