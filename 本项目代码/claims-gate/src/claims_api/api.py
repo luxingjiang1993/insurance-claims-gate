@@ -5,7 +5,8 @@ SC-01 补件/裁决/文书 REF-COURSE-03；SC-02 拒赔分态与人闸 REF-MISSI
 SC-03 减赔 REF-COURSE-04；Issue 06 人闸矩阵扩展 REF-MISSIONS；
 Issue 08 L2 出款就绪/结案回写 REF-MISSIONS, REF-CASE-FC；
 Issue 09 OCR/备注威胁负例 REF-CASE-HYBRID, REF-MISSIONS；
-Issue 14 SQLite + 种子登录会话 REF-MISSIONS
+Issue 14 SQLite + 种子登录会话 REF-MISSIONS；
+Issue 15 人闸 RBAC 硬门 + S0 负例 REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -24,7 +25,7 @@ from .auth import AuthError, AuthService
 from .error_codes import ErrorCode
 from .service import ClaimNotFoundError, ClaimsDomainError, ClaimsService
 from .sqlite_store import SqliteCaseStore
-from .tools_acl import assert_tool_allowed
+from .tools_acl import RolePermissionError, assert_role_allowed, assert_tool_allowed
 
 app = FastAPI(title="Claims Gate API", version="0.1.0")
 _KB_ROOT = Path(__file__).resolve().parents[2] / "knowledge_base"
@@ -235,12 +236,46 @@ def _http_domain_error(exc: ClaimsDomainError) -> HTTPException:
     if exc.error_code in (
         ErrorCode.DOCUMENT_STATUS_FORBIDDEN.value,
         ErrorCode.LATCH_REQUIRED.value,
+        ErrorCode.PERMISSION_DENIED.value,
     ):
         status = 403
     detail: dict[str, Any] = {"error_code": exc.error_code, "message": exc.message}
     if exc.extra:
         detail.update(exc.extra)
     return HTTPException(status_code=status, detail=detail)
+
+
+def _authorize(tool_name: str, authorization: str | None = None) -> dict[str, Any] | None:
+    """工具白名单 + 角色硬门；返回当前会话（若有）。"""
+    assert_tool_allowed(tool_name)
+    token = _bearer_token(authorization)
+    session: dict[str, Any] | None = None
+    role: str | None = None
+    if token:
+        try:
+            session = get_auth().resolve_session(token)
+            role = str(session["role"])
+        except AuthError as exc:
+            raise _http_auth_error(exc) from exc
+    try:
+        assert_role_allowed(tool_name, role)
+    except RolePermissionError as exc:
+        if exc.missing_auth:
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "error_code": ErrorCode.AUTH_FAILED.value,
+                    "message": str(exc),
+                },
+            ) from exc
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error_code": ErrorCode.PERMISSION_DENIED.value,
+                "message": str(exc),
+            },
+        ) from exc
+    return session
 
 
 @app.get("/")
@@ -263,7 +298,7 @@ def health() -> dict:
 @app.post("/auth/login")
 def auth_login(body: LoginIn) -> dict[str, Any]:
     """种子三角色登录；返回会话令牌与角色。"""
-    assert_tool_allowed("auth_login")
+    _authorize("auth_login")
     try:
         return get_auth().login(body.username, body.password)
     except AuthError as exc:
@@ -273,7 +308,7 @@ def auth_login(body: LoginIn) -> dict[str, Any]:
 @app.get("/auth/me")
 def auth_me(authorization: str | None = Header(default=None)) -> dict[str, Any]:
     """解析当前会话角色。"""
-    assert_tool_allowed("auth_me")
+    _authorize("auth_me", authorization)
     try:
         return get_auth().resolve_session(_bearer_token(authorization))
     except AuthError as exc:
@@ -283,14 +318,16 @@ def auth_me(authorization: str | None = Header(default=None)) -> dict[str, Any]:
 @app.post("/auth/logout")
 def auth_logout(authorization: str | None = Header(default=None)) -> dict[str, Any]:
     """注销当前会话。"""
-    assert_tool_allowed("auth_logout")
+    _authorize("auth_logout", authorization)
     return get_auth().logout(_bearer_token(authorization))
 
 
 @app.get("/claims/{case_id}")
-def get_claim(case_id: str) -> dict:
+def get_claim(
+    case_id: str, authorization: str | None = Header(default=None)
+) -> dict:
     """L1 只读案件头；默认推理轨为确定性轨。"""
-    assert_tool_allowed("read_claim_header")
+    _authorize("read_claim_header", authorization)
     try:
         case = _service.get_claim(case_id)
     except ClaimNotFoundError as exc:
@@ -319,9 +356,11 @@ def get_claim(case_id: str) -> dict:
 
 
 @app.get("/claims/{case_id}/latch-events")
-def get_latch_events(case_id: str) -> dict[str, Any]:
+def get_latch_events(
+    case_id: str, authorization: str | None = Header(default=None)
+) -> dict[str, Any]:
     """人闸事件摘要（批准/驳回可回放）。"""
-    assert_tool_allowed("read_latch_events")
+    _authorize("read_latch_events", authorization)
     try:
         items = _service.list_latch_events(case_id)
     except ClaimNotFoundError as exc:
@@ -336,9 +375,13 @@ def get_latch_events(case_id: str) -> dict[str, Any]:
 
 
 @app.post("/claims/{case_id}/evaluate")
-def evaluate_claim(case_id: str, body: EvaluateIn | None = None) -> dict[str, Any]:
+def evaluate_claim(
+    case_id: str,
+    body: EvaluateIn | None = None,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
     """触发门禁裁决：材料不齐→一次补件；批单缩责→减赔；齐→通赔建议草案。"""
-    assert_tool_allowed("evaluate_claim")
+    _authorize("evaluate_claim", authorization)
     payload = body or EvaluateIn()
     source_decisions = dict(payload.source_decisions)
     if payload.signal_sources and not source_decisions:
@@ -372,9 +415,11 @@ def evaluate_claim(case_id: str, body: EvaluateIn | None = None) -> dict[str, An
 
 
 @app.get("/claims/{case_id}/ledger")
-def get_ledger(case_id: str) -> dict[str, Any]:
+def get_ledger(
+    case_id: str, authorization: str | None = Header(default=None)
+) -> dict[str, Any]:
     """每案审计 ledger：route_id / retrieval_profile / decision_type / validator_score。"""
-    assert_tool_allowed("read_ledger")
+    _authorize("read_ledger", authorization)
     try:
         items = _service.list_ledger(case_id)
     except ClaimNotFoundError as exc:
@@ -389,9 +434,11 @@ def get_ledger(case_id: str) -> dict[str, Any]:
 
 
 @app.get("/claims/{case_id}/decision")
-def get_decision(case_id: str) -> dict[str, Any]:
+def get_decision(
+    case_id: str, authorization: str | None = Header(default=None)
+) -> dict[str, Any]:
     """查询最近裁决草案。"""
-    assert_tool_allowed("read_decision")
+    _authorize("read_decision", authorization)
     try:
         case = _service.get_claim(case_id)
     except ClaimNotFoundError as exc:
@@ -416,9 +463,13 @@ def get_decision(case_id: str) -> dict[str, Any]:
 
 
 @app.post("/claims/{case_id}/materials")
-def register_materials(case_id: str, body: MaterialsIn) -> dict[str, Any]:
+def register_materials(
+    case_id: str,
+    body: MaterialsIn,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
     """提交补件材料后登记；需再次 evaluate 重评。"""
-    assert_tool_allowed("register_materials")
+    _authorize("register_materials", authorization)
     try:
         case = _service.register_materials(
             case_id,
@@ -448,9 +499,13 @@ def register_materials(case_id: str, body: MaterialsIn) -> dict[str, Any]:
 
 
 @app.post("/claims/{case_id}/supplement/notify")
-def notify_supplement(case_id: str, body: SupplementNotifyIn) -> dict[str, Any]:
+def notify_supplement(
+    case_id: str,
+    body: SupplementNotifyIn,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
     """发出补件通知；同 hash 拆轮必失败。"""
-    assert_tool_allowed("notify_supplement")
+    _authorize("notify_supplement", authorization)
     try:
         return _service.notify_supplement(
             case_id,
@@ -470,9 +525,13 @@ def notify_supplement(case_id: str, body: SupplementNotifyIn) -> dict[str, Any]:
 
 
 @app.post("/claims/{case_id}/documents/export")
-def export_document(case_id: str, body: DocumentExportIn) -> dict[str, Any]:
+def export_document(
+    case_id: str,
+    body: DocumentExportIn,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
     """导出补件/拒赔等文书；拒赔 DRAFT_EXPORT 可无人闸，EXTERNAL_NOTIFY 须人闸。"""
-    assert_tool_allowed("export_document")
+    _authorize("export_document", authorization)
     try:
         return _service.export_document(
             case_id,
@@ -493,9 +552,13 @@ def export_document(case_id: str, body: DocumentExportIn) -> dict[str, Any]:
 
 
 @app.post("/claims/{case_id}/human-latch/approve")
-def approve_human_latch(case_id: str, body: HumanLatchApproveIn) -> dict[str, Any]:
-    """人闸批准：发出 human_latch_token；不触发银企出款。"""
-    assert_tool_allowed("approve_human_latch")
+def approve_human_latch(
+    case_id: str,
+    body: HumanLatchApproveIn,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """人闸批准：发出 human_latch_token；仅 supervisor；不触发银企出款。"""
+    _authorize("approve_human_latch", authorization)
     try:
         return _service.approve_human_latch(
             case_id,
@@ -515,9 +578,13 @@ def approve_human_latch(case_id: str, body: HumanLatchApproveIn) -> dict[str, An
 
 
 @app.post("/claims/{case_id}/human-latch/reject")
-def reject_human_latch(case_id: str, body: HumanLatchRejectIn) -> dict[str, Any]:
-    """人闸驳回：回编辑态，可再 evaluate 提审。"""
-    assert_tool_allowed("reject_human_latch")
+def reject_human_latch(
+    case_id: str,
+    body: HumanLatchRejectIn,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """人闸驳回：仅 supervisor；回编辑态，可再 evaluate 提审。"""
+    _authorize("reject_human_latch", authorization)
     try:
         return _service.reject_human_latch(
             case_id,
@@ -537,9 +604,13 @@ def reject_human_latch(case_id: str, body: HumanLatchRejectIn) -> dict[str, Any]
 
 
 @app.post("/claims/{case_id}/decisions/exgratia")
-def decide_exgratia(case_id: str, body: ExgratiaIn) -> dict[str, Any]:
+def decide_exgratia(
+    case_id: str,
+    body: ExgratiaIn,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
     """通融决定：必闸；伪主险通赔 citation 失败关闭。"""
-    assert_tool_allowed("decide_exgratia")
+    _authorize("decide_exgratia", authorization)
     try:
         decision = _service.decide_exgratia(
             case_id,
@@ -563,9 +634,13 @@ def decide_exgratia(case_id: str, body: ExgratiaIn) -> dict[str, Any]:
 
 
 @app.post("/claims/{case_id}/decisions/prepay")
-def decide_prepay(case_id: str, body: PrepayIn) -> dict[str, Any]:
+def decide_prepay(
+    case_id: str,
+    body: PrepayIn,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
     """预赔决定：默认必闸。"""
-    assert_tool_allowed("decide_prepay")
+    _authorize("decide_prepay", authorization)
     try:
         decision = _service.decide_prepay(
             case_id,
@@ -588,9 +663,13 @@ def decide_prepay(case_id: str, body: PrepayIn) -> dict[str, Any]:
 
 
 @app.post("/claims/{case_id}/investigate/enter")
-def investigate_enter(case_id: str, body: InvestigateEnterIn) -> dict[str, Any]:
+def investigate_enter(
+    case_id: str,
+    body: InvestigateEnterIn,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
     """进入调查中：自动冻决。"""
-    assert_tool_allowed("investigate_enter")
+    _authorize("investigate_enter", authorization)
     try:
         decision = _service.enter_investigation(
             case_id,
@@ -614,10 +693,12 @@ def investigate_enter(case_id: str, body: InvestigateEnterIn) -> dict[str, Any]:
 
 @app.post("/claims/{case_id}/investigate/unfreeze")
 def investigate_unfreeze(
-    case_id: str, body: InvestigateUnfreezeIn | None = None
+    case_id: str,
+    body: InvestigateUnfreezeIn | None = None,
+    authorization: str | None = Header(default=None),
 ) -> dict[str, Any]:
     """解除调查冻决：须人闸令牌。"""
-    assert_tool_allowed("investigate_unfreeze")
+    _authorize("investigate_unfreeze", authorization)
     payload = body or InvestigateUnfreezeIn()
     try:
         return _service.unfreeze_investigation(
@@ -637,9 +718,13 @@ def investigate_unfreeze(
 
 
 @app.post("/claims/{case_id}/peak-degrade")
-def peak_degrade(case_id: str, body: PeakDegradeIn) -> dict[str, Any]:
+def peak_degrade(
+    case_id: str,
+    body: PeakDegradeIn,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
     """峰值降级：仅补件+排队人审，禁止静默通赔。"""
-    assert_tool_allowed("peak_degrade")
+    _authorize("peak_degrade", authorization)
     try:
         decision = _service.peak_degrade(case_id, reason=body.reason)
     except ClaimNotFoundError as exc:
@@ -659,10 +744,12 @@ def peak_degrade(case_id: str, body: PeakDegradeIn) -> dict[str, Any]:
 
 @app.post("/claims/{case_id}/l2/payout-ready")
 def l2_payout_ready(
-    case_id: str, body: L2PayoutReadyIn | None = None
+    case_id: str,
+    body: L2PayoutReadyIn | None = None,
+    authorization: str | None = Header(default=None),
 ) -> dict[str, Any]:
     """L2 模拟回写出款就绪：人闸后置 PAYOUT_READY；不触发银企支付。"""
-    assert_tool_allowed("l2_payout_ready")
+    _authorize("l2_payout_ready", authorization)
     payload = body or L2PayoutReadyIn()
     try:
         return _service.writeback_payout_ready(
@@ -682,9 +769,13 @@ def l2_payout_ready(
 
 
 @app.post("/claims/{case_id}/l2/close")
-def l2_close(case_id: str, body: L2CloseIn) -> dict[str, Any]:
+def l2_close(
+    case_id: str,
+    body: L2CloseIn,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
     """L2 结案回写：CLOSED 与出款解耦；载荷不含自动支付指令。"""
-    assert_tool_allowed("l2_close")
+    _authorize("l2_close", authorization)
     try:
         return _service.writeback_close(case_id, close_opinion=body.close_opinion)
     except ClaimNotFoundError as exc:
@@ -700,9 +791,12 @@ def l2_close(case_id: str, body: L2CloseIn) -> dict[str, Any]:
 
 
 @app.post("/kb/citations/validate")
-def validate_citation(body: CitationValidateRequest) -> dict[str, Any]:
+def validate_citation(
+    body: CitationValidateRequest,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
     """条款项级落库门：doc_id + clause_item + doc_version 三联命中。"""
-    assert_tool_allowed("validate_citation")
+    _authorize("validate_citation", authorization)
     result = _kb.validate_citation(body.model_dump())
     if not result.ok:
         raise HTTPException(

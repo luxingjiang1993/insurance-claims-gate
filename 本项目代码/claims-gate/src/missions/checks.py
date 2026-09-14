@@ -5,7 +5,8 @@ SC-01 补件/拆轮/通赔建议 REF-COURSE-03；SC-02 拒赔引用/文书分态
 SC-03 效力栈减赔 / calc_steps REF-CASE-KB, REF-COURSE-04；
 Issue 06 人闸矩阵（金额档/通融/调查冻决/峰值）REF-MISSIONS；
 Issue 08 L2 出款就绪/结案回写 REF-MISSIONS, REF-CASE-FC；
-Issue 09 OCR/备注提权负例 REF-CASE-HYBRID, REF-MISSIONS
+Issue 09 OCR/备注提权负例 REF-CASE-HYBRID, REF-MISSIONS；
+Issue 15 人闸 RBAC 负例机检 REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -124,6 +125,41 @@ def _reset_claims_fixture() -> None:
     from claims_api.api import reset_service
 
     reset_service()
+
+
+def _login_headers(client: TestClient, username: str) -> dict[str, str] | None:
+    """种子用户登录；失败返回 None。"""
+    resp = client.post(
+        "/auth/login",
+        json={"username": username, "password": username},
+    )
+    if resp.status_code != 200:
+        return None
+    token = resp.json().get("session_token")
+    if not token:
+        return None
+    return {"Authorization": f"Bearer {token}"}
+
+
+def _approve_human_latch(
+    client: TestClient,
+    case_id: str,
+    *,
+    approved_by: str = "supervisor",
+    second_approver: str | None = None,
+) -> Any:
+    """人闸批准须 supervisor 会话（Issue 15 RBAC 硬门）。"""
+    headers = _login_headers(client, "supervisor")
+    if headers is None:
+        raise RuntimeError("supervisor 登录失败，无法批人闸")
+    body: dict[str, Any] = {"approved_by": approved_by}
+    if second_approver is not None:
+        body["second_approver"] = second_approver
+    return client.post(
+        f"/claims/{case_id}/human-latch/approve",
+        json=body,
+        headers=headers,
+    )
 
 
 def _check_sc01_one_shot_supplement_approve(
@@ -390,9 +426,10 @@ def _check_sc02_exclusion_reject_latch(
         )
     steps.append("external_without_latch_rejected")
 
-    appr = client.post(
-        f"/claims/{case_id}/human-latch/approve",
-        json={"approved_by": "machine-check-supervisor"},
+    appr = _approve_human_latch(
+        client,
+        case_id,
+        approved_by="machine-check-supervisor",
     )
     if appr.status_code != 200 or not appr.json().get("human_latch_token"):
         return CheckOutcome(
@@ -753,9 +790,10 @@ def _check_latch_investigate_freeze_unfreeze(
             f"unfreeze bare should latch, status={bare.status_code}",
             CommandResult(cmd="unfreeze bare", exit_code=1, stdout_tail=str(bare.json())[:400]),
         )
-    appr = client.post(
-        f"/claims/{case_id}/human-latch/approve",
-        json={"approved_by": "invest-supervisor"},
+    appr = _approve_human_latch(
+        client,
+        case_id,
+        approved_by="invest-supervisor",
     )
     if appr.status_code != 200 or not appr.json().get("human_latch_token"):
         return CheckOutcome(
@@ -976,9 +1014,10 @@ def _check_l2_payout_ready_writeback(
     # 2) 人闸后成功
     _reset_claims_fixture()
     client.post(f"/claims/{case_ok}/evaluate")
-    appr = client.post(
-        f"/claims/{case_ok}/human-latch/approve",
-        json={"approved_by": "supervisor-mc"},
+    appr = _approve_human_latch(
+        client,
+        case_ok,
+        approved_by="supervisor-mc",
     )
     if appr.status_code != 200 or not appr.json().get("human_latch_token"):
         return CheckOutcome(
@@ -1020,9 +1059,10 @@ def _check_l2_payout_ready_writeback(
     # 3) 主数据不一致
     _reset_claims_fixture()
     client.post(f"/claims/{case_mismatch}/evaluate")
-    appr2 = client.post(
-        f"/claims/{case_mismatch}/human-latch/approve",
-        json={"approved_by": "supervisor-mc"},
+    appr2 = _approve_human_latch(
+        client,
+        case_mismatch,
+        approved_by="supervisor-mc",
     )
     if appr2.status_code != 200 or not appr2.json().get("human_latch_token"):
         return CheckOutcome(
@@ -1071,9 +1111,10 @@ def _check_l2_close_without_payment(
     _reset_claims_fixture()
     case_id = params.get("case_id", "CLM-AMT-C-001")
     client.post(f"/claims/{case_id}/evaluate")
-    appr = client.post(
-        f"/claims/{case_id}/human-latch/approve",
-        json={"approved_by": "supervisor-close"},
+    appr = _approve_human_latch(
+        client,
+        case_id,
+        approved_by="supervisor-close",
     )
     if appr.status_code != 200:
         return CheckOutcome(
@@ -1185,6 +1226,126 @@ def _check_threat_inject_ocr_remark_no_latch_flip(
     )
 
 
+def _check_latch_rbac_negatives(
+    client: TestClient, params: dict[str, Any]
+) -> CheckOutcome:
+    """S0：adjuster/viewer/匿名批闸拒绝且不签发令牌；supervisor 可批；viewer 写拒绝。"""
+    _reset_claims_fixture()
+    case_id = params.get("case_id", "CLM-SC02-001")
+    steps: list[str] = []
+
+    ev = client.post(f"/claims/{case_id}/evaluate")
+    if ev.status_code != 200:
+        return CheckOutcome(
+            False,
+            f"evaluate failed status={ev.status_code}",
+            CommandResult(cmd="evaluate", exit_code=1, stdout_tail=str(ev.json())[:400]),
+        )
+
+    for role in ("adjuster", "viewer"):
+        headers = _login_headers(client, role)
+        if headers is None:
+            return CheckOutcome(
+                False,
+                f"login failed for {role}",
+                CommandResult(cmd=f"login {role}", exit_code=1, stdout_tail=""),
+            )
+        denied = client.post(
+            f"/claims/{case_id}/human-latch/approve",
+            json={"approved_by": role},
+            headers=headers,
+        )
+        if (
+            denied.status_code != 403
+            or _error_code(denied) != ErrorCode.PERMISSION_DENIED.value
+        ):
+            return CheckOutcome(
+                False,
+                f"{role} approve expect 403 PERMISSION_DENIED got "
+                f"{denied.status_code}/{_error_code(denied)}",
+                CommandResult(
+                    cmd=f"approve as {role}",
+                    exit_code=1,
+                    stdout_tail=str(denied.json())[:400],
+                ),
+            )
+        token_probe = client.get(f"/claims/{case_id}/decision").json().get(
+            "human_latch_token"
+        )
+        if token_probe not in (None, ""):
+            return CheckOutcome(
+                False,
+                f"{role} must not mint latch token",
+                CommandResult(cmd="GET decision", exit_code=1, stdout_tail=str(token_probe)),
+            )
+        steps.append(f"{role}_denied")
+
+    anon = client.post(
+        f"/claims/{case_id}/human-latch/approve",
+        json={"approved_by": "anonymous"},
+    )
+    if anon.status_code not in (401, 403):
+        return CheckOutcome(
+            False,
+            f"anonymous approve expect 401/403 got {anon.status_code}",
+            CommandResult(cmd="approve anonymous", exit_code=1, stdout_tail=str(anon.json())[:400]),
+        )
+    steps.append("anonymous_denied")
+
+    viewer_h = _login_headers(client, "viewer")
+    if viewer_h is None:
+        return CheckOutcome(
+            False,
+            "viewer re-login failed",
+            CommandResult(cmd="login viewer", exit_code=1, stdout_tail=""),
+        )
+    write = client.post(
+        "/claims/CLM-SC01-001/materials",
+        json={"material_codes": ["MEDICAL_INVOICE"], "image_ids": ["IMG-1"]},
+        headers=viewer_h,
+    )
+    if (
+        write.status_code != 403
+        or _error_code(write) != ErrorCode.PERMISSION_DENIED.value
+    ):
+        return CheckOutcome(
+            False,
+            f"viewer write expect 403 PERMISSION_DENIED got "
+            f"{write.status_code}/{_error_code(write)}",
+            CommandResult(cmd="materials as viewer", exit_code=1, stdout_tail=str(write.json())[:400]),
+        )
+    steps.append("viewer_write_denied")
+
+    appr = _approve_human_latch(client, case_id, approved_by="supervisor")
+    if appr.status_code != 200 or not appr.json().get("human_latch_token"):
+        return CheckOutcome(
+            False,
+            f"supervisor approve failed status={appr.status_code}",
+            CommandResult(
+                cmd="approve supervisor",
+                exit_code=1,
+                stdout_tail=str(appr.json())[:400],
+            ),
+        )
+    if appr.json().get("payout_ready") is not False:
+        return CheckOutcome(
+            False,
+            "supervisor approve must keep payout_ready=false",
+            CommandResult(cmd="approve supervisor", exit_code=1, stdout_tail=str(appr.json())[:400]),
+        )
+    steps.append("supervisor_ok")
+
+    return CheckOutcome(
+        ok=True,
+        detail=">".join(steps),
+        command=CommandResult(
+            cmd="latch_rbac_negatives",
+            exit_code=0,
+            stdout_tail=">".join(steps),
+        ),
+    )
+
+
 def run_machine_check(client: TestClient, check: MachineCheck) -> CheckOutcome:
     """仅按 type + params 分发。"""
     t = check.type
@@ -1224,6 +1385,8 @@ def run_machine_check(client: TestClient, check: MachineCheck) -> CheckOutcome:
         return _check_l2_close_without_payment(client, p)
     if t == "threat_inject_ocr_remark_no_latch_flip":
         return _check_threat_inject_ocr_remark_no_latch_flip(client, p)
+    if t == "latch_rbac_negatives":
+        return _check_latch_rbac_negatives(client, p)
 
     return CheckOutcome(
         ok=False,

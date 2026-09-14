@@ -24,6 +24,15 @@ def _client() -> TestClient:
     return TestClient(app)
 
 
+def _supervisor_headers(client: TestClient) -> dict[str, str]:
+    resp = client.post(
+        "/auth/login",
+        json={"username": "supervisor", "password": "supervisor"},
+    )
+    assert resp.status_code == 200, resp.text
+    return {"Authorization": f"Bearer {resp.json()['session_token']}"}
+
+
 def test_sc02_disease_fall_evaluate_to_reject_draft_with_citations() -> None:
     client = _client()
     resp = client.post(f"/claims/{CASE_ID}/evaluate")
@@ -121,6 +130,7 @@ def test_sc02_approve_latch_then_external_notify_ok_still_no_payout() -> None:
     appr = client.post(
         f"/claims/{CASE_ID}/human-latch/approve",
         json={"approved_by": "supervisor-demo"},
+        headers=_supervisor_headers(client),
     )
     assert appr.status_code == 200
     token = appr.json()["human_latch_token"]
@@ -156,6 +166,7 @@ def test_sc02_reject_latch_returns_to_edit_then_resubmit() -> None:
     rej = client.post(
         f"/claims/{CASE_ID}/human-latch/reject",
         json={"rejected_by": "supervisor-demo", "reason": "需补充病历摘要"},
+        headers=_supervisor_headers(client),
     )
     assert rej.status_code == 200
     body = rej.json()
@@ -180,6 +191,7 @@ def test_sc02_fake_citation_cannot_external_notify() -> None:
     appr = client.post(
         f"/claims/{CASE_ID}/human-latch/approve",
         json={"approved_by": "supervisor-demo"},
+        headers=_supervisor_headers(client),
     )
     token = appr.json()["human_latch_token"]
 
@@ -223,6 +235,7 @@ def test_sc02_empty_citations_cannot_external_notify() -> None:
     appr = client.post(
         f"/claims/{CASE_ID}/human-latch/approve",
         json={"approved_by": "supervisor-demo"},
+        headers=_supervisor_headers(client),
     )
     token = appr.json()["human_latch_token"]
     svc = get_service()

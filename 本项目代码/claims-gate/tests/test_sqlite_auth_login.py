@@ -17,6 +17,15 @@ def _client(db_path: Path | None = None) -> TestClient:
     return TestClient(app)
 
 
+def _supervisor_headers(client: TestClient) -> dict[str, str]:
+    resp = client.post(
+        "/auth/login",
+        json={"username": "supervisor", "password": "supervisor"},
+    )
+    assert resp.status_code == 200, resp.text
+    return {"Authorization": f"Bearer {resp.json()['session_token']}"}
+
+
 def test_seed_roles_can_login_and_session_exposes_role() -> None:
     client = _client()
     for username, role in (
@@ -94,6 +103,7 @@ def test_latch_events_survive_restart(tmp_path: Path) -> None:
     approved = client.post(
         "/claims/CLM-SC02-001/human-latch/approve",
         json={"approved_by": "supervisor"},
+        headers=_supervisor_headers(client),
     )
     assert approved.status_code == 200, approved.text
     token = approved.json()["human_latch_token"]

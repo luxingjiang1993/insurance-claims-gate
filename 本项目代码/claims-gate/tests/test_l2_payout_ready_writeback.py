@@ -39,9 +39,16 @@ def _approve_token(client: TestClient, case_id: str) -> str:
     ev = client.post(f"/claims/{case_id}/evaluate")
     assert ev.status_code == 200, ev.text
     assert ev.json()["human_latch_required"] is True
+    login = client.post(
+        "/auth/login",
+        json={"username": "supervisor", "password": "supervisor"},
+    )
+    assert login.status_code == 200, login.text
+    headers = {"Authorization": f"Bearer {login.json()['session_token']}"}
     appr = client.post(
         f"/claims/{case_id}/human-latch/approve",
         json={"approved_by": "supervisor-l2"},
+        headers=headers,
     )
     assert appr.status_code == 200, appr.text
     token = appr.json()["human_latch_token"]

@@ -24,6 +24,15 @@ def _client() -> TestClient:
     return TestClient(app)
 
 
+def _supervisor_headers(client: TestClient) -> dict[str, str]:
+    resp = client.post(
+        "/auth/login",
+        json={"username": "supervisor", "password": "supervisor"},
+    )
+    assert resp.status_code == 200, resp.text
+    return {"Authorization": f"Bearer {resp.json()['session_token']}"}
+
+
 def test_approve_small_vs_large_amount_tier_latch_diff() -> None:
     """通赔建议：小额档可直通草案；大额档必闸；均可经 HTTP 区分。"""
     client = _client()
@@ -149,6 +158,7 @@ def test_investigate_auto_freeze_unfreeze_requires_latch() -> None:
     appr = client.post(
         f"/claims/{CASE_BASE}/human-latch/approve",
         json={"approved_by": "invest-supervisor"},
+        headers=_supervisor_headers(client),
     )
     assert appr.status_code == 200
     token = appr.json()["human_latch_token"]
@@ -234,9 +244,11 @@ def test_dual_token_required_on_d_tier_sensitivity_uplift() -> None:
     assert body["dual_token_required"] is True
     assert body["human_latch_required"] is True
 
+    headers = _supervisor_headers(client)
     bare = client.post(
         "/claims/CLM-SC01-001/human-latch/approve",
         json={"approved_by": "supervisor-a"},
+        headers=headers,
     )
     assert bare.status_code in (403, 422)
     assert bare.json()["detail"]["error_code"] == ErrorCode.LATCH_REQUIRED.value
@@ -244,6 +256,7 @@ def test_dual_token_required_on_d_tier_sensitivity_uplift() -> None:
     ok = client.post(
         "/claims/CLM-SC01-001/human-latch/approve",
         json={"approved_by": "supervisor-a", "second_approver": "supervisor-b"},
+        headers=headers,
     )
     assert ok.status_code == 200, ok.text
     assert ok.json()["human_latch_token"]
