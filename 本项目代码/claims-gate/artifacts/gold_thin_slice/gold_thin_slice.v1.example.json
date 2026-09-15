@@ -1,0 +1,41 @@
+{
+  "schema": "claims-gate-gold-thin-slice-v1",
+  "dataset_id": "gold-thin-slice-alpha-example",
+  "is_gold_thin_slice": true,
+  "gold_ops_complete": false,
+  "dual_annotation_workflow": false,
+  "docs_note": "金标薄切片外形样例：双标+第三人角色占位；人名不进仓；n=1 故 H4=deferred；禁止宣称 grounded；禁止宣称 ≥300 运营已完成；非真实外聘双标运营",
+  "rewrote_from": "REF-CASE-OPENEVALS",
+  "records": [
+    {
+      "case_id": "CLM-SC01-001",
+      "inputs": {
+        "scene": "sc01",
+        "suggestion_span": "example-only"
+      },
+      "expected": {
+        "citation_faithful": true,
+        "supports_claim": true
+      },
+      "annotation": {
+        "annotator_a_role": "external_claims_advisor_a",
+        "annotator_b_role": "external_claims_advisor_b",
+        "adjudicator_role": "third_party_adjudicator",
+        "label_a": {
+          "citation_faithful": true,
+          "supports_claim": true
+        },
+        "label_b": {
+          "citation_faithful": true,
+          "supports_claim": true
+        },
+        "adjudication": {
+          "final": "agree",
+          "reason_code": "consensus"
+        },
+        "disagreement": false
+      },
+      "notes": "外形样例；非真实外聘顾问标注"
+    }
+  ]
+}
