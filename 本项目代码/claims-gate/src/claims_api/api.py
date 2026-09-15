@@ -241,23 +241,30 @@ class EvalRunCreateIn(BaseModel):
 
 
 class GoldLabelRecordIn(BaseModel):
-    """金标钩子单行：必须关联案件键。"""
+    """金标/薄切片单行：必须关联案件键；薄切片可带双标 annotation。"""
 
     case_id: str = Field(min_length=1)
     inputs: dict[str, Any] = Field(default_factory=dict)
     expected: dict[str, Any] = Field(default_factory=dict)
     notes: str = ""
+    annotation: dict[str, Any] | None = None
 
 
 class GoldLabelImportIn(BaseModel):
-    """金标数据集导入钩子；禁止把运营完成写成已交付。"""
+    """金标/薄切片导入钩子；禁止把运营完成写成已交付。"""
+
+    model_config = {"extra": "allow", "populate_by_name": True}
 
     dataset_id: str = Field(min_length=1)
     records: list[GoldLabelRecordIn]
     gold_ops_complete: bool = False
     dual_annotation_workflow: bool = False
+    is_gold_thin_slice: bool = False
     docs_note: str | None = None
     dataset_schema: str | None = None
+    # JSON 字段名 schema（避免与 BaseModel.schema 方法名冲突用 alias）
+    schema_id: str | None = Field(default=None, alias="schema")
+    rewrote_from: str | None = None
 
 
 def get_service() -> ClaimsService:
@@ -1105,9 +1112,9 @@ def import_gold_labels(
     body: GoldLabelImportIn,
     authorization: str | None = Header(default=None),
 ) -> dict[str, Any]:
-    """金标数据集导入钩子：记录须含 case_id；不实现双人全量运营。
+    """金标/薄切片导入：记录须含 case_id；薄切片须双标+第三人角色占位。
 
-    旁路：失败不改写人闸；不进 machine_check；不得宣称金标已达标。
+    旁路：失败不改写人闸；不进 machine_check；不得宣称金标已达标或 ≥300。
     """
     from missions.gold_label_io import GoldLabelIoError, import_dataset, parse_dataset
 
@@ -1120,9 +1127,10 @@ def import_gold_labels(
                 "message": "导入金标数据集须登录会话",
             },
         )
-    payload = body.model_dump()
+    payload = body.model_dump(by_alias=True)
     if payload.get("dataset_schema") and not payload.get("schema"):
         payload["schema"] = payload["dataset_schema"]
+    payload.pop("schema_id", None)
     try:
         dataset = parse_dataset(payload)
         result = import_dataset(
@@ -1147,7 +1155,7 @@ def export_gold_labels(
     case_id: str | None = None,
     authorization: str | None = Header(default=None),
 ) -> dict[str, Any]:
-    """金标数据集导出钩子：可按 dataset_id / case_id 过滤；完成标志恒为 false。"""
+    """金标/薄切片导出：可按 dataset_id / case_id 过滤；附带 h4_status。"""
     from missions.gold_label_io import EVAL_GATE_ROLE, export_dataset
 
     session = _authorize("export_gold_labels", authorization)

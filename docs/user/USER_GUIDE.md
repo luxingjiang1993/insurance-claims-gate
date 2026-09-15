@@ -85,6 +85,7 @@
 | OpenEval 评测排行榜（可排序） | Preview（W2） | Issue 30：`GET /eval/leaderboard`；真源本地 SQLite `eval_runs`；主指标 `pass_rate`；**榜分 ≠ 合门禁 / ≠ `machine_check` 通过** |
 | 作业壳「评测」独立入口 | Preview（W2） | Issue 31：主导航「评测」；触发跑次 / 排行榜 / 按提交者过滤；与门禁主路径视觉分离；≥2 账号协作演示；拒绝不假成功 |
 | 金标导入/导出钩子 | Preview（W2） | Issue 32：`POST /eval/gold-labels/import`、`GET /eval/gold-labels/export`、`python -m missions.gold_label_io`；须关联 `case_id`；**不是** ≥300 金标运营，不得宣称已达标 |
+| 金标薄切片协议 | Preview（2b-P-α） | Issue 38：双标 + 第三人裁决（角色占位）；导入导出加深；当前 **H4=`deferred`**（n&lt;10），禁止宣称 grounded；禁止宣称 ≥300 |
 | Eval Ops 手册 + 分数≠合门禁文案 | Preview（W2） | Issue 33：本手册 §3.3 / §7.1a；默认 `pytest -q` 仍绿；评测失败不进 S0 必过；金标全量运营仍 Deferred |
 | 核赔作业 UI 全作业流 | Deferred | 真连 L2 / 生产壳等后续 |
 | 真连核心 L2 / 真 OCR | Deferred | 有干系人后 |
@@ -433,17 +434,19 @@ POST /claims/{case_id}/l2/close
 **单一数据真源（跑次/榜）：** 本地 SQLite 表 `eval_runs`（不读 LangSmith 实验 API 驱动榜）。  
 **金标钩子真源：** 本地 SQLite 表 `gold_label_records`（每条须有 `case_id`）。
 
+**金标薄切片（Issue 38 / 2b-P-α）：** 在 W2 钩子上加深「外聘核赔顾问双标 + 第三人裁决」协议。角色字段只用占位 id（如 `external_claims_advisor_a` / `external_claims_advisor_b` / `third_party_adjudicator`），**人名不进仓**。导入 schema 可为 `claims-gate-gold-thin-slice-v1`；每条可带 `annotation`。响应含 `h4_status`：α 目标 n≥10，**当前样例不足 → `deferred`，禁止宣称 grounded**；**禁止宣称 ≥300 运营已完成**。验收清单：`本项目代码/claims-gate/docs/acceptance/gold-thin-slice.md`。外形样例：`artifacts/gold_thin_slice/gold_thin_slice.v1.example.json`（非真双标运营）。
+
 | Method | Path | 角色 | 用途 |
 |--------|------|------|------|
 | POST | `/eval/runs` | `adjuster` / `supervisor` | 触发 OpenEval 旁路跑次并持久化；`actor_user_id` = 当前用户 |
 | GET | `/eval/runs` | 已登录（含 `viewer`） | 列出跑次；可选 `?actor_user_id=` 过滤 |
 | GET | `/eval/leaderboard` | 已登录（含 `viewer`） | 排行榜：实验名 / 主指标 `pass_rate` / 时间 / 提交者；`?order=desc\|asc` 按主指标排序（稳定） |
-| POST | `/eval/gold-labels/import` | `adjuster` / `supervisor` | 导入数据集钩子；`records[].case_id` 必填；`gold_ops_complete=true` 被拒绝 |
-| GET | `/eval/gold-labels/export` | 已登录（含 `viewer`） | 导出钩子；可选 `?dataset_id=` / `?case_id=`；响应 `gold_ops_complete` 恒为 false |
+| POST | `/eval/gold-labels/import` | `adjuster` / `supervisor` | 导入金标/薄切片；`records[].case_id` 必填；薄切片须 `annotation`；`gold_ops_complete=true` 被拒绝；回执含 `h4_status` |
+| GET | `/eval/gold-labels/export` | 已登录（含 `viewer`） | 导出；可选 `?dataset_id=` / `?case_id=`；`gold_ops_complete` 恒 false；含 `h4_status` / 可选 `protocol` |
 
 无 LangSmith Key 时仍落本地表，响应含 `langsmith_degraded=true`。榜上分数 **不是** 条款门禁合门禁条件；**不等于** `machine_check` 通过。
 
-**约定脚本：** 在 `本项目代码/claims-gate/` 执行 `python -m missions.gold_label_io import --file artifacts/gold_label_dataset_preview.json` 或 `export --file <out.json>`（可用 `--db` / `CLAIMS_GATE_DB`）。默认 `pytest -q` **不要求**金标 I/O / 评测旁路全绿（`-m eval_bypass` 为可选套件）。
+**约定脚本：** 在 `本项目代码/claims-gate/` 执行 `python -m missions.gold_label_io import --file artifacts/gold_thin_slice/gold_thin_slice.v1.example.json`（或 W2 样例 `artifacts/gold_label_dataset_preview.json`）或 `export --file <out.json>`（可用 `--db` / `CLAIMS_GATE_DB`）。默认 `pytest -q` **不要求**金标 I/O / 评测旁路全绿（`-m eval_bypass` 为可选套件）。
 
 **作业壳入口：** 登录后主导航点「评测」（与「案件作业」并列）。操作步骤见 [§3.3](#33-eval-ops-previeww2评测台与门禁主路径区分)。页面标明评测旁路、非终裁、无秒赔、**不宣称金标已达标**。
 

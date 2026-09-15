@@ -81,6 +81,8 @@ CREATE TABLE IF NOT EXISTS gold_label_records (
     notes TEXT NOT NULL DEFAULT '',
     actor_user_id TEXT NOT NULL,
     imported_at TEXT NOT NULL,
+    annotation_json TEXT,
+    is_gold_thin_slice INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (dataset_id, case_id)
 );
 """
@@ -97,6 +99,7 @@ class SqliteCaseStore:
         self._conn.execute("PRAGMA foreign_keys = ON")
         self._conn.executescript(_SCHEMA)
         self._ensure_ledger_trace_id_column()
+        self._ensure_gold_thin_slice_columns()
         self._conn.commit()
 
     def _ensure_ledger_trace_id_column(self) -> None:
@@ -108,6 +111,24 @@ class SqliteCaseStore:
         if "trace_id" not in cols:
             self._conn.execute(
                 "ALTER TABLE ledger_summary ADD COLUMN trace_id TEXT"
+            )
+
+    def _ensure_gold_thin_slice_columns(self) -> None:
+        """旧库补齐金标薄切片 annotation / 标志列（Issue 38）。"""
+        cols = {
+            str(r[1])
+            for r in self._conn.execute(
+                "PRAGMA table_info(gold_label_records)"
+            ).fetchall()
+        }
+        if "annotation_json" not in cols:
+            self._conn.execute(
+                "ALTER TABLE gold_label_records ADD COLUMN annotation_json TEXT"
+            )
+        if "is_gold_thin_slice" not in cols:
+            self._conn.execute(
+                "ALTER TABLE gold_label_records "
+                "ADD COLUMN is_gold_thin_slice INTEGER NOT NULL DEFAULT 0"
             )
 
     def close(self) -> None:
@@ -384,20 +405,31 @@ class SqliteCaseStore:
         notes: str,
         actor_user_id: str,
         imported_at: str,
+        annotation: dict[str, Any] | None = None,
+        is_gold_thin_slice: bool = False,
     ) -> dict[str, Any]:
-        """按 dataset_id+case_id 覆盖写入金标钩子行（非双人标注工作流）。"""
+        """按 dataset_id+case_id 覆盖写入金标/薄切片行（非 ≥300 全量运营）。"""
+        annotation_json = (
+            json.dumps(annotation, ensure_ascii=False)
+            if annotation is not None
+            else None
+        )
+        thin_flag = 1 if is_gold_thin_slice else 0
         self._conn.execute(
             """
             INSERT INTO gold_label_records(
                 dataset_id, case_id, inputs_json, expected_json,
-                notes, actor_user_id, imported_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                notes, actor_user_id, imported_at,
+                annotation_json, is_gold_thin_slice
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(dataset_id, case_id) DO UPDATE SET
                 inputs_json = excluded.inputs_json,
                 expected_json = excluded.expected_json,
                 notes = excluded.notes,
                 actor_user_id = excluded.actor_user_id,
-                imported_at = excluded.imported_at
+                imported_at = excluded.imported_at,
+                annotation_json = excluded.annotation_json,
+                is_gold_thin_slice = excluded.is_gold_thin_slice
             """,
             (
                 dataset_id,
@@ -407,6 +439,8 @@ class SqliteCaseStore:
                 notes,
                 actor_user_id,
                 imported_at,
+                annotation_json,
+                thin_flag,
             ),
         )
         self._conn.commit()
@@ -418,6 +452,8 @@ class SqliteCaseStore:
             "notes": notes,
             "actor_user_id": actor_user_id,
             "imported_at": imported_at,
+            "annotation": dict(annotation) if annotation is not None else None,
+            "is_gold_thin_slice": bool(is_gold_thin_slice),
         }
 
     def list_gold_label_records(
@@ -426,10 +462,11 @@ class SqliteCaseStore:
         dataset_id: str | None = None,
         case_id: str | None = None,
     ) -> list[dict[str, Any]]:
-        """列出金标钩子行；可按数据集或 case_id 过滤。"""
+        """列出金标/薄切片行；可按数据集或 case_id 过滤。"""
         sql = """
             SELECT dataset_id, case_id, inputs_json, expected_json,
-                   notes, actor_user_id, imported_at
+                   notes, actor_user_id, imported_at,
+                   annotation_json, is_gold_thin_slice
             FROM gold_label_records
             WHERE 1=1
         """
@@ -444,6 +481,12 @@ class SqliteCaseStore:
         rows = self._conn.execute(sql, params).fetchall()
         out: list[dict[str, Any]] = []
         for row in rows:
+            ann_raw = row["annotation_json"]
+            annotation = (
+                dict(json.loads(ann_raw))
+                if ann_raw is not None and str(ann_raw).strip()
+                else None
+            )
             out.append(
                 {
                     "dataset_id": str(row["dataset_id"]),
@@ -453,6 +496,8 @@ class SqliteCaseStore:
                     "notes": str(row["notes"]),
                     "actor_user_id": str(row["actor_user_id"]),
                     "imported_at": str(row["imported_at"]),
+                    "annotation": annotation,
+                    "is_gold_thin_slice": bool(row["is_gold_thin_slice"]),
                 }
             )
         return out
