@@ -10,17 +10,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from missions.demo_retrieval_seeds import FORBIDDEN_CLAIM_PHRASES
+
 ROOT = Path(__file__).resolve().parents[1]
 SEEDS_DIR = ROOT / "artifacts" / "demo_retrieval_seeds"
 MAIN_PATH = SEEDS_DIR / "demo_retrieval_seeds.v1.json"
 AUGMENT_DIR = SEEDS_DIR / "augment"
-
-FORBIDDEN_CLAIM_PHRASES = (
-    "金标薄切片",
-    "本集为金标",
-    "本数据集是金标",
-    "金标已达标",
-)
 
 
 def test_frozen_main_set_exists_and_loads() -> None:

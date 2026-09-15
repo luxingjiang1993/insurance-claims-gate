@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 SCHEMA_ID = "claims-gate-demo-retrieval-seeds-v1"
 LABEL = "Demo 检索种子"
@@ -113,6 +113,16 @@ class DemoRetrievalSeeds:
         }
 
 
+def _require_str(payload: dict[str, Any], key: str) -> str:
+    """必填字符串字段；缺省或空白即失败（无静默默认）。"""
+    if key not in payload:
+        raise DemoRetrievalSeedsError(f"缺少必填字段: {key}")
+    value = str(payload[key]).strip()
+    if not value:
+        raise DemoRetrievalSeedsError(f"字段 {key} 不得为空")
+    return value
+
+
 def _assert_no_forbidden_claims(raw_text: str) -> None:
     for phrase in FORBIDDEN_CLAIM_PHRASES:
         if phrase in raw_text:
@@ -120,21 +130,24 @@ def _assert_no_forbidden_claims(raw_text: str) -> None:
 
 
 def _parse_query(row: dict[str, Any], *, index: int) -> DemoRetrievalQuery:
-    query_id = str(row.get("query_id") or "").strip()
-    bucket = str(row.get("bucket") or "").strip()
-    query = str(row.get("query") or "").strip()
-    authorship = str(row.get("authorship") or "human").strip() or "human"
-    if not query_id:
-        raise DemoRetrievalSeedsError(f"queries[{index}] 缺少 query_id")
+    if not isinstance(row, dict):
+        raise DemoRetrievalSeedsError(f"queries[{index}] 须为 object")
+    try:
+        query_id = _require_str(row, "query_id")
+        bucket = _require_str(row, "bucket")
+        query = _require_str(row, "query")
+        authorship = _require_str(row, "authorship")
+    except DemoRetrievalSeedsError as exc:
+        raise DemoRetrievalSeedsError(f"queries[{index}]: {exc}") from exc
     if bucket not in BUCKET_COUNTS:
         raise DemoRetrievalSeedsError(f"{query_id}: 非法 bucket={bucket!r}")
-    if not query:
-        raise DemoRetrievalSeedsError(f"{query_id}: query 为空")
     if authorship != "human":
         raise DemoRetrievalSeedsError(
             f"{query_id}: 主集 authorship 必须为 human，造问请放 augment/"
         )
-    expected = dict(row.get("expected") or {})
+    if "expected" not in row or not isinstance(row["expected"], dict):
+        raise DemoRetrievalSeedsError(f"{query_id}: expected 须为 object")
+    expected = dict(row["expected"])
     if bucket in (BUCKET_CLAUSE, BUCKET_SEMANTIC):
         relevant = expected.get("relevant_clause_items")
         if not isinstance(relevant, list) or not relevant:
@@ -151,13 +164,14 @@ def _parse_query(row: dict[str, Any], *, index: int) -> DemoRetrievalQuery:
             raise DemoRetrievalSeedsError(
                 f"{query_id}: abstain_reason 非法: {reason!r}"
             )
+    notes = str(row["notes"]) if "notes" in row else ""
     return DemoRetrievalQuery(
         query_id=query_id,
         bucket=bucket,
         query=query,
         expected=expected,
         authorship=authorship,
-        notes=str(row.get("notes") or ""),
+        notes=notes,
     )
 
 
@@ -165,15 +179,19 @@ def parse_demo_retrieval_seeds(payload: dict[str, Any]) -> DemoRetrievalSeeds:
     """解析并校验主集结构（恰好 40=15+20+5）。"""
     if not isinstance(payload, dict):
         raise DemoRetrievalSeedsError("根须为 object")
-    schema = str(payload.get("schema") or "").strip()
+    schema = _require_str(payload, "schema")
     if schema != SCHEMA_ID:
         raise DemoRetrievalSeedsError(f"schema 须为 {SCHEMA_ID}")
-    label = str(payload.get("label") or "").strip()
+    label = _require_str(payload, "label")
     if label != LABEL:
         raise DemoRetrievalSeedsError(f"label 须为 {LABEL!r}")
-    if payload.get("is_gold_label") is True:
+    dataset_id = _require_str(payload, "dataset_id")
+    version = _require_str(payload, "version")
+    docs_note = _require_str(payload, "docs_note")
+    rewrote_from = _require_str(payload, "rewrote_from")
+    if payload.get("is_gold_label") is not False:
         raise DemoRetrievalSeedsError("is_gold_label 必须为 false")
-    if payload.get("is_gold_thin_slice") is True:
+    if payload.get("is_gold_thin_slice") is not False:
         raise DemoRetrievalSeedsError("is_gold_thin_slice 必须为 false")
 
     rows = payload.get("queries")
@@ -188,13 +206,13 @@ def parse_demo_retrieval_seeds(payload: dict[str, Any]) -> DemoRetrievalSeeds:
         raise DemoRetrievalSeedsError("query_id 必须唯一")
 
     dataset = DemoRetrievalSeeds(
-        dataset_id=str(payload.get("dataset_id") or "demo-retrieval-seeds-v1"),
+        dataset_id=dataset_id,
         queries=queries,
         schema=schema,
         label=label,
-        version=str(payload.get("version") or "1.0"),
-        docs_note=str(payload.get("docs_note") or DEFAULT_DOCS_NOTE),
-        rewrote_from=str(payload.get("rewrote_from") or "人写"),
+        version=version,
+        docs_note=docs_note,
+        rewrote_from=rewrote_from,
     )
     counts = dataset.bucket_counts()
     if counts != BUCKET_COUNTS:
@@ -216,31 +234,22 @@ def load_demo_retrieval_seeds(path: Path | str) -> DemoRetrievalSeeds:
     return parse_demo_retrieval_seeds(payload)
 
 
-def default_main_path(*, root: Path | None = None) -> Path:
-    """默认主集路径：artifacts/demo_retrieval_seeds/demo_retrieval_seeds.v1.json。"""
-    base = root or Path(__file__).resolve().parents[2]
-    return base / "artifacts" / "demo_retrieval_seeds" / "demo_retrieval_seeds.v1.json"
+def default_main_path(*, root: Path) -> Path:
+    """主集路径：{root}/artifacts/demo_retrieval_seeds/demo_retrieval_seeds.v1.json。"""
+    return root / "artifacts" / "demo_retrieval_seeds" / "demo_retrieval_seeds.v1.json"
 
 
 def list_augment_paths(seeds_dir: Path | str) -> list[Path]:
-    """列出隔离增广文件；空目录表示尚未造问。"""
+    """列出隔离增广数据文件；augment/ 目录必须存在（可为空，仅占位说明）。"""
     root = Path(seeds_dir)
     augment = root / "augment"
     if not augment.is_dir():
-        return []
+        raise DemoRetrievalSeedsError(
+            f"污染隔离目录不存在: {augment}（须预留 augment/）"
+        )
     out: list[Path] = []
     for path in sorted(augment.rglob("*")):
         if path.is_file() and path.suffix.lower() in {".json", ".jsonl"}:
             # 说明文件 / 占位 README 不计；仅数据文件
             out.append(path)
     return out
-
-
-def iter_by_bucket(
-    dataset: DemoRetrievalSeeds,
-    bucket: str,
-) -> Iterable[DemoRetrievalQuery]:
-    """按分桶迭代；供后续 S2 Recall 票使用。"""
-    for q in dataset.queries:
-        if q.bucket == bucket:
-            yield q
