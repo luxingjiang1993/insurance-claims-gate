@@ -11,6 +11,7 @@ Issue 16 作业壳列表/详情可读字段 + CORS REF-MISSIONS；
 Issue 19 AI 辅助建议降级/关键词/采纳再 evaluate REF-MISSIONS, REF-COURSE-03, REF-CASE-HYBRID, REF-RAG-CY；
 Issue 21 本案流水 + 本地 JSONL span（LangSmith 仅配置位）REF-MISSIONS；
 Issue 29 评测跑次持久化 + actor 归因 REF-CASE-OPENEVALS, REF-CASE-EVAL-ADVISOR, REF-MISSIONS
+Issue 30 评测排行榜排序 REF-CASE-EVAL-ADVISOR, REF-CASE-OPENEVALS, REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -1020,6 +1021,56 @@ def list_eval_runs(
     return {
         "runs": [r.to_dict() for r in runs],
         "filter_actor_user_id": actor_user_id,
+        "gate_role": "bypass_not_machine_check",
+        "blocks_track_a_gate": False,
+    }
+
+
+@app.get("/eval/leaderboard")
+def list_eval_leaderboard(
+    order: str = "desc",
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """评测排行榜：实验名 / 主指标 / 时间 / 提交者；可按主指标排序。
+
+    单一真源：本地 SQLite eval_runs（不读 LangSmith 实验 API）。
+    旁路：榜分不进 machine_check；不改写人闸。
+    """
+    from missions.eval_leaderboard import (
+        DATA_SOURCE,
+        PRIMARY_METRIC_NAME,
+        build_leaderboard,
+    )
+
+    session = _authorize("list_eval_leaderboard", authorization)
+    if session is None:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error_code": ErrorCode.AUTH_FAILED.value,
+                "message": "查看评测排行榜须登录会话",
+            },
+        )
+    sort_order = (order or "desc").lower()
+    if sort_order not in ("asc", "desc"):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": ErrorCode.VALIDATION_FAILED.value,
+                "message": "order 仅支持 asc 或 desc",
+            },
+        )
+    rows = build_leaderboard(
+        get_store(),
+        sort_by="primary_metric",
+        order=sort_order,  # type: ignore[arg-type]
+    )
+    return {
+        "rows": [r.to_dict() for r in rows],
+        "sort_by": "primary_metric",
+        "order": sort_order,
+        "primary_metric_name": PRIMARY_METRIC_NAME,
+        "data_source": DATA_SOURCE,
         "gate_role": "bypass_not_machine_check",
         "blocks_track_a_gate": False,
     }

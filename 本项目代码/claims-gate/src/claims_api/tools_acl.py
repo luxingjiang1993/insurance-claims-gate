@@ -44,6 +44,7 @@ ALLOWED_TOOL_NAMES: frozenset[str] = frozenset(
         "adopt_assist",
         "create_eval_run",
         "list_eval_runs",
+        "list_eval_leaderboard",
     }
 )
 
@@ -68,6 +69,7 @@ VIEWER_ALLOWED_TOOLS: frozenset[str] = frozenset(
         "auth_me",
         "auth_logout",
         "list_eval_runs",
+        "list_eval_leaderboard",
     }
 )
 

@@ -92,8 +92,8 @@
 
 ## Phase 2a · W2 — Eval Ops（进行中）
 
-**Status:** 实现主路径已启动；完整 Eval Ops（排行榜 / 作业壳入口 / 手册收口）未关闭。  
-W1 DoD（票 28）已满足。勿将排行榜写成已上线。
+**Status:** 实现主路径进行中；排行榜 API（票 30）已 Preview；作业壳入口 / 手册收口未关闭。  
+W1 DoD（票 28）已满足。勿将作业壳评测台写成已上线。
 
 ---
 
@@ -102,9 +102,10 @@ W1 DoD（票 28）已满足。勿将排行榜写成已上线。
 ### Added
 
 - 评测跑次持久化 + actor 归因（Issue 29 Preview）：`POST /eval/runs`、`GET /eval/runs?actor_user_id=`；复用 W0 演示用户；OpenEval 旁路；默认 `pytest -q` 不要求评测绿。`Rewrote from: REF-CASE-OPENEVALS, REF-CASE-EVAL-ADVISOR, REF-MISSIONS`。
+- 评测排行榜可排序（Issue 30 Preview）：`GET /eval/leaderboard`；字段含实验名 / 主指标 `pass_rate` / 时间 / 提交者；单一真源本地 SQLite `eval_runs`；榜分不进 `machine_check` / 默认 CI。`Rewrote from: REF-CASE-EVAL-ADVISOR, REF-CASE-OPENEVALS, REF-MISSIONS`。
 
 ### Not yet（仍属 W2 未交付）
 
-- 排行榜排序、作业壳「评测」入口、金标 I/O 钩子、Eval Ops 手册收口（Issues 30–33）。
+- 作业壳「评测」入口、金标 I/O 钩子、Eval Ops 手册收口（Issues 31–33）。
 
 ---

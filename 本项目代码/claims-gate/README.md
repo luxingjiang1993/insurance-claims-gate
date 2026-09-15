@@ -231,6 +231,21 @@ pytest tests/langsmith_integration/test_openeval_experiment_real.py -m langsmith
 - 默认测：`tests/eval/test_eval_run_persist_actor.py`（S0 隔离 + 本地表过滤）；两用户跑次：`pytest -m eval_bypass`
 - **不含**排行榜排序（票 30）与作业壳评测入口（票 31）
 
+## Issue 30 评测排行榜：实验名 / 主指标 / 时间 / 提交者 + 可排序
+
+`Rewrote from: REF-CASE-EVAL-ADVISOR, REF-CASE-OPENEVALS, REF-MISSIONS`
+
+**前置：** 票 29 已 resolved。**旁路，非合门禁主缝。**
+
+**单一数据真源：** 本地 SQLite `eval_runs`（不读 LangSmith 实验 API 驱动榜）。
+
+已落地：
+
+- `src/missions/eval_leaderboard.py`：主指标 `pass_rate`；按主指标升降序，同分按 `created_at`/`run_id` 稳定排序
+- HTTP：`GET /eval/leaderboard?order=desc|asc`（已登录含 viewer 可读）
+- 默认测：`tests/eval/test_eval_leaderboard_sort.py`（字段 + 稳定排序 + 两用户种子可见）；两用户 HTTP：`pytest -m eval_bypass`
+- **不含**作业壳「评测」入口（票 31）
+
 ## Issue 16 作业壳：登录 + 案件只读浏览
 
 `Rewrote from: REF-MISSIONS`
