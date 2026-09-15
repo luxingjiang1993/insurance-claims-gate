@@ -7,7 +7,7 @@
 | 文件 | `spec-2a-runnable-product-floor.md`（**本文件**） |
 | 关系 | **增量 SPEC**；**不废止、不修改**同目录 `spec.md`（修订 2.4，轨 A 门禁真源） |
 | prd_id | `PRD-02-INSURANCE-CLAIMS-GATE` v2.0 + 本 SPEC 定义的作业壳切片 |
-| Status | `ready-for-agent`（**索引 / 总览**；各波实现真源见下表） |
+| Status | `closed`（**索引 / 总览**；W0–W2 各波独立 SPEC 均已 `closed`） |
 | 主测试接缝 | **S0** HTTP 黑盒 + `machine_check`（合门禁唯一主缝）；**S1** 同 HTTP 面扩展（会话/RBAC、AI 辅助建议、采纳后再 evaluate）；**S2** 旁路 `track_llm_optional` / OpenEval（不进默认绿） |
 | 交付波次 | **W0 → W1 → W2**（同一产品愿景，分层 DoD） |
 | **各波独立 SPEC（实现时优先打开）** | W0 [`spec-2a-w0-dev-complete.md`](./spec-2a-w0-dev-complete.md) · W1 [`spec-2a-w1-pilot-complete.md`](./spec-2a-w1-pilot-complete.md) · W2 [`spec-2a-w2-eval-ops.md`](./spec-2a-w2-eval-ops.md) |
@@ -41,15 +41,15 @@
 
 ### W0 — Dev Complete（可运行地板）
 
-- [ ] 作业壳套餐 C：登录、案件、材料/一次补件、规则评估与裁决草案、人闸、文书分态、AI 辅助建议区、本案流水  
-- [ ] SQLite：案件/材料/草案/人闸事件/ledger 摘要/用户角色  
-- [ ] 三角色 RBAC：仅 supervisor 可批对外通知 / 出款就绪类人闸  
-- [ ] `.env.example`：LLM 与可选观测键；无 LLM Key 时规则 SC-01/02/03 仍可点完  
-- [ ] AI 辅助建议 API：无 Key 返回明确降级；有 Key 可出辅助建议；**不能**直接写 `payout_ready` / 签发人闸令牌  
-- [ ] 关键词检索支撑 AI 路径提名（向量可延后到 W1）  
-- [ ] 本地 trace 导出（文件或等价）；**不要求**真 LangSmith Key  
-- [ ] `pytest -q`（轨 A / S0）全绿；无 LangSmith、无 LLM  
-- [ ] 启动说明写入 `docs/user/`（Developer Preview 诚实标注）
+- [x] 作业壳套餐 C：登录、案件、材料/一次补件、规则评估与裁决草案、人闸、文书分态、AI 辅助建议区、本案流水  
+- [x] SQLite：案件/材料/草案/人闸事件/ledger 摘要/用户角色  
+- [x] 三角色 RBAC：仅 supervisor 可批对外通知 / 出款就绪类人闸  
+- [x] `.env.example`：LLM 与可选观测键；无 LLM Key 时规则 SC-01/02/03 仍可点完  
+- [x] AI 辅助建议 API：无 Key 返回明确降级；有 Key 可出辅助建议；**不能**直接写 `payout_ready` / 签发人闸令牌  
+- [x] 关键词检索支撑 AI 路径提名（向量可延后到 W1）  
+- [x] 本地 trace 导出（文件或等价）；**不要求**真 LangSmith Key  
+- [x] `pytest -q`（轨 A / S0）全绿；无 LangSmith、无 LLM  
+- [x] 启动说明写入 `docs/user/`（Developer Preview 诚实标注）
 
 ### W1 — Pilot Complete（试点可观测）
 

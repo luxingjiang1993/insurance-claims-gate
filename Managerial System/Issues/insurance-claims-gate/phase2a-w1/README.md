@@ -23,6 +23,6 @@
  └── 26 ── 27 ──┴──────┴── 28 (W1 close)
 ```
 
-**本波已关闭。** 下一波 frontier 见 [`../phase2a-w2/`](../phase2a-w2/)（须 28 resolved；frontier **29**）。
+**本波已关闭。** W2 亦已关闭（29–33）；Phase 2a 波次 frontier 为空。详见 [`../phase2a-w2/`](../phase2a-w2/) 与 [`../README.md`](../README.md)。
 
-**本波不做：** OpenEval 排行榜、多人协作、≥300 金标运营。
+**本波不做：** OpenEval 排行榜、多人协作、≥300 金标运营（已由 W2 外形交付 / 金标运营仍延后）。
