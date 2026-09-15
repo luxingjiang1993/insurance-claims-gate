@@ -10,7 +10,7 @@ esolved
 |----|------|------------|--------|
 | 34 | Pilot 默认 cloud embedding | — | ready-for-agent |
 | 35 | BM25 关键词腿 | — | resolved |
-| 36 | Demo 检索种子 40 | — | ready-for-agent |
+| 36 | Demo 检索种子 40 | — | resolved |
 | 37 | citation Schema 槽 | — | ready-for-agent |
 | 38 | 金标薄切片 | — | ready-for-agent |
 | 39 | 辅助拒答 + 壳 | 37 | ready-for-agent |

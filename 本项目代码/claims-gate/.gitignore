@@ -2,6 +2,8 @@ artifacts/*
 !artifacts/.gitkeep
 !artifacts/spot_check_template.md
 !artifacts/spot_check_sample_sc01.json
+!artifacts/demo_retrieval_seeds/
+!artifacts/demo_retrieval_seeds/**
 data/
 *.sqlite
 .pytest_cache/

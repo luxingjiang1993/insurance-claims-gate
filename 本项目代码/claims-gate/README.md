@@ -340,4 +340,14 @@ pytest tests/langsmith_integration/test_openeval_experiment_real.py -m langsmith
 - 规则 evaluate 路径零检索依赖（不得导入 `jieba` / `rank_bm25` / `hybrid_retrieval`）
 - S1：`tests/test_hybrid_retrieval.py`；S2 融合：`tests/track_llm_optional/test_hybrid_retrieval_fusion.py`（默认绿排除）
 
+## Issue 36 Demo 检索种子（40 条冻结）
+
+`Rewrote from: 人写`
+
+已落地：
+
+- `artifacts/demo_retrieval_seeds/demo_retrieval_seeds.v1.json`：恰好 40=15 条款号 + 20 语义难例 + 5 拒答/冲突；**非金标**
+- `missions/demo_retrieval_seeds.py`：加载与分桶校验；`augment/` 隔离造问增广（非主集）
+- S0 结构测：`tests/test_demo_retrieval_seeds.py`（Recall@K / MRR 由后续 P-R3 票承接）
+
 勿在仓库根直接执行 `uvicorn ... --app-dir src`（会找不到 `claims_api`）；请用 `python scripts/run_api.py` 或先 `cd` 进 `claims-gate`。

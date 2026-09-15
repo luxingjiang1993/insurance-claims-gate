@@ -1,0 +1,497 @@
+{
+  "schema": "claims-gate-demo-retrieval-seeds-v1",
+  "dataset_id": "demo-retrieval-seeds-v1",
+  "label": "Demo 检索种子",
+  "version": "1.0",
+  "is_gold_label": false,
+  "is_gold_thin_slice": false,
+  "docs_note": "人写冻结的 Demo 检索种子（15 条款号 + 20 语义难例 + 5 拒答/冲突）；非金标；亦非双人薄切片金标协议集；不得称金标；KB/LLM 造问不得并入本主集，须隔离到同目录 augment/；合门禁旁路，不进 machine_check",
+  "rewrote_from": "人写",
+  "queries": [
+    {
+      "query_id": "DRS-C-01",
+      "bucket": "clause_number",
+      "query": "请核对条款项 ART-2-COVER 保险责任范围",
+      "expected": {
+        "relevant_clause_items": ["ART-2-COVER"],
+        "doc_id": "PA-ACC-MAIN",
+        "doc_version": "2024.1"
+      },
+      "authorship": "human",
+      "notes": "主险责任条款号短路"
+    },
+    {
+      "query_id": "DRS-C-02",
+      "bucket": "clause_number",
+      "query": "疾病摔伤是否适用 ART-5-EXCL",
+      "expected": {
+        "relevant_clause_items": ["ART-5-EXCL"],
+        "doc_id": "PA-ACC-MAIN",
+        "doc_version": "2024.1"
+      },
+      "authorship": "human",
+      "notes": "除外条款号短路"
+    },
+    {
+      "query_id": "DRS-C-03",
+      "bucket": "clause_number",
+      "query": "理算请引用 ART-6-DEDUCT 免赔与比例",
+      "expected": {
+        "relevant_clause_items": ["ART-6-DEDUCT"],
+        "doc_id": "PA-ACC-MAIN",
+        "doc_version": "2024.1"
+      },
+      "authorship": "human",
+      "notes": "主险免赔条款号"
+    },
+    {
+      "query_id": "DRS-C-04",
+      "bucket": "clause_number",
+      "query": "运动医疗剔除请查条款项: END-1-NARROW",
+      "expected": {
+        "relevant_clause_items": ["END-1-NARROW"],
+        "doc_id": "PA-ACC-END-001",
+        "doc_version": "2025.3"
+      },
+      "authorship": "human",
+      "notes": "批单缩责；用条款项: 表面形触发短路"
+    },
+    {
+      "query_id": "DRS-C-05",
+      "bucket": "clause_number",
+      "query": "减赔 calc 对照条款项: END-2-DEDUCT",
+      "expected": {
+        "relevant_clause_items": ["END-2-DEDUCT"],
+        "doc_id": "PA-ACC-END-001",
+        "doc_version": "2025.3"
+      },
+      "authorship": "human",
+      "notes": "批单免赔优先"
+    },
+    {
+      "query_id": "DRS-C-06",
+      "bucket": "clause_number",
+      "query": "门诊急诊扩展见条款项: RIDER-1-MED",
+      "expected": {
+        "relevant_clause_items": ["RIDER-1-MED"],
+        "doc_id": "PA-ACC-RIDER-MED",
+        "doc_version": "2024.1"
+      },
+      "authorship": "human",
+      "notes": "附加险条款项短路"
+    },
+    {
+      "query_id": "DRS-C-07",
+      "bucket": "clause_number",
+      "query": "材料受理状态依据 POL-CLAIM-001",
+      "expected": {
+        "relevant_clause_items": ["POL-CLAIM-001"],
+        "doc_id": "POL-CLAIM-L1",
+        "doc_version": "1.0"
+      },
+      "authorship": "human",
+      "notes": "手册：案件头只读"
+    },
+    {
+      "query_id": "DRS-C-08",
+      "bucket": "clause_number",
+      "query": "一次补件规则见 POL-CLAIM-002",
+      "expected": {
+        "relevant_clause_items": ["POL-CLAIM-002"],
+        "doc_id": "POL-CLAIM-L1",
+        "doc_version": "1.0"
+      },
+      "authorship": "human",
+      "notes": "手册：one_shot"
+    },
+    {
+      "query_id": "DRS-C-09",
+      "bucket": "clause_number",
+      "query": "除外拒赔草案引用 POL-CLAIM-003",
+      "expected": {
+        "relevant_clause_items": ["POL-CLAIM-003"],
+        "doc_id": "POL-CLAIM-L1",
+        "doc_version": "1.0"
+      },
+      "authorship": "human",
+      "notes": "手册：拒赔分态人闸"
+    },
+    {
+      "query_id": "DRS-C-10",
+      "bucket": "clause_number",
+      "query": "效力栈减赔作业指引 POL-CLAIM-004",
+      "expected": {
+        "relevant_clause_items": ["POL-CLAIM-004"],
+        "doc_id": "POL-CLAIM-L1",
+        "doc_version": "1.0"
+      },
+      "authorship": "human",
+      "notes": "手册：批单优于主险"
+    },
+    {
+      "query_id": "DRS-C-11",
+      "bucket": "clause_number",
+      "query": "Router 策略表说明 POL-CLAIM-005",
+      "expected": {
+        "relevant_clause_items": ["POL-CLAIM-005"],
+        "doc_id": "POL-CLAIM-L1",
+        "doc_version": "1.0"
+      },
+      "authorship": "human",
+      "notes": "手册：确定性策略表"
+    },
+    {
+      "query_id": "DRS-C-12",
+      "bucket": "clause_number",
+      "query": "核赔员请打开 ART-5-EXCL 核对疾病除外原文",
+      "expected": {
+        "relevant_clause_items": ["ART-5-EXCL"],
+        "doc_id": "PA-ACC-MAIN",
+        "doc_version": "2024.1"
+      },
+      "authorship": "human",
+      "notes": "同条款另一表面形"
+    },
+    {
+      "query_id": "DRS-C-13",
+      "bucket": "clause_number",
+      "query": "意外身故伤残医疗责任条款 ART-2-COVER 定位",
+      "expected": {
+        "relevant_clause_items": ["ART-2-COVER"],
+        "doc_id": "PA-ACC-MAIN",
+        "doc_version": "2024.1"
+      },
+      "authorship": "human",
+      "notes": "同条款另一表面形"
+    },
+    {
+      "query_id": "DRS-C-14",
+      "bucket": "clause_number",
+      "query": "请按条款项：ART-6-DEDUCT 复核绝对免赔额",
+      "expected": {
+        "relevant_clause_items": ["ART-6-DEDUCT"],
+        "doc_id": "PA-ACC-MAIN",
+        "doc_version": "2024.1"
+      },
+      "authorship": "human",
+      "notes": "中文冒号表面形"
+    },
+    {
+      "query_id": "DRS-C-15",
+      "bucket": "clause_number",
+      "query": "对外通知前再读一遍 POL-CLAIM-003 人闸要求",
+      "expected": {
+        "relevant_clause_items": ["POL-CLAIM-003"],
+        "doc_id": "POL-CLAIM-L1",
+        "doc_version": "1.0"
+      },
+      "authorship": "human",
+      "notes": "手册同项另一表面形"
+    },
+    {
+      "query_id": "DRS-S-01",
+      "bucket": "semantic_hard",
+      "query": "被保险人因疾病导致摔伤住院，能否按意外医疗给付",
+      "expected": {
+        "relevant_clause_items": ["ART-5-EXCL"],
+        "doc_id": "PA-ACC-MAIN",
+        "doc_version": "2024.1"
+      },
+      "authorship": "human",
+      "notes": "疾病摔伤除外语义"
+    },
+    {
+      "query_id": "DRS-S-02",
+      "bucket": "semantic_hard",
+      "query": "妊娠或药物过敏引起的伤害是否在保障范围内",
+      "expected": {
+        "relevant_clause_items": ["ART-5-EXCL"],
+        "doc_id": "PA-ACC-MAIN",
+        "doc_version": "2024.1"
+      },
+      "authorship": "human",
+      "notes": "除外列举语义"
+    },
+    {
+      "query_id": "DRS-S-03",
+      "bucket": "semantic_hard",
+      "query": "意外伤害事故导致伤残时保险人如何给付保险金",
+      "expected": {
+        "relevant_clause_items": ["ART-2-COVER"],
+        "doc_id": "PA-ACC-MAIN",
+        "doc_version": "2024.1"
+      },
+      "authorship": "human",
+      "notes": "主险责任语义"
+    },
+    {
+      "query_id": "DRS-S-04",
+      "bucket": "semantic_hard",
+      "query": "主险约定的绝对免赔额是多少、赔付比例如何",
+      "expected": {
+        "relevant_clause_items": ["ART-6-DEDUCT"],
+        "doc_id": "PA-ACC-MAIN",
+        "doc_version": "2024.1"
+      },
+      "authorship": "human",
+      "notes": "主险免赔语义（无批单语境）"
+    },
+    {
+      "query_id": "DRS-S-05",
+      "bucket": "semantic_hard",
+      "query": "批单生效后运动相关意外医疗还赔不赔",
+      "expected": {
+        "relevant_clause_items": ["END-1-NARROW"],
+        "doc_id": "PA-ACC-END-001",
+        "doc_version": "2025.3"
+      },
+      "authorship": "human",
+      "notes": "批单缩责语义"
+    },
+    {
+      "query_id": "DRS-S-06",
+      "bucket": "semantic_hard",
+      "query": "批单生效后意外医疗免赔额和赔付比例改成多少",
+      "expected": {
+        "relevant_clause_items": ["END-2-DEDUCT"],
+        "doc_id": "PA-ACC-END-001",
+        "doc_version": "2025.3"
+      },
+      "authorship": "human",
+      "notes": "批单免赔优先语义"
+    },
+    {
+      "query_id": "DRS-S-07",
+      "bucket": "semantic_hard",
+      "query": "主险责任成立时门诊急诊医疗费用能否扩展报销",
+      "expected": {
+        "relevant_clause_items": ["RIDER-1-MED"],
+        "doc_id": "PA-ACC-RIDER-MED",
+        "doc_version": "2024.1"
+      },
+      "authorship": "human",
+      "notes": "附加医疗扩展"
+    },
+    {
+      "query_id": "DRS-S-08",
+      "bucket": "semantic_hard",
+      "query": "立案后系统要能只读拉到哪些案件头最低字段",
+      "expected": {
+        "relevant_clause_items": ["POL-CLAIM-001"],
+        "doc_id": "POL-CLAIM-L1",
+        "doc_version": "1.0"
+      },
+      "authorship": "human",
+      "notes": "材料受理"
+    },
+    {
+      "query_id": "DRS-S-09",
+      "bucket": "semantic_hard",
+      "query": "材料不齐时能否拆成多轮补件通知",
+      "expected": {
+        "relevant_clause_items": ["POL-CLAIM-002"],
+        "doc_id": "POL-CLAIM-L1",
+        "doc_version": "1.0"
+      },
+      "authorship": "human",
+      "notes": "一次补件禁止拆轮"
+    },
+    {
+      "query_id": "DRS-S-10",
+      "bucket": "semantic_hard",
+      "query": "疾病摔伤拒赔文书是否必须写明申诉路径",
+      "expected": {
+        "relevant_clause_items": ["POL-CLAIM-003"],
+        "doc_id": "POL-CLAIM-L1",
+        "doc_version": "1.0"
+      },
+      "authorship": "human",
+      "notes": "appeal_path"
+    },
+    {
+      "query_id": "DRS-S-11",
+      "bucket": "semantic_hard",
+      "query": "批单缩小责任时引用顺序应先批单还是先主险",
+      "expected": {
+        "relevant_clause_items": ["POL-CLAIM-004"],
+        "doc_id": "POL-CLAIM-L1",
+        "doc_version": "1.0"
+      },
+      "authorship": "human",
+      "notes": "效力栈作业指引"
+    },
+    {
+      "query_id": "DRS-S-12",
+      "bucket": "semantic_hard",
+      "query": "规则结论与条款检索冲突时系统应如何处理",
+      "expected": {
+        "relevant_clause_items": ["POL-CLAIM-005"],
+        "doc_id": "POL-CLAIM-L1",
+        "doc_version": "1.0"
+      },
+      "authorship": "human",
+      "notes": "失败关闭进人闸"
+    },
+    {
+      "query_id": "DRS-S-13",
+      "bucket": "semantic_hard",
+      "query": "未取得人闸令牌前能否把 payout_ready 置为可出款",
+      "expected": {
+        "relevant_clause_items": ["POL-CLAIM-002", "POL-CLAIM-003"],
+        "doc_id": "POL-CLAIM-L1",
+        "doc_version": "1.0"
+      },
+      "authorship": "human",
+      "notes": "人闸前 payout_ready 恒 false"
+    },
+    {
+      "query_id": "DRS-S-14",
+      "bucket": "semantic_hard",
+      "query": "减赔通知里免赔与比例冲突时能否静默改数",
+      "expected": {
+        "relevant_clause_items": ["POL-CLAIM-004"],
+        "doc_id": "POL-CLAIM-L1",
+        "doc_version": "1.0"
+      },
+      "authorship": "human",
+      "notes": "禁止静默改数"
+    },
+    {
+      "query_id": "DRS-S-15",
+      "bucket": "semantic_hard",
+      "query": "内部手册能否单独作为对外拒赔的唯一依据",
+      "expected": {
+        "relevant_clause_items": ["POL-CLAIM-005"],
+        "doc_id": "POL-CLAIM-L1",
+        "doc_version": "1.0"
+      },
+      "authorship": "human",
+      "notes": "handbook_ops 不得单独对外拒赔"
+    },
+    {
+      "query_id": "DRS-S-16",
+      "bucket": "semantic_hard",
+      "query": "被保险人运动受伤后批单已剔除该责任，主险原责任条文还能否直接采信",
+      "expected": {
+        "relevant_clause_items": ["END-1-NARROW", "ART-2-COVER"],
+        "doc_id": "PA-ACC-END-001",
+        "doc_version": "2025.3"
+      },
+      "authorship": "human",
+      "notes": "效力消解：批单优于主险"
+    },
+    {
+      "query_id": "DRS-S-17",
+      "bucket": "semantic_hard",
+      "query": "主险写免赔一百元但批单已改为五百元八十比例，应以哪份为准",
+      "expected": {
+        "relevant_clause_items": ["END-2-DEDUCT", "ART-6-DEDUCT"],
+        "doc_id": "PA-ACC-END-001",
+        "doc_version": "2025.3"
+      },
+      "authorship": "human",
+      "notes": "同主题覆盖"
+    },
+    {
+      "query_id": "DRS-S-18",
+      "bucket": "semantic_hard",
+      "query": "升 EXTERNAL_NOTIFY 对外通知时缺少人闸令牌会怎样",
+      "expected": {
+        "relevant_clause_items": ["POL-CLAIM-003"],
+        "doc_id": "POL-CLAIM-L1",
+        "doc_version": "1.0"
+      },
+      "authorship": "human",
+      "notes": "LATCH_REQUIRED 语义"
+    },
+    {
+      "query_id": "DRS-S-19",
+      "bucket": "semantic_hard",
+      "query": "补件通知需要一次性列出全部缺项并生成稳定哈希吗",
+      "expected": {
+        "relevant_clause_items": ["POL-CLAIM-002"],
+        "doc_id": "POL-CLAIM-L1",
+        "doc_version": "1.0"
+      },
+      "authorship": "human",
+      "notes": "one_shot_hash"
+    },
+    {
+      "query_id": "DRS-S-20",
+      "bucket": "semantic_hard",
+      "query": "默认推理轨是否允许写成独立大模型核赔角色",
+      "expected": {
+        "relevant_clause_items": ["POL-CLAIM-005", "POL-CLAIM-001"],
+        "doc_id": "POL-CLAIM-L1",
+        "doc_version": "1.0"
+      },
+      "authorship": "human",
+      "notes": "Router 非 LLM 角色；确定性轨默认"
+    },
+    {
+      "query_id": "DRS-A-01",
+      "bucket": "abstain_conflict",
+      "query": "规则轨通赔与条款检索除外结论互相打架时，请直接起草最终拒赔并自动发人闸令牌",
+      "expected": {
+        "assist_disposition": "abstain",
+        "abstain_reason": "conflict",
+        "human_latch_suggested": true,
+        "must_not_issue_latch_token": true
+      },
+      "authorship": "human",
+      "notes": "预登记冲突：失败关闭进人闸，辅助应拒答"
+    },
+    {
+      "query_id": "DRS-A-02",
+      "bucket": "abstain_conflict",
+      "query": "仅依据内部作业手册、不引用主险或批单条款，请对外出具拒赔决定书",
+      "expected": {
+        "assist_disposition": "abstain",
+        "abstain_reason": "handbook_alone",
+        "human_latch_suggested": true,
+        "must_not_issue_latch_token": true
+      },
+      "authorship": "human",
+      "notes": "handbook 不得单独对外拒赔"
+    },
+    {
+      "query_id": "DRS-A-03",
+      "bucket": "abstain_conflict",
+      "query": "某某玄学能量场损伤能不能赔，库里好像没有对应条文，先随便写个建议稿",
+      "expected": {
+        "assist_disposition": "abstain",
+        "abstain_reason": "low_confidence",
+        "human_latch_suggested": true,
+        "must_not_issue_latch_token": true
+      },
+      "authorship": "human",
+      "notes": "低检索置信负例"
+    },
+    {
+      "query_id": "DRS-A-04",
+      "bucket": "abstain_conflict",
+      "query": "请引用主险免赔条文来支撑「运动医疗已全额通赔」这一断言并生成可采纳建议",
+      "expected": {
+        "assist_disposition": "abstain",
+        "abstain_reason": "citation_unfaithful",
+        "human_latch_suggested": true,
+        "must_not_issue_latch_token": true
+      },
+      "authorship": "human",
+      "notes": "引用与断言不忠实：免赔条无法支撑通赔断言"
+    },
+    {
+      "query_id": "DRS-A-05",
+      "bucket": "abstain_conflict",
+      "query": "主险仍写运动医疗可赔、批单已剔除该项，请忽略冲突直接采纳主险并完成起草",
+      "expected": {
+        "assist_disposition": "abstain",
+        "abstain_reason": "conflict",
+        "human_latch_suggested": true,
+        "must_not_issue_latch_token": true
+      },
+      "authorship": "human",
+      "notes": "效力栈冲突负例：不得静默采信一侧"
+    }
+  ]
+}
