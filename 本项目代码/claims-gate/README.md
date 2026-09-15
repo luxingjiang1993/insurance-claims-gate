@@ -317,14 +317,15 @@ pytest tests/langsmith_integration/test_openeval_experiment_real.py -m langsmith
 
 已落地：详情页 AI 辅助区须显式点击才调用；无 Key 降级提示可见；辅助建议与裁决草案分标签；「送交规则校验（采纳）」走 `assist/adopt`→evaluate；UI 标明非终裁、无秒赔误导；`viewer` 不展示该写入口。
 
-## Issue 23 Chroma 索引 + embedding + 可重建
+## Issue 23 / 34 Chroma 索引 + embedding + 可重建
 
-`Rewrote from: REF-CASE-RECALL, REF-RAG-CY, REF-MISSIONS`
+`Rewrote from: REF-MISSIONS`（Issue 34 加深现有 chroma_index）
 
 已落地：
 
 - `missions/chroma_index/`：将 `knowledge_base/` 条款块写入持久 Chroma（默认 `data/chroma`）
-- 默认 `EMBEDDING_PROVIDER=local`（确定性本地向量）；`cloud` 走独立 embedding Key
+- Pilot 默认 `EMBEDDING_PROVIDER=cloud`（独立 embedding Key；不得静默复用 `OPENAI_API_KEY`）
+- CI / 无 Key rebuild：显式 `EMBEDDING_PROVIDER=local`（确定性哈希，**非语义**，不得宣称语义质量）
 - 重建入口：`python scripts/rebuild_chroma_index.py`（可重复执行）
 - 规则 evaluate 路径不依赖 Chroma（见 `tests/test_chroma_index_rebuild.py`）
 

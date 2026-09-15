@@ -4,8 +4,10 @@
   python scripts/rebuild_chroma_index.py
 
 环境变量见 .env.example（EMBEDDING_PROVIDER / CHROMA_*）。
+Pilot 默认 EMBEDDING_PROVIDER=cloud（需独立 embedding Key）。
+CI / 无云 Key：显式 EMBEDDING_PROVIDER=local（哈希向量，非语义）。
 
-Rewrote from: REF-CASE-RECALL, REF-RAG-CY, REF-MISSIONS
+Rewrote from: REF-MISSIONS（加深现有 chroma_index；Issue 34）
 """
 
 from __future__ import annotations
@@ -23,6 +25,11 @@ from missions.chroma_index import ChromaIndexConfig, rebuild_index  # noqa: E402
 
 def main() -> int:
     cfg = ChromaIndexConfig.from_env()
+    if cfg.embedding_provider == "local":
+        print(
+            "提示: EMBEDDING_PROVIDER=local 使用确定性哈希（非语义），"
+            "仅适合 CI/rebuild；Pilot 语义检索请用 cloud + 独立 embedding Key。"
+        )
     result = rebuild_index(cfg)
     print(
         f"rebuild ok: collection={result.collection_name} "

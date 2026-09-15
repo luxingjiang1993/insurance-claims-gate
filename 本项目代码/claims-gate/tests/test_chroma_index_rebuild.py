@@ -1,6 +1,6 @@
-"""接缝：Chroma 索引重建 + embedding 切换 + evaluate 零向量依赖。
+"""接缝：Chroma 索引重建 + Pilot cloud 默认 + evaluate 零向量依赖。
 
-Rewrote from: REF-CASE-RECALL, REF-RAG-CY, REF-MISSIONS
+Rewrote from: REF-MISSIONS（加深现有 chroma_index；Issue 34）
 """
 
 from __future__ import annotations
@@ -51,26 +51,78 @@ def test_rebuild_index_persists_and_is_idempotent(tmp_path: Path) -> None:
     assert _collection_count(persist_dir, "clauses_v1") == second.chunk_count
 
 
-def test_embedding_provider_switch_local_vs_cloud(
+def test_pilot_default_embedding_provider_is_cloud() -> None:
+    """接缝 2a：Pilot 默认 EMBEDDING_PROVIDER=cloud（空 env / 未设置）。"""
+    from missions.chroma_index import ChromaIndexConfig
+
+    cfg = ChromaIndexConfig.from_env(
+        kb_root=KB_ROOT,
+        persist_dir=Path("/tmp/chroma_unused"),
+        env={},
+    )
+    assert cfg.embedding_provider == "cloud"
+    assert ChromaIndexConfig(
+        kb_root=KB_ROOT,
+        persist_dir=Path("/tmp/chroma_unused"),
+    ).embedding_provider == "cloud"
+
+
+def test_local_embedding_explicit_and_labeled_non_semantic() -> None:
+    """接缝 2b：local 须显式配置；画像/标签标明非语义（供 CI/rebuild）。"""
+    from missions.chroma_index import (
+        ChromaIndexConfig,
+        resolve_embedding_provider,
+    )
+    from missions.chroma_index.embeddings import (
+        LOCAL_EMBEDDING_LABEL,
+        DeterministicLocalEmbedding,
+    )
+
+    cfg = ChromaIndexConfig.from_env(
+        kb_root=KB_ROOT,
+        persist_dir=Path("/tmp/chroma_local"),
+        env={"EMBEDDING_PROVIDER": "local"},
+    )
+    assert cfg.embedding_provider == "local"
+    emb = resolve_embedding_provider(cfg)
+    assert isinstance(emb, DeterministicLocalEmbedding)
+    assert "non_semantic" in LOCAL_EMBEDDING_LABEL
+    assert LOCAL_EMBEDDING_LABEL == "deterministic_local_non_semantic"
+    # 中文「非语义」出现在类文档与 rebuild/降级文案，而非机器标签字面量
+    assert "非语义" in (DeterministicLocalEmbedding.__doc__ or "")
+
+
+def test_cloud_embedding_never_silently_reuses_openai_api_key() -> None:
+    """接缝 2c：缺 embedding Key 时不得静默复用 OPENAI_API_KEY。"""
+    from missions.chroma_index import (
+        ChromaIndexConfig,
+        resolve_embedding_provider,
+    )
+
+    cfg = ChromaIndexConfig.from_env(
+        kb_root=KB_ROOT,
+        persist_dir=Path("/tmp/chroma_cloud"),
+        env={
+            "EMBEDDING_PROVIDER": "cloud",
+            "OPENAI_API_KEY": "sk-llm-only-must-not-be-reused",
+        },
+    )
+    assert cfg.embedding_api_key == ""
+    with pytest.raises(ValueError, match="CLAIMS_GATE_EMBEDDING_API_KEY|EMBEDDING_API_KEY"):
+        resolve_embedding_provider(cfg)
+
+
+def test_embedding_provider_cloud_rebuild_with_dedicated_key(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """接缝 2：默认 local；云 embedding 可由 EMBEDDING_PROVIDER=cloud 切换并重建。"""
+    """接缝 2d：独立 embedding Key 下 cloud 可重建索引。"""
     from missions.chroma_index import (
         ChromaIndexConfig,
         rebuild_index,
         resolve_embedding_provider,
     )
-    from missions.chroma_index.embeddings import CloudEmbedding, DeterministicLocalEmbedding
+    from missions.chroma_index.embeddings import CloudEmbedding
     from missions.rag import KnowledgeBase
-
-    local_cfg = ChromaIndexConfig.from_env(
-        kb_root=KB_ROOT,
-        persist_dir=tmp_path / "chroma_local",
-        env={},
-    )
-    assert local_cfg.embedding_provider == "local"
-    local_emb = resolve_embedding_provider(local_cfg)
-    assert isinstance(local_emb, DeterministicLocalEmbedding)
 
     monkeypatch.setenv("EMBEDDING_PROVIDER", "cloud")
     monkeypatch.setenv("CLAIMS_GATE_EMBEDDING_API_KEY", "test-key")
@@ -110,6 +162,16 @@ def test_embedding_provider_switch_local_vs_cloud(
     assert cloud_result.chunk_count == len(kb.chunks)
     assert cloud_result.embedding_provider == "cloud"
     assert _collection_count(tmp_path / "chroma_cloud", "clauses_v1") == cloud_result.chunk_count
+
+
+def test_env_example_recommends_cloud_and_separates_keys() -> None:
+    """接缝 2e：.env.example Pilot 推荐 cloud；分 Key；local 标明非语义。"""
+    text = (ROOT / ".env.example").read_text(encoding="utf-8")
+    assert "EMBEDDING_PROVIDER=cloud" in text
+    assert "CLAIMS_GATE_EMBEDDING_API_KEY" in text
+    assert "非语义" in text
+    # 不得暗示缺 embedding Key 时可复用 OPENAI_API_KEY
+    assert "不得静默" in text or "不得复用" in text or "禁止复用" in text
 
 
 def test_evaluate_path_has_zero_chroma_dependency() -> None:

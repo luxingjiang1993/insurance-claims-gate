@@ -1,6 +1,7 @@
 """条款 KB → Chroma 可重建向量索引。
 
-Rewrote from: REF-CASE-RECALL, REF-RAG-CY, REF-MISSIONS
+Pilot 默认 cloud；local 哈希（非语义）仅 CI/rebuild。
+Rewrote from: REF-MISSIONS（加深现有 chroma_index；Issue 34）
 """
 
 from __future__ import annotations

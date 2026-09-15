@@ -1,6 +1,6 @@
-"""Embedding 提供方：默认本地确定性向量；可选云 API。
+"""Embedding 提供方：Pilot 默认云语义；local 哈希仅 CI（非语义）。
 
-Rewrote from: REF-RAG-CY, REF-CASE-RECALL
+Rewrote from: REF-MISSIONS（加深现有 chroma_index；Issue 34）
 """
 
 from __future__ import annotations
@@ -11,6 +11,9 @@ from typing import Protocol
 
 import httpx
 
+# 画像 / 降级文案用：明确标明非语义，禁止冒充云 embedding 质量
+LOCAL_EMBEDDING_LABEL = "deterministic_local_non_semantic"
+
 
 class EmbeddingProvider(Protocol):
     """对外接缝：批量文档嵌入。"""
@@ -20,9 +23,9 @@ class EmbeddingProvider(Protocol):
 
 
 class DeterministicLocalEmbedding:
-    """默认本地 embedding：纯哈希确定性向量，无云、无模型下载。
+    """本地哈希 embedding（非语义）：纯确定性向量，无云、无模型下载。
 
-    供重建/CI 使用；不冒充语义质量模型。
+    仅供 CI / rebuild 确定性路径；不得宣称语义检索质量。
     """
 
     def __init__(self, dim: int = 64) -> None:
@@ -60,7 +63,10 @@ class CloudEmbedding:
         timeout: float = 60.0,
     ) -> None:
         if not api_key.strip():
-            raise ValueError("云 embedding 需要 CLAIMS_GATE_EMBEDDING_API_KEY（或 EMBEDDING_API_KEY）")
+            raise ValueError(
+                "云 embedding 需要 CLAIMS_GATE_EMBEDDING_API_KEY（或 EMBEDDING_API_KEY）；"
+                "不得静默复用 OPENAI_API_KEY"
+            )
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.model = model

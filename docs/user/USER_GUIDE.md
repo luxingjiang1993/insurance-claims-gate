@@ -25,8 +25,8 @@
 **诚实边界（读完再操作）：**
 
 - **Phase 1** 交付面以 **HTTP API + Demo 脚本** 为主（已合门禁）。
-- **演示可无 Key（W0 地板仍成立）：** 登录 + 三角色 RBAC + SC 规则路径 + 人闸 + 文书分态 + AI 无 Key 降级 + 本地 trace。默认 `pytest -q` **不要求** LLM Key 与 LangSmith。
-- **Pilot 须 LangSmith 等（W1 / Pilot Complete）：** 满配验收须配置 LLM Key、LangSmith（`LANGCHAIN_TRACING_V2` + Key）、可重建 Chroma 索引；混合检索挂 assist、来源摘要、真 span、OpenEval 实验历史对比按套餐 L 验收。详见 [§3.2](#32-pilot-completew1演示可无-key-vs-pilot-须-langsmith)。勿当生产终裁 UI；评测分 **不**替代 `machine_check`。
+- **演示可无 Key（W0 地板仍成立）：** 登录 + 三角色 RBAC + SC 规则路径 + 人闸 + 文书分态 + AI 无 Key 降级 + 本地 trace。默认 `pytest -q` **不要求** LLM Key、LangSmith 与 cloud embedding Key。
+- **Pilot 须 LangSmith 等（W1 / Pilot Complete）：** 满配验收须配置 LLM Key、独立 embedding Key（`EMBEDDING_PROVIDER=cloud`）、LangSmith（`LANGCHAIN_TRACING_V2` + Key）、可重建 Chroma 索引；混合检索挂 assist、来源摘要、真 span、OpenEval 实验历史对比按套餐 L 验收。详见 [§3.2](#32-pilot-completew1演示可无-key-vs-pilot-须-langsmith)。勿当生产终裁 UI；评测分 **不**替代 `machine_check`。
 - **Eval Ops Preview（W2）：** 作业壳独立「评测」入口、排行榜、多人跑次归因、金标导入/导出钩子已交付。操作见 [§3.3](#33-eval-ops-previeww2评测台与门禁主路径区分) 与 [§7.1a](#71a-评测跑次排行榜与金标-io-钩子w2-eval-ops-preview--issues-29–33)。**硬边界：** 排行榜 / 评测分数 ≠ `machine_check` 通过；合规主缝仍是轨 A `machine_check`；故意失败的评测跑次 **不**进入默认 `pytest -q` / S0 必过；**不得**宣称 ≥300 金标运营已达标。
 - **尚未上线（勿按已交付操作）：** ≥300 人工金标双标运营；核赔作业 UI 全作业流；真连核心 L2 / 真 OCR。
 - 裁决结果是 **草案**，不具对外最终效力；AI 辅助建议 **不是** 终裁。
@@ -181,8 +181,8 @@ Issues 23–28 · 波次名：**W1 / Pilot Complete**
 
 | 口径 | 何时用 | Key / 云 | 覆盖能力 |
 |------|--------|----------|----------|
-| **演示可无 Key** | 本地演示、规则路径验收、无云账号 | 可不配 LLM / LangSmith；AI 区显示降级 | W0 地板 + 关 LLM 路径（套餐 L 路径 C） |
-| **Pilot 须 LangSmith（等）** | 向试点方宣称 **W1 / Pilot Complete** | **须** LLM Key + LangSmith Key（`LANGCHAIN_TRACING_V2=true`）；向量索引可重建 | 满配路径 A；另验关向量路径 B |
+| **演示可无 Key** | 本地演示、规则路径验收、无云账号 | 可不配 LLM / LangSmith / embedding；AI 区显示降级；CI 可用 `EMBEDDING_PROVIDER=local`（哈希，**非语义**） | W0 地板 + 关 LLM 路径（套餐 L 路径 C） |
+| **Pilot 须 LangSmith（等）** | 向试点方宣称 **W1 / Pilot Complete** | **须** LLM Key + LangSmith Key（`LANGCHAIN_TRACING_V2=true`）+ **独立** embedding Key（`EMBEDDING_PROVIDER=cloud`，不得复用 `OPENAI_API_KEY`）；向量索引可重建 | 满配路径 A；另验关向量路径 B |
 
 **套餐 L（人工验收，不进默认 pytest）：** 逐步清单见  
 [`本项目代码/claims-gate/docs/acceptance/package-l.md`](../../本项目代码/claims-gate/docs/acceptance/package-l.md)  
@@ -190,7 +190,9 @@ Issues 23–28 · 波次名：**W1 / Pilot Complete**
 
 **本波不做 / 未上线：** ≥300 人工金标运营；真连 L2 / 生产作业壳。W2 Eval Ops Preview 已交付（Issues 29–33）；钩子 **不是** ≥300 金标运营，勿宣称金标已达标。
 
-**默认 CI：** `pytest -q` 仍不要求 LangSmith / LLM；S2 可选测带 `langsmith_integration` / `track_llm_optional` / `eval_bypass` 等标记。
+**默认 CI：** `pytest -q` 仍不要求 LangSmith / LLM / cloud embedding Key；S2 可选测带 `langsmith_integration` / `track_llm_optional` / `eval_bypass` 等标记。CI 重建索引请显式 `EMBEDDING_PROVIDER=local`（确定性哈希，**非语义**，不得宣称语义检索质量）。
+
+**Provider / Key 分区（Pilot）：** LLM 用 `OPENAI_API_KEY`（或 `CLAIMS_GATE_LLM_API_KEY`）；语义 embedding 用 `CLAIMS_GATE_EMBEDDING_API_KEY`（或 `EMBEDDING_API_KEY`）且推荐 `EMBEDDING_PROVIDER=cloud`。缺 embedding Key **不得**静默复用 LLM Key。详见 `本项目代码/claims-gate/.env.example`。
 
 ### 3.3 Eval Ops Preview（W2）：评测台与门禁主路径区分
 

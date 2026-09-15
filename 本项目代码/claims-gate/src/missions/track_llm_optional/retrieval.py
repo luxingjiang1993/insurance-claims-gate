@@ -1,7 +1,7 @@
 """轨 B 检索入口：挂载混合检索（仅 assist）；evaluate 不得调用。
 
-默认向量不可用时自动关键词降级；不要求默认 CI 有 Chroma。
-Rewrote from: REF-CASE-RECALL, REF-RAG-CY, REF-CASE-HYBRID, REF-MISSIONS
+默认向量不可用时自动关键词降级；不要求默认 CI 有 Chroma / cloud Key。
+Rewrote from: REF-MISSIONS（加深现有 chroma_index；Issue 34）
 """
 
 from __future__ import annotations
@@ -100,11 +100,18 @@ def retrieve_chunks(
     )
     if chroma_cfg is not None and portrait.get("vector_enabled"):
         portrait["chroma_collection"] = chroma_cfg.collection_name
-        portrait["embedding_model"] = (
-            chroma_cfg.embedding_model
-            if chroma_cfg.embedding_provider == "cloud"
-            else "deterministic_local"
-        )
+        if chroma_cfg.embedding_provider == "cloud":
+            portrait["embedding_model"] = chroma_cfg.embedding_model
+            portrait["embedding_semantic"] = True
+        else:
+            from missions.chroma_index.embeddings import LOCAL_EMBEDDING_LABEL
+
+            # local 哈希路径：画像明确标明非语义
+            portrait["embedding_model"] = LOCAL_EMBEDDING_LABEL
+            portrait["embedding_semantic"] = False
+            notes = list(portrait.get("notes") or [])
+            notes.append("embedding=local 哈希（非语义）；仅 CI/rebuild，不宣称语义质量")
+            portrait["notes"] = notes
     if return_portrait:
         return citations, portrait
     return citations
