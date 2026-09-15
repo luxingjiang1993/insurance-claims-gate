@@ -68,7 +68,7 @@
 
 **Status:** Developer Preview closed for W1 DoD（Issues 23–28）。  
 **Scope:** Chroma + 混合检索挂 assist + 来源摘要 + 真 LangSmith + OpenEval 实验历史对比 + 套餐 L 验收清单；默认 `pytest -q` 仍无 LLM / 无 LangSmith 全绿。  
-**Not in W1：** OpenEval 排行榜、多人协作评测台（属 **W2 Eval Ops**，未上线）。
+**Not in W1：** OpenEval 排行榜、多人协作评测台（属 **W2 Eval Ops**）。
 
 ### Added
 
@@ -81,23 +81,20 @@
 
 ### Changed
 
-- `USER_GUIDE` 页眉与 §3.2 标明 **W1 / Pilot Complete**；明确 W2 排行榜未上线。
+- `USER_GUIDE` 页眉与 §3.2 标明 **W1 / Pilot Complete**；明确 W2 排行榜未上线（当时口径；现见 W2 节）。
 
 ### Guarantees (user-visible)
 
 - 默认 `pytest -q` 在无 LLM Key、无 LangSmith 下仍全绿（S2 可选测有标记）。
-- 对外宣称须带波次名；不得暗示 Eval Ops（W2）已上线。
+- 对外宣称须带波次名；不得暗示 Eval Ops（W2）已上线（W1 关闭时口径）。
 
 ---
 
-## Phase 2a · W2 — Eval Ops（进行中）
+## Phase 2a · W2 — Eval Ops（Developer Preview）（2026-09）
 
-**Status:** 排行榜 API（票 30）+ 作业壳「评测」入口（票 31）+ 金标 I/O 钩子（票 32）已 Preview；手册收口（票 33）未关闭。  
-W1 DoD（票 28）已满足。勿将 W2 Eval Ops 写成已完全交付；金标钩子 **不是** ≥300 运营完成。
-
----
-
-## Unreleased
+**Status:** Developer Preview closed for W2 DoD（Issues 29–33）。  
+**Scope:** OpenEval 排行榜 + 多人协作评测台 + 金标 I/O 钩子 + 用户手册 Eval Ops 操作说明；默认 `pytest -q` / S0 仍绿。  
+**Honest deferral：** ≥300 人工金标运营未完成；不得宣称「金标已达标」。排行榜分数 ≠ `machine_check` 通过。
 
 ### Added
 
@@ -105,9 +102,21 @@ W1 DoD（票 28）已满足。勿将 W2 Eval Ops 写成已完全交付；金标�
 - 评测排行榜可排序（Issue 30 Preview）：`GET /eval/leaderboard`；字段含实验名 / 主指标 `pass_rate` / 时间 / 提交者；单一真源本地 SQLite `eval_runs`；榜分不进 `machine_check` / 默认 CI。`Rewrote from: REF-CASE-EVAL-ADVISOR, REF-CASE-OPENEVALS, REF-MISSIONS`。
 - 作业壳「评测」独立入口（Issue 31 Preview）：主导航「评测」；触发跑次 / 排行榜 / 提交者过滤；与门禁主路径视觉分离；`adjuster`/`supervisor` 协作演示；API 拒绝不假成功。`Rewrote from: REF-MISSIONS, REF-CASE-EVAL-ADVISOR`。
 - 金标导入/导出钩子（Issue 32 Preview）：`POST /eval/gold-labels/import`、`GET /eval/gold-labels/export`、`python -m missions.gold_label_io`；记录关联 `case_id`；不实现双人标注全量；文案不宣称金标已达标。`Rewrote from: REF-CASE-OPENEVALS, REF-MISSIONS`。
+- Eval Ops 手册收口（Issue 33 Preview）：`USER_GUIDE` §3.3 操作说明；明确排行榜分数 ≠ 合门禁 / ≠ `machine_check`；金标运营延后诚实标注；默认 `pytest -q` 仍绿。`Rewrote from: REF-MISSIONS`。
 
-### Not yet（仍属 W2 未交付）
+### Guarantees (user-visible)
 
-- Eval Ops 手册收口（Issue 33）。
+- 默认 `pytest -q` 排除 `eval_bypass` 等标记；故意失败的评测跑次不进 S0 必过。
+- 可称「Phase 2a Eval Ops 已交付（Preview）」时，须同时标注金标全量运营仍延后。
+
+### Not in this wave
+
+- ≥300 人工金标双标运营与周回归达标宣传
+- 真连核心 L2 / 生产核赔作业壳
+- 用评测分替代人闸或 `machine_check`
 
 ---
+
+## Unreleased
+
+（无）

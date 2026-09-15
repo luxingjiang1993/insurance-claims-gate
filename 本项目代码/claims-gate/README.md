@@ -258,7 +258,7 @@ pytest tests/langsmith_integration/test_openeval_experiment_real.py -m langsmith
 - `workshell/src/pages/EvalOpsPage.tsx`：触发跑次 / 排行榜 / 按提交者过滤；评测旁路横幅与门禁主路径视觉分离；无终裁/秒赔误导
 - API 客户端：`createEvalRun` / `listEvalRuns` / `getEvalLeaderboard`；拒绝不假成功
 - 演示：`adjuster` / `supervisor` 分别登录触发；可过滤查看他人结果且互不覆盖；`viewer` 只读
-- 默认测：`workshell` 内 `appRoutes` / `evalOpsModel` / client 契约；**不含** Eval Ops 手册收口（票 33）
+- 默认测：`workshell` 内 `appRoutes` / `evalOpsModel` / client 契约；手册收口见票 33
 
 ## Issue 32 金标运营接口预留（导入/导出 + case_id）
 
@@ -273,7 +273,19 @@ pytest tests/langsmith_integration/test_openeval_experiment_real.py -m langsmith
 - 脚本：`python -m missions.gold_label_io import|export --file ...`
 - 作业壳评测台金标钩子面板（诚实文案，不宣称已达标）
 - 默认测：`tests/eval/test_gold_label_io_hooks.py` S0 隔离；HTTP 往返：`pytest -m eval_bypass`
-- **不含** Eval Ops 手册收口（票 33）
+- 手册收口见票 33
+
+## Issue 33 Eval Ops 手册 + 分数≠合门禁文案 + S0 仍绿
+
+`Rewrote from: REF-MISSIONS`
+
+**前置：** 票 30、31、32 已 resolved。**文档收口；非新 API。**
+
+已落地：
+
+- `docs/user/USER_GUIDE.md` §3.3 Eval Ops 操作说明；与门禁主路径对照；排行榜分数 ≠ `machine_check` / 合门禁
+- `docs/user/CHANGELOG.md`：Phase 2a · W2 — Eval Ops（Developer Preview）；金标全量运营诚实延后
+- 默认 `pytest -q` 仍绿（评测旁路失败不进 S0 必过）；`spec-2a-w2-eval-ops.md` DoD 已勾选关闭
 
 ## Issue 16 作业壳：登录 + 案件只读浏览
 

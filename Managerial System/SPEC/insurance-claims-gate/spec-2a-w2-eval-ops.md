@@ -5,7 +5,7 @@
 | feature_slug | `insurance-claims-gate` |
 | spec_id | `SPEC-02A-W2-EVAL-OPS` |
 | wave | `W2` |
-| Status | `ready-for-agent` |
+| Status | `closed` |
 | 父索引 | [`spec-2a-runnable-product-floor.md`](./spec-2a-runnable-product-floor.md) |
 | 前置 | [`spec-2a-w1-pilot-complete.md`](./spec-2a-w1-pilot-complete.md) DoD 已关闭；W0 仍成立 |
 | 主测试接缝 | **S0** 合门禁不变；**S2** 评测台 API/页面契约（不进默认绿） |
@@ -29,13 +29,13 @@ W1 已能在 LangSmith 看到单次/历史实验对比，但评测仍偏「开�
 
 ## DoD Checklist（W2）
 
-- [ ] W0 + W1 DoD 仍成立  
-- [ ] 排行榜：至少展示实验名、主指标、时间、提交者；可按指标排序  
-- [ ] 多人：≥2 个演示用户可分别触发/查看评测跑次且结果隔离或可过滤  
-- [ ] 评测跑次仍经 OpenEval 旁路 + LangSmith（或明确降级说明）；**永不**写入默认 `pytest -q` 必过条件  
-- [ ] 文档明确：排行榜分数 ≠ 条款门禁合门禁；machine_check 仍是合规主缝  
-- [ ] `docs/user/` 增加 Eval Ops 操作说明（Preview）  
-- [ ] 金标全量运营未完成时不得在文案中宣称「金标已达标」  
+- [x] W0 + W1 DoD 仍成立  
+- [x] 排行榜：至少展示实验名、主指标、时间、提交者；可按指标排序  
+- [x] 多人：≥2 个演示用户可分别触发/查看评测跑次且结果隔离或可过滤  
+- [x] 评测跑次仍经 OpenEval 旁路 + LangSmith（或明确降级说明）；**永不**写入默认 `pytest -q` 必过条件  
+- [x] 文档明确：排行榜分数 ≠ 条款门禁合门禁；machine_check 仍是合规主缝  
+- [x] `docs/user/` 增加 Eval Ops 操作说明（Preview）  
+- [x] 金标全量运营未完成时不得在文案中宣称「金标已达标」  
 
 ## User Stories
 
@@ -98,3 +98,4 @@ W1 已能在 LangSmith 看到单次/历史实验对比，但评测仍偏「开�
 
 - 2026-09-14：按波次拆分独立 SPEC；Status=`ready-for-agent`。
 - 2026-09-14：to-tickets 批准 defaults；Issues 29–33 落盘 `phase2a-w2/`。
+- 2026-09-15：Issue 33 收口；DoD Checklist 全部勾选；Status=`closed`（实现侧）。`Rewrote from: REF-MISSIONS`。

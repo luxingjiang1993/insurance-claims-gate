@@ -16,8 +16,8 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 
 **W0：** 已关闭（14–22 resolved）。  
 **W1：** 已关闭（23–28 resolved；SPEC Status=`closed`）。  
-**W2：** 开放；frontier 为 **33**（30–32 resolved）。  
-开工前将对应票 `Status` 改为 `claimed`。
+**W2：** 已关闭（29–33 resolved；SPEC Status=`closed`）。  
+后续扩面（金标全量 / 真连 L2 等）另案切票；勿仅凭草案放松 I1–I8。
 
 ## Phase 1 任务图（01–13 · 均已 resolved）
 
@@ -74,13 +74,13 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 | 30 | 排行榜：实验名 / 主指标 / 时间 / 提交者 + 可排序 | 28, 29 | resolved |
 | 31 | 作业壳「评测」独立入口 + 两账号协作跑榜演示 | 20, 29, 30 | resolved |
 | 32 | 金标运营接口预留（导入/导出 + case_id） | 29 | resolved |
-| 33 | Eval Ops 手册 + 分数≠合门禁文案 + S0 仍绿 | 30, 31, 32 | ready-for-agent |
+| 33 | Eval Ops 手册 + 分数≠合门禁文案 + S0 仍绿 | 30, 31, 32 | resolved |
 
 ```text
 28 (W1 close)
  ├── 29 ──┬── 30 ──┐
  │        │        ├── 31 ──┐
- │        └── 32 ──────────┼── 33
+ │        └── 32 ──────────┼── 33 (W2 close)
  └─────────────────────────┘
 ```
 
@@ -88,7 +88,8 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 
 **W0 明确不做：** Chroma / 真 LangSmith 完工 / OpenEval 排行榜与多人 —— 属 W1/W2。  
 **W1 明确不做：** OpenEval 排行榜、多人协作、≥300 金标运营 —— 属 W2 / 延后。  
-**W2 明确不做：** ≥300 金标运营宣称、Braintrust/Phoenix 换栈、评测分替 `machine_check`/人闸。
+**W2 明确不做：** ≥300 金标运营宣称、Braintrust/Phoenix 换栈、评测分替 `machine_check`/人闸。  
+**W2 状态：** 29–33 resolved；SPEC `spec-2a-w2-eval-ops.md` Status=`closed`。
 
 ## GitHub Issues 映射（Phase 2a）
 

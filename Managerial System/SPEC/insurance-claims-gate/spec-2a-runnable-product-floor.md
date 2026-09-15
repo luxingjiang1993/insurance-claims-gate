@@ -16,7 +16,7 @@
 | 参考目录 | `docs/agents/ref-projects.md`；扩面草案 `docs/agents/ref-projects-phase2-supplement.md`（未修宪不得放松 I1–I8） |
 
 **继承声明：** `spec.md` 决策 16–18（文书分态、citation 三联门、推理双轨）与 Testing #7 **继续有效**。  
-**阅读规则：** 本文件为 Phase 2a **总览与交叉引用**；**切票与实现以对应 wave 的独立 SPEC 为准**（W0/W1/W2 各一份，均已 `ready-for-agent`）。
+**阅读规则：** 本文件为 Phase 2a **总览与交叉引用**；**切票与实现以对应 wave 的独立 SPEC 为准**（W0/W1/W2 各一份；W0–W2 均已 `closed`）。
 
 ---
 
@@ -66,11 +66,11 @@
 
 在 W1 之上：
 
-- [ ] OpenEval 数据集的**排行榜**  
-- [ ] **多人协作**评测（多本地用户或明确协作模型；写入实现票）  
-- [ ] 与金标运营流程的接口预留（全量 ≥300 仍属 PRD 延后项，不阻塞 W2 外形）
+- [x] OpenEval 数据集的**排行榜**  
+- [x] **多人协作**评测（多本地用户或明确协作模型；写入实现票）  
+- [x] 与金标运营流程的接口预留（全量 ≥300 仍属 PRD 延后项，不阻塞 W2 外形）  
 
-**宣称规则：** 对外可说「Phase 2a 愿景含 W0–W2」；**不得**在仅完成 W0 时宣称 Pilot Complete 或「评测台已上线」。
+**宣称规则：** 对外可说「Phase 2a Eval Ops 已交付（Preview）」；须诚实标注 ≥300 金标运营仍延后；排行榜分数 ≠ `machine_check`。不得在仅完成 W0 时宣称 Pilot Complete。
 
 ---
 
@@ -250,15 +250,15 @@ LangSmith / OpenEval (W1+) ◄── spans/experiments ──┘ (never default 
 
 | ID | 波次 | 摘要 | 状态 |
 |----|------|------|------|
-| W0-1 | W0 | SQLite + 种子 RBAC | `open` |
-| W0-2 | W0 | OpenAI-compatible assist + 降级 | `open` |
-| W0-3 | W0 | 作业壳套餐 C | `open` |
-| W0-4 | W0 | 本地 trace + 用户文档 | `open` |
-| W1-1 | W1 | Chroma 混合检索 + embedding | `open` |
-| W1-2 | W1 | LangSmith 真上报 | `open` |
-| W1-3 | W1 | OpenEval ↔ LangSmith 历史对比 | `open` |
-| W2-1 | W2 | 排行榜 | `open` |
-| W2-2 | W2 | 多人协作评测 | `open` |
+| W0-1 | W0 | SQLite + 种子 RBAC | `done` |
+| W0-2 | W0 | OpenAI-compatible assist + 降级 | `done` |
+| W0-3 | W0 | 作业壳套餐 C | `done` |
+| W0-4 | W0 | 本地 trace + 用户文档 | `done` |
+| W1-1 | W1 | Chroma 混合检索 + embedding | `done` |
+| W1-2 | W1 | LangSmith 真上报 | `done` |
+| W1-3 | W1 | OpenEval ↔ LangSmith 历史对比 | `done` |
+| W2-1 | W2 | 排行榜 | `done` |
+| W2-2 | W2 | 多人协作评测 | `done` |
 
 ---
 
@@ -269,3 +269,4 @@ LangSmith / OpenEval (W1+) ◄── spans/experiments ──┘ (never default 
 - 2026-09-14：to-tickets 批准 defaults — W0 票 14–22 落盘 `phase2a-w0/`；Phase 1 的 01–13 迁入 `phase1/`。
 - 2026-09-14：to-tickets 批准 defaults — W1 票 23–28 落盘 `phase2a-w1/`。
 - 2026-09-14：to-tickets 批准 defaults — W2 票 29–33 落盘 `phase2a-w2/`。
+- 2026-09-15：W2 DoD 关闭（票 33）；总览 W2 勾选与 Wave Backlog 标 `done`。`Rewrote from: REF-MISSIONS`。

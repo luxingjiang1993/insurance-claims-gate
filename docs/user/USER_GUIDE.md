@@ -1,8 +1,8 @@
 # Claims Gate User Guide
 
-> **Pilot · Phase 1 shipped (Issues 01–13) · Phase 2a W0 Dev Complete (14–22) · Phase 2a W1 Pilot Complete (23–28)**  
+> **Pilot · Phase 1 shipped (Issues 01–13) · Phase 2a W0 Dev Complete (14–22) · Phase 2a W1 Pilot Complete (23–28) · Phase 2a W2 Eval Ops Preview (29–33)**  
 > Last updated: 2026-09-15 · Product code: `本项目代码/claims-gate/`  
-> Status badge: **W1 / Pilot Complete（Developer Preview）** — 作业壳 + 混合检索挂 assist + 真 LangSmith + OpenEval 实验历史对比。W2：排行榜 API（Issue 30）+ 作业壳「评测」入口（Issue 31）+ 金标 I/O 钩子（Issue 32）已 Preview；Eval Ops 手册收口（Issue 33）未关闭；生产 UI / 真连核心 L2 仍延后。
+> Status badge: **W2 / Eval Ops（Developer Preview）** — 排行榜 + 多人协作评测台 + 金标 I/O 钩子 + 本手册操作说明已交付。**诚实：** ≥300 人工金标运营仍延后，不得宣称金标已达标；排行榜分数 ≠ `machine_check` 通过。生产 UI / 真连核心 L2 仍延后。
 
 条款门禁是个人意外险（含附加意外医疗）理赔的裁决辅助产品：输出结构化草案、条款项级引用、一次补件清单与人闸令牌门；**不替代**持牌核赔终裁，**不触发**银企支付。
 
@@ -15,6 +15,7 @@
 | 个人开发 / 验收 | 5 分钟跑通 SC-01/02/03 | [§3 Quickstart](#3-quickstart) |
 | 演示 / 核赔浏览 | 浏览器登录作业壳看案（可无 Key） | [§3.1 作业壳](#31-作业壳w0登录角色规则路径人闸文书ai-降级与本案流水preview) |
 | Pilot 验收 | 满配 + 关向量 + 关 LLM（套餐 L） | [§3.2 Pilot / 套餐 L](#32-pilot-completew1演示可无-key-vs-pilot-须-langsmith) |
+| Eval Ops 演示 | 作业壳「评测」跑榜 / 金标钩子（Preview） | [§3.3 Eval Ops](#33-eval-ops-previeww2评测台与门禁主路径区分) |
 | 核赔初审 | 材料受理 → 一次补件 / 进入初审 | [§5.1](#51-材料受理与一次补件-sc-01) |
 | 核赔员 | 除外拒赔草案 / 效力栈减赔 | [§5.2](#52-除外拒赔与文书分态-sc-02) · [§5.3](#53-批单效力栈减赔-sc-03) |
 | 主管 | 人闸批准 / 驳回；出款就绪 | [§5.4](#54-人闸与出款就绪) |
@@ -26,7 +27,8 @@
 - **Phase 1** 交付面以 **HTTP API + Demo 脚本** 为主（已合门禁）。
 - **演示可无 Key（W0 地板仍成立）：** 登录 + 三角色 RBAC + SC 规则路径 + 人闸 + 文书分态 + AI 无 Key 降级 + 本地 trace。默认 `pytest -q` **不要求** LLM Key 与 LangSmith。
 - **Pilot 须 LangSmith 等（W1 / Pilot Complete）：** 满配验收须配置 LLM Key、LangSmith（`LANGCHAIN_TRACING_V2` + Key）、可重建 Chroma 索引；混合检索挂 assist、来源摘要、真 span、OpenEval 实验历史对比按套餐 L 验收。详见 [§3.2](#32-pilot-completew1演示可无-key-vs-pilot-须-langsmith)。勿当生产终裁 UI；评测分 **不**替代 `machine_check`。
-- **尚未上线（勿按已交付操作）：** W2 Eval Ops 手册收口（Issue 33）；全量 Eval Ops DoD 未关闭。作业壳「评测」入口与金标 I/O 钩子见下方 Preview（Issues 31–32）。局部 API 见 [§7.1a](#71a-评测跑次排行榜与金标-io-钩子w2-局部-preview--issues-29–32)。
+- **Eval Ops Preview（W2）：** 作业壳独立「评测」入口、排行榜、多人跑次归因、金标导入/导出钩子已交付。操作见 [§3.3](#33-eval-ops-previeww2评测台与门禁主路径区分) 与 [§7.1a](#71a-评测跑次排行榜与金标-io-钩子w2-eval-ops-preview--issues-29–33)。**硬边界：** 排行榜 / 评测分数 ≠ `machine_check` 通过；合规主缝仍是轨 A `machine_check`；故意失败的评测跑次 **不**进入默认 `pytest -q` / S0 必过；**不得**宣称 ≥300 金标运营已达标。
+- **尚未上线（勿按已交付操作）：** ≥300 人工金标双标运营；核赔作业 UI 全作业流；真连核心 L2 / 真 OCR。
 - 裁决结果是 **草案**，不具对外最终效力；AI 辅助建议 **不是** 终裁。
 - `PAYOUT_READY` ≠ 已打款；支付仍走核心人工流程。
 - 禁止用「秒赔」叙事包装责任争议案。
@@ -79,14 +81,14 @@
 | 真 LangSmith span + ledger `trace_id` | Preview（W1） | Issue 26；**Pilot 满配须** `LANGCHAIN_TRACING_V2=true` + Key；无 Key 不阻断演示；默认 pytest 不要求；不替代 `machine_check` |
 | OpenEval ↔ LangSmith 实验历史对比 | Preview（W1） | Issue 27；`python -m missions.openeval_langsmith`；同 dataset 多 experiment 可历史对比；**不含**排行榜；不替代 `machine_check`；默认 pytest 不要求 Key |
 | 套餐 L 验收清单 | Preview（W1） | Issue 28；满配 / 关向量 / 关 LLM；见 `本项目代码/claims-gate/docs/acceptance/package-l.md`；不进默认 pytest |
-| OpenEval 评测跑次持久化 + actor | Preview（W2 局部） | Issue 29：`POST /eval/runs` / `GET /eval/runs?actor_user_id=`；复用 W0 演示用户；不替代 `machine_check` |
-| OpenEval 评测排行榜（可排序） | Preview（W2 局部） | Issue 30：`GET /eval/leaderboard`；真源本地 SQLite `eval_runs`；主指标 `pass_rate`；榜分 ≠ 合门禁 |
-| 作业壳「评测」独立入口 | Preview（W2 局部） | Issue 31：主导航「评测」；触发跑次 / 排行榜 / 按提交者过滤；与门禁主路径视觉分离；≥2 账号协作演示；拒绝不假成功 |
-| 金标导入/导出钩子 | Preview（W2 局部） | Issue 32：`POST /eval/gold-labels/import`、`GET /eval/gold-labels/export`、`python -m missions.gold_label_io`；须关联 `case_id`；**不是** ≥300 金标运营，不得宣称已达标 |
-| Eval Ops 手册收口 | Deferred（W2） | Issue 33；勿宣称 W2 Eval Ops 已完全交付 |
+| OpenEval 评测跑次持久化 + actor | Preview（W2） | Issue 29：`POST /eval/runs` / `GET /eval/runs?actor_user_id=`；复用 W0 演示用户；不替代 `machine_check` |
+| OpenEval 评测排行榜（可排序） | Preview（W2） | Issue 30：`GET /eval/leaderboard`；真源本地 SQLite `eval_runs`；主指标 `pass_rate`；**榜分 ≠ 合门禁 / ≠ `machine_check` 通过** |
+| 作业壳「评测」独立入口 | Preview（W2） | Issue 31：主导航「评测」；触发跑次 / 排行榜 / 按提交者过滤；与门禁主路径视觉分离；≥2 账号协作演示；拒绝不假成功 |
+| 金标导入/导出钩子 | Preview（W2） | Issue 32：`POST /eval/gold-labels/import`、`GET /eval/gold-labels/export`、`python -m missions.gold_label_io`；须关联 `case_id`；**不是** ≥300 金标运营，不得宣称已达标 |
+| Eval Ops 手册 + 分数≠合门禁文案 | Preview（W2） | Issue 33：本手册 §3.3 / §7.1a；默认 `pytest -q` 仍绿；评测失败不进 S0 必过；金标全量运营仍 Deferred |
 | 核赔作业 UI 全作业流 | Deferred | 真连 L2 / 生产壳等后续 |
 | 真连核心 L2 / 真 OCR | Deferred | 有干系人后 |
-| ≥300 人工金标运营 | Deferred | 机检入口已占位 |
+| ≥300 人工金标运营 | Deferred | 机检入口已占位；W2 仅钩子，勿宣称达标 |
 
 ---
 
@@ -161,7 +163,7 @@ npm run dev
 | `adjuster` | 材料登记、evaluate、一次补件、看裁决草案、点 AI 辅助与采纳送交；评测台触发跑次 | 批准人闸 → API `PERMISSION_DENIED`，UI 不记成功 |
 | `supervisor` | 上述写路径 + 批准/驳回人闸（获 API 令牌）+ 文书分态；评测台触发跑次 | 壳不自行签发令牌；出款就绪仍走 HTTP L2 |
 
-主导航含「案件作业」与独立「评测」入口（Issue 31 Preview）：评测台与门禁 evaluate 主路径分离，详见 [§7.1a](#71a-评测跑次排行榜与金标-io-钩子w2-局部-preview--issues-29–32)。
+主导航含「案件作业」与独立「评测」入口（Issue 31）：评测台与门禁 evaluate 主路径分离，详见 [§3.3](#33-eval-ops-previeww2评测台与门禁主路径区分)。
 
 **规则路径（与 `machine_check` 同语义）：** `adjuster` / `supervisor` 在详情页登记材料 → evaluate → 一次补件 → 查看裁决草案。字段来自 API，壳不另立规则。无 LLM Key 即可点完 SC-01/02/03。
 
@@ -186,9 +188,42 @@ Issues 23–28 · 波次名：**W1 / Pilot Complete**
 [`本项目代码/claims-gate/docs/acceptance/package-l.md`](../../本项目代码/claims-gate/docs/acceptance/package-l.md)  
 （满配 / 关向量 / 关 LLM）。勾选完成后可对照 `spec-2a-w1-pilot-complete.md` DoD。
 
-**本波不做 / 未上线：** Eval Ops 手册收口（Issue 33）。排行榜 API + 作业壳「评测」入口 + 金标 I/O 钩子已 Preview（Issues 30–32）；钩子 **不是** ≥300 金标运营，勿宣称金标已达标或 W2 Eval Ops 已完全交付。
+**本波不做 / 未上线：** ≥300 人工金标运营；真连 L2 / 生产作业壳。W2 Eval Ops Preview 已交付（Issues 29–33）；钩子 **不是** ≥300 金标运营，勿宣称金标已达标。
 
 **默认 CI：** `pytest -q` 仍不要求 LangSmith / LLM；S2 可选测带 `langsmith_integration` / `track_llm_optional` / `eval_bypass` 等标记。
+
+### 3.3 Eval Ops Preview（W2）：评测台与门禁主路径区分
+
+`Rewrote from: REF-MISSIONS` · Issues 29–33 · 波次名：**W2 / Eval Ops（Developer Preview）**
+
+| 路径 | 入口 | 权威 / 合门禁 |
+|------|------|----------------|
+| **门禁主路径** | 作业壳「案件作业」→ evaluate / 人闸 / 文书 | 轨 A `machine_check`；默认 `pytest -q` / S0 必过 |
+| **Eval Ops 旁路** | 作业壳主导航「评测」（独立页，不在 evaluate 主按钮背后） | 排行榜 / 评测分数 **不是** 合门禁条件；失败跑次不进 S0 |
+
+**硬文案（内审口径）：**
+
+- 排行榜分数 ≠ `machine_check` 通过；`machine_check` 仍是合规主缝。
+- 不得用榜分阈值代替人闸或条款门禁。
+- 金标导入/导出仅是钩子；**不得**宣称「金标已达标」或 ≥300 运营已完成。
+- Phase 2a 可称「Eval Ops 已交付（Preview）」时，仍须诚实标注金标全量运营延后。
+
+**5 分钟演示（两账号协作跑榜）：**
+
+1. 启动 API + 作业壳（同 §3.1）。
+2. 以 `adjuster`（用户名=密码）登录 → 点主导航「评测」→ 可选填实验名 →「触发评测跑次」→ 刷新排行榜，确认本账号 `actor` 有行。
+3. 退出，以 `supervisor` 登录 → 再次进入「评测」→ 触发另一跑次 → 用「按提交者过滤」分别查看两人结果（互不覆盖）。
+4. `viewer` 可只读跑次/排行榜，不可触发跑次；写操作被拒时 UI **不**假成功。
+5. （可选）金标钩子：在评测页粘贴含 `case_id` 的 JSON 导入，或导出；响应 `gold_ops_complete` 恒为 false。CLI：`python -m missions.gold_label_io`（见 §7.1a）。
+
+**HTTP 对照：** 同 [§7.1a](#71a-评测跑次排行榜与金标-io-钩子w2-eval-ops-preview--issues-29–33)。无 LangSmith Key 时跑次仍落本地 SQLite，响应可含 `langsmith_degraded=true`。
+
+**默认 CI：** `pytest -q` 排除 `eval_bypass` 等标记；故意失败的评测旁路套件 **不得** 导致轨 A 红。合门禁自检仍用：
+
+```bash
+cd 本项目代码/claims-gate
+pytest -q
+```
 
 ---
 
@@ -205,6 +240,7 @@ Issues 23–28 · 波次名：**W1 / Pilot Complete**
 | **轨 A / 轨 B** | 轨 A = 确定性默认可回归；轨 B = LLM 可选，失败不挡轨 A |
 | **AI 辅助建议** | 显式点击才调用；产物非裁决草案；可看来源摘要（doc/条款项/版本与可采纳标注）；采纳须再过规则 evaluate；UI 标明非终裁 |
 | **本案流水** | ledger + 人闸事件可回放；本地 JSONL 可配置；LangSmith Key 配置后含 `trace_id`；无 Key 不阻塞；不替代 `machine_check` |
+| **Eval Ops（评测台）** | 独立「评测」入口；跑次归因 + 排行榜；**分数 ≠ 合门禁**；金标 I/O 仅钩子，非 ≥300 运营 |
 
 ### 4.1 门禁状态（作业可读）
 
@@ -387,7 +423,7 @@ POST /claims/{case_id}/l2/close
 | POST | `/claims/{id}/l2/close` | 结案回写 |
 | POST | `/kb/citations/validate` | citation 落库门 |
 
-### 7.1a 评测跑次、排行榜与金标 I/O 钩子（W2 局部 Preview · Issues 29–32）
+### 7.1a 评测跑次、排行榜与金标 I/O 钩子（W2 Eval Ops Preview · Issues 29–33）
 
 旁路 API，**不**替代 `machine_check` / 人闸。须 Bearer 登录（W0 种子用户）。  
 **单一数据真源（跑次/榜）：** 本地 SQLite 表 `eval_runs`（不读 LangSmith 实验 API 驱动榜）。  
@@ -401,11 +437,11 @@ POST /claims/{case_id}/l2/close
 | POST | `/eval/gold-labels/import` | `adjuster` / `supervisor` | 导入数据集钩子；`records[].case_id` 必填；`gold_ops_complete=true` 被拒绝 |
 | GET | `/eval/gold-labels/export` | 已登录（含 `viewer`） | 导出钩子；可选 `?dataset_id=` / `?case_id=`；响应 `gold_ops_complete` 恒为 false |
 
-无 LangSmith Key 时仍落本地表，响应含 `langsmith_degraded=true`。榜上分数 **不是** 条款门禁合门禁条件。
+无 LangSmith Key 时仍落本地表，响应含 `langsmith_degraded=true`。榜上分数 **不是** 条款门禁合门禁条件；**不等于** `machine_check` 通过。
 
-**约定脚本：** 在 `本项目代码/claims-gate/` 执行 `python -m missions.gold_label_io import --file artifacts/gold_label_dataset_preview.json` 或 `export --file <out.json>`（可用 `--db` / `CLAIMS_GATE_DB`）。默认 `pytest -q` **不要求**金标 I/O 绿。
+**约定脚本：** 在 `本项目代码/claims-gate/` 执行 `python -m missions.gold_label_io import --file artifacts/gold_label_dataset_preview.json` 或 `export --file <out.json>`（可用 `--db` / `CLAIMS_GATE_DB`）。默认 `pytest -q` **不要求**金标 I/O / 评测旁路全绿（`-m eval_bypass` 为可选套件）。
 
-**作业壳入口（Issue 31–32 Preview）：** 登录后主导航点「评测」（与「案件作业」并列，不在案件 evaluate 主按钮背后）。可触发跑次、查看排行榜、按提交者过滤，并使用金标导入/导出钩子。页面标明评测旁路、非终裁、无秒赔、**不宣称金标已达标**。完整 Eval Ops 操作说明与 W2 DoD 收口见 Issue 33。
+**作业壳入口：** 登录后主导航点「评测」（与「案件作业」并列）。操作步骤见 [§3.3](#33-eval-ops-previeww2评测台与门禁主路径区分)。页面标明评测旁路、非终裁、无秒赔、**不宣称金标已达标**。
 
 OpenAPI：启动服务后访问 `/docs`（FastAPI 自动生成）。
 
@@ -463,6 +499,6 @@ OpenAPI：启动服务后访问 `/docs`（FastAPI 自动生成）。
 | 字段 | 值 |
 |------|----|
 | doc_id | `USER-GUIDE-CLAIMS-GATE` |
-| phase_covered | Phase 1（01–13）+ Phase 2a W0（14–22）+ Phase 2a W1 Pilot Complete（23–28） |
-| next_update_trigger | W2 DoD 关闭，或用户可见 API/作业流变更合入 |
+| phase_covered | Phase 1（01–13）+ Phase 2a W0（14–22）+ Phase 2a W1 Pilot Complete（23–28）+ Phase 2a W2 Eval Ops Preview（29–33） |
+| next_update_trigger | 金标全量运营 / 真连 L2 / 生产壳交付，或用户可见 API/作业流变更合入 |
 | owner | 产品 Owner（人类）；agents 按 `MAINTENANCE.md` 代写修订 |
