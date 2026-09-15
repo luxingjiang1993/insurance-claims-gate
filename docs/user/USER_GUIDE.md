@@ -169,7 +169,7 @@ npm run dev
 
 **人闸与文书：** `supervisor` 批准后展示 `human_latch_token`。文书须显式选 `DRAFT_EXPORT` 或 `EXTERNAL_NOTIFY`；拒赔草稿可预览；无人闸对外通知失败时 UI **不**升为已通知。
 
-**AI 降级与非终裁：** 「AI 辅助建议」须显式点击；无 Key → 降级提示且 `used_llm=false`。辅助结果区展示**检索来源摘要**（doc / 条款项 / 版本），并以「可采纳 / 不可采纳」诚实标注三联门状态；不可采纳引用不得当作已过门合法 citation。采纳走 `assist/adopt`→evaluate，失败拒绝体原样展示。UI 标明**裁决辅助非终裁**，禁止「秒赔」叙事。
+**AI 降级与非终裁：** 「AI 辅助建议」须显式点击；无 Key → 降级提示且 `used_llm=false`。辅助结果区展示**检索来源摘要**（doc / 条款项 / 版本），并以「可采纳 / 不可采纳」诚实标注三联门状态；不可采纳引用不得当作已过门合法 citation。采纳请求须携带过 Schema 槽（`doc_id`+`clause_item`+`doc_version`）且落库通过的 citation；非法 / 缺槽 → `CITATION_NOT_IN_KB` 或校验失败，**不可采纳**；通过后仍走 `assist/adopt`→evaluate。无可用 citation 时作业壳禁用「送交规则校验」。失败拒绝体原样展示。UI 标明**裁决辅助非终裁**，禁止「秒赔」叙事。
 
 **本案流水：** 详情页浏览 ledger / 人闸事件（含 `retrieval_profile`；有上报时含 `trace_id`）。可选 `.env`：`CLAIMS_GATE_LOCAL_TRACE=1` 导出 JSONL；`LANGCHAIN_TRACING_V2=true` + `LANGCHAIN_API_KEY` 后 evaluate/assist/latch 上报 LangSmith；无 Key 不阻塞规则路径。不替代 `machine_check`。
 
@@ -240,7 +240,7 @@ pytest -q
 | **出款就绪** | 门禁态 `PAYOUT_READY`；仅人闸后可置位；不触发支付 |
 | **文书分态** | `DRAFT_EXPORT` 可草稿导出；`EXTERNAL_NOTIFY` 对外通知须人闸 |
 | **轨 A / 轨 B** | 轨 A = 确定性默认可回归；轨 B = LLM 可选，失败不挡轨 A |
-| **AI 辅助建议** | 显式点击才调用；产物非裁决草案；可看来源摘要（doc/条款项/版本与可采纳标注）；采纳须再过规则 evaluate；UI 标明非终裁 |
+| **AI 辅助建议** | 显式点击才调用；产物非裁决草案；可看来源摘要（doc/条款项/版本与可采纳标注）；采纳须合法 citation 三联槽后再 evaluate；UI 标明非终裁 |
 | **本案流水** | ledger + 人闸事件可回放；本地 JSONL 可配置；LangSmith Key 配置后含 `trace_id`；无 Key 不阻塞；不替代 `machine_check` |
 | **Eval Ops（评测台）** | 独立「评测」入口；跑次归因 + 排行榜；**分数 ≠ 合门禁**；金标 I/O 仅钩子，非 ≥300 运营 |
 
@@ -423,6 +423,8 @@ POST /claims/{case_id}/l2/close
 | POST | `/claims/{id}/peak-degrade` | 高峰降级 |
 | POST | `/claims/{id}/l2/payout-ready` | 出款就绪回写 |
 | POST | `/claims/{id}/l2/close` | 结案回写 |
+| POST | `/claims/{id}/assist` | AI 辅助建议（显式触发） |
+| POST | `/claims/{id}/assist/adopt` | 采纳：须合法 citation 三联槽，再 evaluate |
 | POST | `/kb/citations/validate` | citation 落库门 |
 
 ### 7.1a 评测跑次、排行榜与金标 I/O 钩子（W2 Eval Ops Preview · Issues 29–33）

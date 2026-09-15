@@ -156,12 +156,14 @@ class AssistIn(BaseModel):
 
 
 class AssistAdoptIn(BaseModel):
-    """采纳辅助建议：必须再过规则 evaluate，不得直写权威裁决。"""
+    """采纳辅助建议：citation 须过 Schema 槽 + 三联门；再过规则 evaluate。"""
 
     assist_invocation_id: str | None = None
     draft_text: str | None = None
     suggested_stance: str | None = None
     retrieval_profile: str | None = None
+    # H3：采纳请求须携带 citation；非法 / 缺槽不可采纳
+    citations: list[dict[str, Any]] = Field(default_factory=list)
     proposed_deductible: int | None = None
     proposed_ratio: float | None = None
     sensitivity_flags: list[str] = Field(default_factory=list)
@@ -550,7 +552,7 @@ def adopt_assist(
     body: AssistAdoptIn,
     authorization: str | None = Header(default=None),
 ) -> dict[str, Any]:
-    """采纳辅助建议：唯一权威更新路径是再跑规则 evaluate。"""
+    """采纳辅助建议：citation Schema+三联门通过后，唯一权威更新路径是再跑 evaluate。"""
     _authorize("adopt_assist", authorization)
     try:
         decision = _service.adopt_assist(
@@ -559,6 +561,7 @@ def adopt_assist(
             suggested_stance=body.suggested_stance,
             retrieval_profile=body.retrieval_profile,
             assist_invocation_id=body.assist_invocation_id,
+            citations=body.citations,
             proposed_deductible=body.proposed_deductible,
             proposed_ratio=body.proposed_ratio,
             sensitivity_flags=body.sensitivity_flags or None,

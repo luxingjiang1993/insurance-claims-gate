@@ -533,6 +533,15 @@ describe("createClaimsApiClient", () => {
       assist_invocation_id: "assist-abc123",
       draft_text: "【辅助建议】仅供人审，非终裁。",
       suggested_stance: "deny",
+      citations: [
+        {
+          doc_id: "PA-ACC-MAIN",
+          clause_item: "ART-5-EXCL",
+          doc_version: "2024.1",
+          quote: "疾病",
+          adoptable: true,
+        },
+      ],
     });
 
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
@@ -544,6 +553,15 @@ describe("createClaimsApiClient", () => {
         assist_invocation_id: "assist-abc123",
         draft_text: "【辅助建议】仅供人审，非终裁。",
         suggested_stance: "deny",
+        citations: [
+          {
+            doc_id: "PA-ACC-MAIN",
+            clause_item: "ART-5-EXCL",
+            doc_version: "2024.1",
+            quote: "疾病",
+            adoptable: true,
+          },
+        ],
       }),
     });
     expect(draft.decision_type).toBe("reject_draft");

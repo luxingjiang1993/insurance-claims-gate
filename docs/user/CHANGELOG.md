@@ -119,6 +119,10 @@
 
 ## Unreleased
 
+### Added
+
+- Assist citation Schema 槽 + 三联门（Issue 37 / GitHub #24）：`assist/adopt` 须携带 `doc_id`+`clause_item`+`doc_version`；非法 / 缺槽不可采纳（H3）；通过后仍 evaluate。作业壳无可用 citation 时禁用采纳。`Rewrote from: REF-COURSE-03`。
+
 ### Changed
 
 - Pilot 默认语义 embedding：`EMBEDDING_PROVIDER=cloud` + 独立 embedding Key；CI/rebuild 可用 `local` 哈希并标明**非语义**；缺 embedding Key 不得静默复用 `OPENAI_API_KEY`（Issue 34 / GitHub #21）。`Rewrote from: REF-MISSIONS`（加深现有 chroma_index）。

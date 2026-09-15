@@ -20,6 +20,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+from missions.assist_schema import (
+    AssistSchemaError,
+    validate_assist_citations_schema,
+    validate_assist_suggestion_dict,
+)
 from missions.rag import KnowledgeBase
 from missions.router import (
     CaseSignals,
@@ -1563,7 +1568,50 @@ class ClaimsService:
         # 再次硬钉：assist 路径不得签发人闸或出款就绪
         body["payout_ready"] = False
         body["human_latch_token"] = None
+        # Schema 槽出口闸：非法形状不得冒充可采纳建议体
+        try:
+            validate_assist_suggestion_dict(body)
+        except AssistSchemaError as exc:
+            raise ClaimsDomainError(
+                ErrorCode.VALIDATION_FAILED.value,
+                str(exc),
+            ) from exc
         return body
+
+    def _assert_assist_citations_adoptable(
+        self, citations: list[dict[str, Any]] | None
+    ) -> None:
+        """采纳前：Schema 槽 + doc_id/clause_item/doc_version 三联落库门（H3）。
+
+        缺 citation、缺槽或库外幻觉 → 拒绝；通过后方可进入 evaluate。
+        """
+        cites = list(citations or [])
+        if not cites:
+            raise ClaimsDomainError(
+                ErrorCode.VALIDATION_FAILED.value,
+                "采纳须携带至少一条 citation（Schema 槽）",
+            )
+        try:
+            validate_assist_citations_schema(cites)
+        except AssistSchemaError as exc:
+            raise ClaimsDomainError(
+                ErrorCode.VALIDATION_FAILED.value,
+                str(exc),
+            ) from exc
+        for c in cites:
+            gate = self._kb.validate_citation(
+                {
+                    "doc_id": c.get("doc_id", ""),
+                    "clause_item": c.get("clause_item", ""),
+                    "doc_version": c.get("doc_version", ""),
+                    "quote": c.get("quote", ""),
+                }
+            )
+            if not gate.ok:
+                raise ClaimsDomainError(
+                    ErrorCode.CITATION_NOT_IN_KB.value,
+                    gate.detail or "采纳 citation 未过三联落库门",
+                )
 
     def adopt_assist(
         self,
@@ -1573,6 +1621,7 @@ class ClaimsService:
         suggested_stance: str | None = None,
         retrieval_profile: str | None = None,
         assist_invocation_id: str | None = None,
+        citations: list[dict[str, Any]] | None = None,
         proposed_deductible: int | None = None,
         proposed_ratio: float | None = None,
         sensitivity_flags: list[str] | None = None,
@@ -1581,11 +1630,15 @@ class ClaimsService:
         customer_remark: str | None = None,
         force_reject_with_handbook_only: bool = False,
     ) -> DecisionDraft:
-        """采纳辅助建议：必须再过规则 evaluate，不得直写权威裁决字段。
+        """采纳辅助建议：citation 过门后必须再过规则 evaluate，不得直写权威裁决字段。
 
         suggested_stance / draft_text 仅作可观察输入（经 absorb），
         不得绕过门禁改 decision_type / payout_ready / 人闸令牌。
+        Rewrote from: REF-COURSE-03
         """
+        # H3：非法 / 缺槽 citation 在作废人闸与 evaluate 之前硬停
+        self._assert_assist_citations_adoptable(citations)
+
         case = self.get_claim(case_id)
         # 采纳重写草案前作废既有人闸令牌，防止旧令牌解锁 L2
         case.human_latch_token = None

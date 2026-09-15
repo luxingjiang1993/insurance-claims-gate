@@ -32,6 +32,11 @@ export function AiAssistPanel({
   const [okMessage, setOkMessage] = useState<string | null>(null);
   const [error, setError] = useState<ApiClientError | Error | null>(null);
 
+  const adoptableCitations = (suggestion?.citations ?? []).filter(
+    (c) => c.adoptable === true,
+  );
+  const canAdopt = adoptableCitations.length > 0;
+
   if (readonly) {
     return null;
   }
@@ -66,6 +71,10 @@ export function AiAssistPanel({
     if (!suggestion) {
       return;
     }
+    if (!canAdopt) {
+      setError(new Error("无可采纳 citation（须过 doc_id+条款项+版本三联门），无法送交。"));
+      return;
+    }
     setBusy(true);
     setError(null);
     setOkMessage(null);
@@ -75,6 +84,7 @@ export function AiAssistPanel({
         draft_text: suggestion.draft_text,
         suggested_stance: suggestion.suggested_stance,
         retrieval_profile: suggestion.retrieval_profile,
+        citations: adoptableCitations,
       });
       onDraftUpdated(draft);
       await onClaimUpdated();
@@ -173,14 +183,14 @@ export function AiAssistPanel({
           <div className="action-row">
             <button
               type="button"
-              disabled={busy}
+              disabled={busy || !canAdopt}
               onClick={() => void runAdopt()}
             >
               送交规则校验（采纳）
             </button>
           </div>
           <p className="muted">
-            采纳不会直写权威裁决字段；仅通过服务端再次 evaluate。失败时拒绝体原样展示。
+            采纳须携带过三联门的 citation；通过后由服务端再次 evaluate，不会直写权威裁决字段。失败时拒绝体原样展示。
           </p>
         </div>
       ) : (

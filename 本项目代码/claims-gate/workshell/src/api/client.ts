@@ -4,6 +4,7 @@
  */
 
 import type {
+  AssistCitation,
   AssistSuggestion,
   ClaimDetail,
   ClaimSummary,
@@ -253,7 +254,7 @@ export function createClaimsApiClient(options: ClaimsApiClientOptions) {
       );
     },
 
-    /** 采纳辅助建议：唯一权威更新路径为服务端再跑 evaluate。 */
+    /** 采纳辅助建议：携带 citation（Schema 三联槽）；服务端过门后再 evaluate。 */
     async adoptAssist(
       caseId: string,
       body: {
@@ -261,6 +262,7 @@ export function createClaimsApiClient(options: ClaimsApiClientOptions) {
         draft_text?: string;
         suggested_stance?: string;
         retrieval_profile?: string;
+        citations?: AssistCitation[];
       },
     ): Promise<DecisionDraft> {
       const payload: {
@@ -268,6 +270,7 @@ export function createClaimsApiClient(options: ClaimsApiClientOptions) {
         draft_text?: string;
         suggested_stance?: string;
         retrieval_profile?: string;
+        citations?: AssistCitation[];
       } = {};
       if (body.assist_invocation_id !== undefined) {
         payload.assist_invocation_id = body.assist_invocation_id;
@@ -280,6 +283,9 @@ export function createClaimsApiClient(options: ClaimsApiClientOptions) {
       }
       if (body.retrieval_profile !== undefined) {
         payload.retrieval_profile = body.retrieval_profile;
+      }
+      if (body.citations !== undefined) {
+        payload.citations = body.citations;
       }
       return request<DecisionDraft>(
         `/claims/${encodeURIComponent(caseId)}/assist/adopt`,
