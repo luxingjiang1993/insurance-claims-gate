@@ -49,6 +49,10 @@ def test_rules_vs_rag_conflict_fail_closed_to_latch() -> None:
     assert result.inference_track == "llm_optional"
     assert result.human_latch_required is True
     assert result.conflict_route_id == "R-CONFLICT-RULES-RAG"
+    assert result.assist_disposition == "abstain"
+    assert result.abstain_reason == "conflict"
+    assert result.human_latch_suggested is True
+    assert result.to_dict().get("human_latch_token") is None
 
 
 def test_handbook_ops_cannot_alone_support_external_deny() -> None:

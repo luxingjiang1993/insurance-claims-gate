@@ -8,7 +8,8 @@ L2 出款就绪/结案回写模拟 REF-MISSIONS, REF-CASE-FC；
 Issue 14 SQLite 持久化 + 种子 RBAC 登录 REF-MISSIONS；
 Issue 19 AI 辅助建议降级/关键词/采纳再 evaluate REF-MISSIONS, REF-COURSE-03, REF-CASE-HYBRID, REF-RAG-CY；
 Issue 21 本案流水 + 本地 JSONL span（LangSmith 仅配置位）REF-MISSIONS；
-Issue 26 真 LangSmith span + ledger trace_id REF-CASE-EVAL-ADVISOR, REF-MISSIONS
+Issue 26 真 LangSmith span + ledger trace_id REF-CASE-EVAL-ADVISOR, REF-MISSIONS；
+Issue 39 辅助拒答 disposition / abstain 禁采纳 REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -170,6 +171,8 @@ class ClaimsService:
         self._store = store
         # 银企/支付适配器调用计数：L2 回写路径禁止递增（Demo 可观察）
         self.payment_adapter_calls: int = 0
+        # assist_invocation_id → disposition 快照；abstain 禁采纳（Issue 39）
+        self._assist_invocations: dict[str, dict[str, Any]] = {}
         if store is not None and store.count_cases() > 0:
             self._cases = store.load_all_cases()
         else:
@@ -1532,6 +1535,20 @@ class ClaimsService:
             body["human_latch_token"] = case.human_latch_token
         return body
 
+    def _rules_conclusion_for_assist(self, case: ClaimCase) -> str | None:
+        """从本案最新轨 A 裁决推导 rules_conclusion，供 rules↔RAG 冲突拒答。"""
+        decision = case.latest_decision
+        if decision is None:
+            return None
+        dt = decision.decision_type
+        if dt in {"approve_recommend", "exgratia", "prepay"}:
+            return "pay"
+        if dt == "reject_draft":
+            return "deny"
+        if dt == "reduce":
+            return "reduce"
+        return None
+
     def assist(
         self,
         case_id: str,
@@ -1553,6 +1570,7 @@ class ClaimsService:
             retrieval_profile=profile,
             enable_llm=enable_llm,
             top_k=top_k,
+            rules_conclusion=self._rules_conclusion_for_assist(case),  # type: ignore[arg-type]
         )
         # 审计：assist 调用入 ledger；不改权威裁决草案
         self._append_ledger(
@@ -1568,6 +1586,12 @@ class ClaimsService:
         # 再次硬钉：assist 路径不得签发人闸或出款就绪
         body["payout_ready"] = False
         body["human_latch_token"] = None
+        # 记录 disposition，供 adopt 门禁（abstain 不可送交）
+        self._assist_invocations[result.assist_invocation_id] = {
+            "case_id": case_id,
+            "assist_disposition": body.get("assist_disposition"),
+            "abstain_reason": body.get("abstain_reason"),
+        }
         # Schema 槽出口闸：非法形状不得冒充可采纳建议体
         try:
             validate_assist_suggestion_dict(body)
@@ -1577,6 +1601,47 @@ class ClaimsService:
                 str(exc),
             ) from exc
         return body
+
+    def _assert_assist_not_abstained(
+        self,
+        assist_invocation_id: str | None,
+        *,
+        draft_text: str | None = None,
+        citations: list[dict[str, Any]] | None = None,
+    ) -> None:
+        """abstain 建议体不可送交采纳（J1 / Issue 39）。
+
+        - 已知 invocation → 查 disposition 快照
+        - 未知 invocation → 拒绝（防伪造 id 绕过）
+        - 无 id 时仍检查拒答草稿痕迹 / assist_abstain 标记 citation
+        """
+        if assist_invocation_id:
+            meta = self._assist_invocations.get(assist_invocation_id)
+            if meta is None:
+                raise ClaimsDomainError(
+                    ErrorCode.VALIDATION_FAILED.value,
+                    "未知 assist_invocation_id，拒绝采纳",
+                )
+            if meta.get("assist_disposition") == "abstain":
+                reason = meta.get("abstain_reason") or "unknown"
+                raise ClaimsDomainError(
+                    ErrorCode.VALIDATION_FAILED.value,
+                    f"辅助拒答（abstain / {reason}）不可送交采纳；请走人闸人工处理（不自动签发令牌）",
+                )
+            return
+        text = draft_text or ""
+        if "[辅助拒答 · abstain" in text:
+            raise ClaimsDomainError(
+                ErrorCode.VALIDATION_FAILED.value,
+                "辅助拒答（abstain）建议体不可送交采纳；请走人闸人工处理（不自动签发令牌）",
+            )
+        for c in citations or []:
+            rr = str(c.get("reject_reason") or "")
+            if rr.startswith("assist_abstain:"):
+                raise ClaimsDomainError(
+                    ErrorCode.VALIDATION_FAILED.value,
+                    f"辅助拒答标记 citation 不可送交采纳（{rr}）",
+                )
 
     def _assert_assist_citations_adoptable(
         self, citations: list[dict[str, Any]] | None
@@ -1634,8 +1699,14 @@ class ClaimsService:
 
         suggested_stance / draft_text 仅作可观察输入（经 absorb），
         不得绕过门禁改 decision_type / payout_ready / 人闸令牌。
-        Rewrote from: REF-COURSE-03
+        Rewrote from: REF-COURSE-03；Issue 39 abstain 禁采纳
         """
+        # J1：abstain 建议体在 citation 门之前硬停
+        self._assert_assist_not_abstained(
+            assist_invocation_id,
+            draft_text=draft_text,
+            citations=citations,
+        )
         # H3：非法 / 缺槽 citation 在作废人闸与 evaluate 之前硬停
         self._assert_assist_citations_adoptable(citations)
 

@@ -12,7 +12,8 @@
     "draft_text",
     "used_llm",
     "degraded",
-    "citations"
+    "citations",
+    "assist_disposition"
   ],
   "properties": {
     "assist_invocation_id": { "type": "string", "minLength": 1 },
@@ -36,6 +37,25 @@
     "payout_ready": { "type": "boolean", "const": false },
     "human_latch_token": { "type": ["string", "null"] },
     "human_latch_required": { "type": "boolean" },
+    "human_latch_suggested": { "type": "boolean" },
+    "assist_disposition": {
+      "type": "string",
+      "enum": ["draft", "abstain"]
+    },
+    "abstain_reason": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "string",
+          "enum": [
+            "conflict",
+            "handbook_alone",
+            "low_confidence",
+            "citation_unfaithful"
+          ]
+        }
+      ]
+    },
     "conflict_route_id": { "type": ["string", "null"] },
     "can_external_deny": { "type": "boolean" },
     "enable_llm": { "type": "boolean" },

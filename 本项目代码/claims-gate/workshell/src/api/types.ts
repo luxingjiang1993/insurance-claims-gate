@@ -134,6 +134,16 @@ export type AssistSuggestion = {
   human_latch_token?: string | null;
   enable_llm?: boolean;
   human_latch_required?: boolean;
+  /** draft=可考虑采纳；abstain=辅助拒答，禁用采纳 */
+  assist_disposition?: "draft" | "abstain";
+  abstain_reason?:
+    | "conflict"
+    | "handbook_alone"
+    | "low_confidence"
+    | "citation_unfaithful"
+    | null;
+  /** 可提示走人闸，但 API 永不自动签发令牌 */
+  human_latch_suggested?: boolean;
 };
 
 /** API 拒绝体外形（原样展示，不二次包装文案）。 */

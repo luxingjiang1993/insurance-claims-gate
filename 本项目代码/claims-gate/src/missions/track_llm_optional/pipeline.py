@@ -15,6 +15,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
+from missions.assist_disposition import (
+    mark_citations_unadoptable_for_abstain,
+    resolve_assist_disposition,
+)
 from missions.retrieval_profiles import RETRIEVAL_PROFILES
 
 from .config import TrackBConfig
@@ -56,6 +60,10 @@ class DraftAssistResult:
     degrade_reason: str | None = None
     # W0 关键词画像；W1 可填 vector_* 而不改契约
     retrieval: dict[str, Any] = field(default_factory=dict)
+    # Issue 39：辅助拒答 disposition（永不签发人闸令牌）
+    assist_disposition: Literal["draft", "abstain"] = "draft"
+    abstain_reason: str | None = None
+    human_latch_suggested: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -75,6 +83,9 @@ class DraftAssistResult:
             "degraded": self.degraded,
             "degrade_reason": self.degrade_reason,
             "retrieval": dict(self.retrieval),
+            "assist_disposition": self.assist_disposition,
+            "abstain_reason": self.abstain_reason,
+            "human_latch_suggested": self.human_latch_suggested,
             # 硬保证：assist 产物永不写出款就绪 / 人闸令牌
             "payout_ready": False,
             "human_latch_token": None,
@@ -229,6 +240,28 @@ def draft_assist(
             f"向量检索降级: {retrieval_portrait.get('degrade_reason') or 'keyword_only'}"
         )
 
+    disposition, abstain_reason, latch_suggested = resolve_assist_disposition(
+        query=query,
+        conflict_route_id=conflict_route,
+        can_external_deny=can_external_deny,
+        retrieval_profile=retrieval_profile,
+        stance=stance,
+        intended_external_action=intended_external_action,
+        citations=citations,
+    )
+    if disposition == "abstain" and abstain_reason:
+        mark_citations_unadoptable_for_abstain(citations, abstain_reason)
+        human_latch = True
+        latch_suggested = True
+        notes.append(f"辅助拒答: assist_disposition=abstain reason={abstain_reason}")
+        draft_text = (
+            f"[辅助拒答 · abstain · {abstain_reason}]\n"
+            f"查询: {query}\n"
+            "说明: 当前条件不足以形成可采纳的 AI 辅助建议；"
+            "可前往人闸由持牌核赔处理，但本路径不会自动签发人闸令牌。\n"
+            f"原草稿摘录已收回（不可送交采纳）。\n---\n{draft_text}"
+        )
+
     return DraftAssistResult(
         inference_track=track_cfg.inference_track,
         query=query,
@@ -246,4 +279,7 @@ def draft_assist(
         degraded=degraded,
         degrade_reason=degrade_reason if degraded else None,
         retrieval=retrieval_portrait,
+        assist_disposition=disposition,
+        abstain_reason=abstain_reason,
+        human_latch_suggested=latch_suggested,
     )

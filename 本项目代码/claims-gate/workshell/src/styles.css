@@ -244,6 +244,12 @@ code {
   border-color: transparent;
 }
 
+.tag-abstain {
+  color: var(--danger-text, #8a1f1f);
+  background: var(--danger-bg, #fde8e8);
+  border-color: transparent;
+}
+
 .tag-decision {
   color: var(--ok-text);
   background: var(--ok-bg);

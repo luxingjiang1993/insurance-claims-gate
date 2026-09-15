@@ -1,7 +1,7 @@
 # Claims Gate User Guide
 
 > **Pilot · Phase 1 shipped (Issues 01–13) · Phase 2a W0 Dev Complete (14–22) · Phase 2a W1 Pilot Complete (23–28) · Phase 2a W2 Eval Ops Preview (29–33)**  
-> Last updated: 2026-09-15 · Product code: `本项目代码/claims-gate/`  
+> Last updated: 2026-09-16 · Product code: `本项目代码/claims-gate/`  
 > Status badge: **W2 / Eval Ops（Developer Preview）** — 排行榜 + 多人协作评测台 + 金标 I/O 钩子 + 本手册操作说明已交付。**诚实：** ≥300 人工金标运营仍延后，不得宣称金标已达标；排行榜分数 ≠ `machine_check` 通过。生产 UI / 真连核心 L2 仍延后。
 
 条款门禁是个人意外险（含附加意外医疗）理赔的裁决辅助产品：输出结构化草案、条款项级引用、一次补件清单与人闸令牌门；**不替代**持牌核赔终裁，**不触发**银企支付。
@@ -74,7 +74,7 @@
 | 作业壳登录 + 案件只读浏览 | Preview（W0） | Issue 16 |
 | 作业壳 SC 规则路径（材料 / evaluate / 一次补件 / 草案） | Preview（W0） | Issue 17；无 LLM Key 可点完；语义同 `machine_check` |
 | 作业壳人闸 + 文书分态 | Preview（W0） | Issue 18；supervisor 批/驳获令牌；adjuster 批闸被拒；拒赔 DRAFT 可预览；EXTERNAL_NOTIFY 无人闸不假成功 |
-| 作业壳 AI 辅助建议区 | Preview（W0） | Issue 20；显式点击才调用；无 Key 降级可见；采纳须再过规则 evaluate；UI 标明非终裁 |
+| 作业壳 AI 辅助建议区 | Preview（W0→2b-P） | Issue 20 / 39；显式点击才调用；无 Key 降级可见；`assist_disposition` 拒答时禁用采纳；采纳须再过规则 evaluate；UI 标明非终裁 |
 | 作业壳 AI 区检索来源摘要 | Preview（W1） | Issue 25；展示 doc/条款项/版本；可采纳 vs 不可采纳诚实标注；壳不持有门禁权威 |
 | 作业壳本案流水 + 本地 trace | Preview（W0） | Issue 21；ledger + 人闸事件可回放；本地 JSONL 可配置；无 Key 不阻塞 |
 | Chroma / 混合检索挂 assist | Preview（W1） | Issue 24；assist 路径混合检索 + 三联门 `adoptable`；evaluate 不调向量；关向量可降级 |
@@ -170,7 +170,7 @@ npm run dev
 
 **人闸与文书：** `supervisor` 批准后展示 `human_latch_token`。文书须显式选 `DRAFT_EXPORT` 或 `EXTERNAL_NOTIFY`；拒赔草稿可预览；无人闸对外通知失败时 UI **不**升为已通知。
 
-**AI 降级与非终裁：** 「AI 辅助建议」须显式点击；无 Key → 降级提示且 `used_llm=false`。辅助结果区展示**检索来源摘要**（doc / 条款项 / 版本），并以「可采纳 / 不可采纳」诚实标注三联门状态；不可采纳引用不得当作已过门合法 citation。采纳请求须携带过 Schema 槽（`doc_id`+`clause_item`+`doc_version`）且落库通过的 citation；非法 / 缺槽 → `CITATION_NOT_IN_KB` 或校验失败，**不可采纳**；通过后仍走 `assist/adopt`→evaluate。无可用 citation 时作业壳禁用「送交规则校验」。失败拒绝体原样展示。UI 标明**裁决辅助非终裁**，禁止「秒赔」叙事。
+**AI 降级与非终裁：** 「AI 辅助建议」须显式点击；无 Key → 降级提示且 `used_llm=false`。辅助结果区展示**检索来源摘要**（doc / 条款项 / 版本），并以「可采纳 / 不可采纳」诚实标注三联门状态；不可采纳引用不得当作已过门合法 citation。响应含 `assist_disposition`：`draft` 时可在合法 citation 下送交采纳；`abstain`（原因枚举 `conflict` / `handbook_alone` / `low_confidence` / `citation_unfaithful`）时作业壳**禁用采纳**并展示拒答原因；可提示走人闸（`human_latch_suggested`）但 **不会**自动签发 `human_latch_token`。采纳请求须携带过 Schema 槽（`doc_id`+`clause_item`+`doc_version`）且落库通过的 citation；非法 / 缺槽 → `CITATION_NOT_IN_KB` 或校验失败，**不可采纳**；通过后仍走 `assist/adopt`→evaluate。无可用 citation 或 abstain 时作业壳禁用「送交规则校验」。失败拒绝体原样展示。UI 标明**裁决辅助非终裁**，禁止「秒赔」叙事。
 
 **本案流水：** 详情页浏览 ledger / 人闸事件（含 `retrieval_profile`；有上报时含 `trace_id`）。可选 `.env`：`CLAIMS_GATE_LOCAL_TRACE=1` 导出 JSONL；`LANGCHAIN_TRACING_V2=true` + `LANGCHAIN_API_KEY` 后 evaluate/assist/latch 上报 LangSmith；无 Key 不阻塞规则路径。不替代 `machine_check`。
 
@@ -241,7 +241,7 @@ pytest -q
 | **出款就绪** | 门禁态 `PAYOUT_READY`；仅人闸后可置位；不触发支付 |
 | **文书分态** | `DRAFT_EXPORT` 可草稿导出；`EXTERNAL_NOTIFY` 对外通知须人闸 |
 | **轨 A / 轨 B** | 轨 A = 确定性默认可回归；轨 B = LLM 可选，失败不挡轨 A |
-| **AI 辅助建议** | 显式点击才调用；产物非裁决草案；可看来源摘要（doc/条款项/版本与可采纳标注）；采纳须合法 citation 三联槽后再 evaluate；UI 标明非终裁 |
+| **AI 辅助建议** | 显式点击才调用；产物非裁决草案；可看来源摘要（doc/条款项/版本与可采纳标注）；`abstain` 时可见拒答原因且禁用采纳（不自动发人闸令牌）；`draft` 且合法 citation 三联槽后方可采纳再 evaluate；UI 标明非终裁 |
 | **本案流水** | ledger + 人闸事件可回放；本地 JSONL 可配置；LangSmith Key 配置后含 `trace_id`；无 Key 不阻塞；不替代 `machine_check` |
 | **Eval Ops（评测台）** | 独立「评测」入口；跑次归因 + 排行榜；**分数 ≠ 合门禁**；金标 I/O 仅钩子，非 ≥300 运营 |
 

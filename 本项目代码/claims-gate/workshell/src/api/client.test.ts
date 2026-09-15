@@ -484,6 +484,9 @@ describe("createClaimsApiClient", () => {
         retrieval: { mode: "keyword", vector_enabled: false },
         payout_ready: false,
         human_latch_token: null,
+        assist_disposition: "draft",
+        abstain_reason: null,
+        human_latch_suggested: false,
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -507,6 +510,7 @@ describe("createClaimsApiClient", () => {
     expect(suggestion.degraded).toBe(true);
     expect(suggestion.used_llm).toBe(false);
     expect(suggestion.assist_invocation_id).toBe("assist-abc123");
+    expect(suggestion.assist_disposition).toBe("draft");
     expect(suggestion.payout_ready).toBe(false);
     expect(suggestion.draft_text).toContain("非终裁");
   });

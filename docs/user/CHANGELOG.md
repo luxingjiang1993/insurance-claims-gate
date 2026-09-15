@@ -123,6 +123,7 @@
 
 - Assist citation Schema 槽 + 三联门（Issue 37 / GitHub #24）：`assist/adopt` 须携带 `doc_id`+`clause_item`+`doc_version`；非法 / 缺槽不可采纳（H3）；通过后仍 evaluate。作业壳无可用 citation 时禁用采纳。`Rewrote from: REF-COURSE-03`。
 - 金标薄切片协议 + 导入导出加深（Issue 38 / GitHub #25）：双标角色占位 + 第三人裁决；`case_id` 往返；α 样例 n&lt;10 → **H4=`deferred`**，禁止宣称 grounded；禁止宣称 ≥300 运营。验收见 `本项目代码/claims-gate/docs/acceptance/gold-thin-slice.md`。`Rewrote from: REF-CASE-OPENEVALS`。
+- 辅助拒答 disposition（Issue 39 / GitHub #26）：`assist_disposition=draft|abstain` + 原因枚举；`abstain` 禁用采纳；作业壳可见拒答原因；可 CTA 走人闸但不自动签发 `human_latch_token`。`Rewrote from: REF-MISSIONS`。
 
 ### Changed
 

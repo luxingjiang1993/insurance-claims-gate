@@ -3,6 +3,10 @@ import { useState } from "react";
 import { ApiClientError, type ClaimsApiClient } from "../api/client";
 import type { AssistSuggestion, DecisionDraft } from "../api/types";
 import { isReadonlyRole } from "../auth/session";
+import {
+  canAdoptAssistSuggestion,
+  formatAbstainReason,
+} from "./assistDisposition";
 import { ApiErrorView } from "./ApiErrorView";
 import { RetrievalSourcesPanel } from "./RetrievalSourcesPanel";
 
@@ -16,7 +20,7 @@ type Props = {
 
 /**
  * AI 辅助建议区：须显式点击才调用；与裁决草案分标签；采纳走规则校验。
- * Rewrote from: REF-MISSIONS, REF-CASE-HYBRID
+ * Rewrote from: REF-MISSIONS, REF-CASE-HYBRID；Issue 39 拒答可见
  */
 export function AiAssistPanel({
   api,
@@ -35,7 +39,11 @@ export function AiAssistPanel({
   const adoptableCitations = (suggestion?.citations ?? []).filter(
     (c) => c.adoptable === true,
   );
-  const canAdopt = adoptableCitations.length > 0;
+  const isAbstain = suggestion?.assist_disposition === "abstain";
+  const canAdopt = canAdoptAssistSuggestion({
+    assist_disposition: suggestion?.assist_disposition,
+    hasAdoptableCitation: adoptableCitations.length > 0,
+  });
 
   if (readonly) {
     return null;
@@ -54,7 +62,9 @@ export function AiAssistPanel({
       const next = await api.assistClaim(caseId, { query: trimmed });
       setSuggestion(next);
       await onClaimUpdated();
-      if (next.degraded) {
+      if (next.assist_disposition === "abstain") {
+        setOkMessage(null);
+      } else if (next.degraded) {
         setOkMessage(null);
       } else {
         setOkMessage("已返回 AI 辅助建议（非终裁）。");
@@ -71,8 +81,18 @@ export function AiAssistPanel({
     if (!suggestion) {
       return;
     }
+    if (suggestion.assist_disposition === "abstain") {
+      setError(
+        new Error("辅助拒答（abstain）不可送交采纳；请走人闸人工处理。"),
+      );
+      return;
+    }
     if (!canAdopt) {
-      setError(new Error("无可采纳 citation（须过 doc_id+条款项+版本三联门），无法送交。"));
+      setError(
+        new Error(
+          "无可采纳 citation（须过 doc_id+条款项+版本三联门），无法送交。",
+        ),
+      );
       return;
     }
     setBusy(true);
@@ -144,8 +164,24 @@ export function AiAssistPanel({
         <div className="assist-result">
           <div className="panel-title-row">
             <h3>本次辅助结果</h3>
-            <span className="tag tag-assist">辅助建议</span>
+            {isAbstain ? (
+              <span className="tag tag-abstain">辅助拒答 · abstain</span>
+            ) : (
+              <span className="tag tag-assist">辅助建议</span>
+            )}
           </div>
+          {isAbstain ? (
+            <p className="warn-banner" role="status">
+              辅助拒答
+              {suggestion.abstain_reason
+                ? `：${formatAbstainReason(suggestion.abstain_reason)}（${suggestion.abstain_reason}）`
+                : ""}
+              。不可送交采纳。
+              {suggestion.human_latch_suggested
+                ? " 可前往人闸由持牌核赔处理；本区不会自动签发人闸令牌。"
+                : ""}
+            </p>
+          ) : null}
           {suggestion.degraded ? (
             <p className="warn-banner" role="status">
               降级
@@ -158,6 +194,28 @@ export function AiAssistPanel({
             <dd>
               <code>{suggestion.assist_invocation_id}</code>
             </dd>
+            <dt>assist_disposition</dt>
+            <dd>
+              <code>{suggestion.assist_disposition ?? "—"}</code>
+            </dd>
+            {isAbstain ? (
+              <>
+                <dt>abstain_reason</dt>
+                <dd>
+                  <code>{suggestion.abstain_reason ?? "—"}</code>
+                  {suggestion.abstain_reason
+                    ? `（${formatAbstainReason(suggestion.abstain_reason)}）`
+                    : ""}
+                </dd>
+                <dt>human_latch_suggested</dt>
+                <dd>
+                  <code>
+                    {String(suggestion.human_latch_suggested ?? false)}
+                  </code>
+                  （提示走人闸，不自动发令牌）
+                </dd>
+              </>
+            ) : null}
             <dt>used_llm</dt>
             <dd>
               <code>{String(suggestion.used_llm)}</code>
@@ -190,7 +248,9 @@ export function AiAssistPanel({
             </button>
           </div>
           <p className="muted">
-            采纳须携带过三联门的 citation；通过后由服务端再次 evaluate，不会直写权威裁决字段。失败时拒绝体原样展示。
+            {isAbstain
+              ? "辅助拒答时禁用采纳；人闸须由主管在「人闸」区显式批准，assist 永不自动签发令牌。"
+              : "采纳须携带过三联门的 citation；通过后由服务端再次 evaluate，不会直写权威裁决字段。失败时拒绝体原样展示。"}
           </p>
         </div>
       ) : (

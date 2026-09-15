@@ -128,6 +128,7 @@ def test_assist_schema_accepts_minimal_with_triple() -> None:
         "draft_text": "【辅助建议】仅供人审",
         "used_llm": False,
         "degraded": True,
+        "assist_disposition": "draft",
         "citations": [
             {
                 "doc_id": "PA-ACC-MAIN",
