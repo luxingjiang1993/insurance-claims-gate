@@ -8,16 +8,19 @@
 | Phase 2a · W0 Dev Complete | [`phase2a-w0/`](./phase2a-w0/) | [`spec-2a-w0-dev-complete.md`](../../SPEC/insurance-claims-gate/spec-2a-w0-dev-complete.md) |
 | Phase 2a · W1 Pilot Complete | [`phase2a-w1/`](./phase2a-w1/) | [`spec-2a-w1-pilot-complete.md`](../../SPEC/insurance-claims-gate/spec-2a-w1-pilot-complete.md) |
 | Phase 2a · W2 Eval Ops | [`phase2a-w2/`](./phase2a-w2/) | [`spec-2a-w2-eval-ops.md`](../../SPEC/insurance-claims-gate/spec-2a-w2-eval-ops.md) |
+| Phase 2b · P-α Assist 证据地基 | [`phase2b-p-α/`](./phase2b-p-α/) | [`spec-2b-p-assist-quality.md`](../../SPEC/insurance-claims-gate/spec-2b-p-assist-quality.md) |
+| Phase 2b · P-β Assist 可证伪质量 | [`phase2b-p-β/`](./phase2b-p-β/) | 同上（Blocked by 44） |
 
 父索引：[`spec-2a-runnable-product-floor.md`](../../SPEC/insurance-claims-gate/spec-2a-runnable-product-floor.md)。  
 Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 
 ## Frontier（可立即开工）
 
-**W0：** 已关闭（14–22 resolved）。  
-**W1：** 已关闭（23–28 resolved；SPEC Status=`closed`）。  
-**W2：** 已关闭（29–33 resolved；SPEC Status=`closed`）。  
-后续扩面（金标全量 / 真连 L2 等）另案切票；勿仅凭草案放松 I1–I8。
+**W0–W2：** 已关闭（14–33 resolved）。  
+**2b-P-α：** 可开工（34–38、43 无阻塞；39–42、44 见依赖）。SPEC Status=`ready-for-agent`。  
+**2b-P-β：** 全部 Blocked by **44**（α DoD）。  
+**2b-Q：** 未切票；须 α DoD 后再 `/to-spec` → `spec-2b-q-relay-a2a3.md`。  
+γ 触发项与 ≥300 金标 / L2 等：勿预切；勿仅凭扩面草案放松 I1–I8。
 
 ## Phase 1 任务图（01–13 · 均已 resolved）
 
@@ -91,14 +94,51 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 **W2 明确不做：** ≥300 金标运营宣称、Braintrust/Phoenix 换栈、评测分替 `machine_check`/人闸。  
 **W2 状态：** 29–33 resolved；SPEC `spec-2a-w2-eval-ops.md` Status=`closed`。
 
-## GitHub Issues 映射（Phase 2a）
+## Phase 2b · P-α 任务图（34–44）
 
-本地票 `14`–`33` 已全部同步到 GitHub（标签：`ready-for-agent` · `phase-2a` · `wave:W0|W1|W2`）。完整表：[`github-issue-map.json`](./github-issue-map.json)。
+| NN | 标题 | Blocked by | Status |
+|----|------|------------|--------|
+| 34 | Pilot 默认 cloud embedding | — | ready-for-agent |
+| 35 | BM25 关键词腿 | — | resolved |
+| 36 | Demo 检索种子 40 | — | ready-for-agent |
+| 37 | citation Schema 槽 | — | ready-for-agent |
+| 38 | 金标薄切片 | — | ready-for-agent |
+| 39 | 辅助拒答 + 壳 | 37 | ready-for-agent |
+| 40 | 工具环 ACL | 37 | ready-for-agent |
+| 41 | span 树 | 40 | ready-for-agent |
+| 42 | 忠实检查（规则） | 37, 38 | ready-for-agent |
+| 43 | Provider 文档 | — | ready-for-agent |
+| 44 | α DoD 收口 | 34–43 | ready-for-agent |
+
+详见 [`phase2b-p-α/`](./phase2b-p-α/)。
+
+## Phase 2b · P-β 任务图（45–52）
+
+| NN | 标题 | Blocked by | Status |
+|----|------|------------|--------|
+| 45 | 条款项切块 | 44, 34 | ready-for-agent |
+| 46 | Recall 指标 S2 | 44, 36, 35 | ready-for-agent |
+| 47 | 三维 S2 | 44, 46, 42 | ready-for-agent |
+| 48 | 夜间 S2 告警 | 44, 47 | ready-for-agent |
+| 49 | 四步步数预算 | 44, 40 | ready-for-agent |
+| 50 | κ / judge-human | 44, 38 | ready-for-agent |
+| 51 | 连接状态只读 | 44, 43 | ready-for-agent |
+| 52 | β DoD 收口 | 45–51 | ready-for-agent |
+
+详见 [`phase2b-p-β/`](./phase2b-p-β/)。γ 未触发不预切票。
+
+## GitHub Issues 映射
+
+本地票 `14`–`33` 已同步到 GitHub（标签：`ready-for-agent` · `phase-2a` · `wave:W0|W1|W2`）。  
+本地票 `34`–`52` 已同步到 GitHub（标签：`ready-for-agent` · `phase-2b` · `wave:2b-P-alpha|2b-P-beta`）。  
+完整表：[`github-issue-map.json`](./github-issue-map.json)。
 
 | Local | GitHub | Wave |
 |-------|--------|------|
 | 14–22 | [#1](https://github.com/luxingjiang1993/insurance-claims-gate/issues/1)–[#9](https://github.com/luxingjiang1993/insurance-claims-gate/issues/9) | W0 |
 | 23–28 | [#10](https://github.com/luxingjiang1993/insurance-claims-gate/issues/10)–[#15](https://github.com/luxingjiang1993/insurance-claims-gate/issues/15) | W1 |
 | 29–33 | [#16](https://github.com/luxingjiang1993/insurance-claims-gate/issues/16)–[#20](https://github.com/luxingjiang1993/insurance-claims-gate/issues/20) | W2 |
+| 34–44 | [#21](https://github.com/luxingjiang1993/insurance-claims-gate/issues/21)–[#31](https://github.com/luxingjiang1993/insurance-claims-gate/issues/31) | 2b-P-α |
+| 45–52 | [#32](https://github.com/luxingjiang1993/insurance-claims-gate/issues/32)–[#39](https://github.com/luxingjiang1993/insurance-claims-gate/issues/39) | 2b-P-β |
 
 各本地票首含 `github_issue: #N`；Issue 正文内 `Blocked by` 已写 GitHub `#` 引用。

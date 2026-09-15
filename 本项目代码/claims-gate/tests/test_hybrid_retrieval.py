@@ -1,6 +1,6 @@
-"""接缝：混合检索（仅 assist）— 权重 / 条款号短路 / 三联门 / 向量降级。
+"""接缝：混合检索（仅 assist）— BM25 关键词腿 / 条款号短路 / 三联门 / 向量降级。
 
-Rewrote from: REF-CASE-RECALL, REF-RAG-CY, REF-CASE-HYBRID, REF-MISSIONS
+Rewrote from: REF-CASE-RECALL, REF-CASE-KB, REF-RAG-CY, REF-CASE-HYBRID, REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -41,6 +41,29 @@ def test_env_example_documents_hybrid_weights() -> None:
     assert "0.3" in text
 
 
+def test_keyword_leg_is_bm25_with_jieba() -> None:
+    """接缝（S1）：assist 关键词腿为 BM25（jieba），中文自由文本可召回相关条款。"""
+    from missions.track_llm_optional.hybrid_retrieval import (
+        HybridRetrievalConfig,
+        hybrid_retrieve,
+    )
+
+    citations, portrait = hybrid_retrieve(
+        "疾病导致的摔伤是否属于责任免除",
+        kb_root=KB_ROOT,
+        retrieval_profile="clause_v_current",
+        top_k=5,
+        cfg=HybridRetrievalConfig(vector_enabled=False),
+        vector_searcher=None,
+    )
+    assert portrait.get("keyword_leg") == "bm25"
+    assert portrait["clause_short_circuit"] is False
+    assert len(citations) >= 1
+    # 语义难例：BM25+jieba 应把除外责任条款提到前列
+    top_items = [c.get("clause_item") for c in citations]
+    assert "ART-5-EXCL" in top_items
+
+
 def test_clause_item_query_short_circuits_keyword() -> None:
     """接缝：含明确条款号的查询走关键词短路，不走加权融合。"""
     from missions.track_llm_optional.hybrid_retrieval import (
@@ -62,8 +85,11 @@ def test_clause_item_query_short_circuits_keyword() -> None:
     )
     assert portrait["clause_short_circuit"] is True
     assert portrait["mode"] == "keyword_short_circuit"
+    assert portrait.get("keyword_leg") == "bm25"
     assert len(citations) >= 1
     assert any(c.get("clause_item") == "ART-5-EXCL" for c in citations)
+    # 短路时条款号命中应排第一
+    assert citations[0].get("clause_item") == "ART-5-EXCL"
 
 
 def test_nominations_marked_adoptable_via_citation_gate() -> None:
@@ -141,8 +167,15 @@ def test_vector_disabled_or_failure_degrades_to_keyword() -> None:
 
 
 def test_evaluate_modules_still_zero_chroma_dependency() -> None:
-    """接缝：规则 evaluate 相关模块不得导入 chroma / hybrid 向量路径。"""
-    forbidden = ("chromadb", "chroma_index", "missions.chroma_index", "hybrid_retrieval")
+    """接缝（S0）：规则 evaluate 相关模块不得导入检索 / BM25 / chroma。"""
+    forbidden = (
+        "chromadb",
+        "chroma_index",
+        "missions.chroma_index",
+        "hybrid_retrieval",
+        "jieba",
+        "rank_bm25",
+    )
     evaluate_modules = [
         SRC / "claims_api" / "service.py",
         SRC / "claims_api" / "api.py",

@@ -329,4 +329,15 @@ pytest tests/langsmith_integration/test_openeval_experiment_real.py -m langsmith
 - 重建入口：`python scripts/rebuild_chroma_index.py`（可重复执行）
 - 规则 evaluate 路径不依赖 Chroma（见 `tests/test_chroma_index_rebuild.py`）
 
+## Issue 35 BM25 关键词腿（jieba）
+
+`Rewrote from: REF-CASE-RECALL; REF-CASE-KB BM25`
+
+已落地：
+
+- `missions/track_llm_optional/hybrid_retrieval.py`：assist 混检关键词腿由 Jaccard 换为 BM25（`jieba` + `rank_bm25`）
+- 保留效力栈硬过滤与条款号短路；`retrieval_portrait.keyword_leg=bm25`
+- 规则 evaluate 路径零检索依赖（不得导入 `jieba` / `rank_bm25` / `hybrid_retrieval`）
+- S1：`tests/test_hybrid_retrieval.py`；S2 融合：`tests/track_llm_optional/test_hybrid_retrieval_fusion.py`（默认绿排除）
+
 勿在仓库根直接执行 `uvicorn ... --app-dir src`（会找不到 `claims_api`）；请用 `python scripts/run_api.py` 或先 `cd` 进 `claims-gate`。

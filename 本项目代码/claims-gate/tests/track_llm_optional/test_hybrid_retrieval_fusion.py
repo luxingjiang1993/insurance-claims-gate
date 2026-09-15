@@ -1,7 +1,7 @@
-"""S2：混合检索加权融合（假 embedding / 可注入向量腿）。
+"""S2：混合检索加权融合（假 embedding / 可注入向量腿；关键词腿 BM25）。
 
 默认 CI 排除；需 `pytest -m track_llm_optional`。
-Rewrote from: REF-CASE-RECALL, REF-RAG-CY, REF-CASE-HYBRID, REF-MISSIONS
+Rewrote from: REF-CASE-RECALL, REF-CASE-KB, REF-RAG-CY, REF-CASE-HYBRID, REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -47,6 +47,7 @@ def test_weighted_fusion_uses_keyword_and_vector_legs(tmp_path: Path) -> None:
     )
     assert portrait["mode"] == "hybrid"
     assert portrait["vector_enabled"] is True
+    assert portrait.get("keyword_leg") == "bm25"
     assert portrait["keyword_weight"] == pytest.approx(0.7)
     assert portrait["vector_weight"] == pytest.approx(0.3)
     assert portrait["clause_short_circuit"] is False
@@ -54,7 +55,6 @@ def test_weighted_fusion_uses_keyword_and_vector_legs(tmp_path: Path) -> None:
     assert all("adoptable" in c for c in citations)
     # 至少一条可采纳（落库门通过）
     assert any(c.get("adoptable") is True for c in citations)
-
 
 def test_injected_vector_scores_affect_fusion_ranking() -> None:
     """注入向量腿抬高低关键词命中块时，融合排序应体现向量权重。"""

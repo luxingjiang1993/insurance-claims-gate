@@ -1,6 +1,6 @@
-"""混合检索（仅 AI assist 路径）：硬过滤 / 条款号短路 / 加权融合 / 三联门 / 向量降级。
+"""混合检索（仅 AI assist 路径）：硬过滤 / 条款号短路 / BM25 关键词腿 / 加权融合 / 三联门 / 向量降级。
 
-Rewrote from: REF-CASE-RECALL, REF-RAG-CY, REF-CASE-HYBRID, REF-MISSIONS
+Rewrote from: REF-CASE-RECALL, REF-CASE-KB, REF-RAG-CY, REF-CASE-HYBRID, REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -10,6 +10,9 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Protocol
+
+import jieba
+from rank_bm25 import BM25Okapi
 
 from missions.models import RoleName
 from missions.rag import KnowledgeBase
@@ -25,19 +28,56 @@ _CLAUSE_ITEM_RE = re.compile(
     re.IGNORECASE,
 )
 
-_TOKEN_RE = re.compile(r"[A-Za-z0-9_\-]+|[\u4e00-\u9fff]{1,}")
+# 中文常见停用词（与 REF-CASE-KB BM25 对齐的最小集；勿扩到语义难例连接词）
+_STOP_WORDS = frozenset(
+    {
+        "的",
+        "了",
+        "在",
+        "是",
+        "我",
+        "有",
+        "和",
+        "就",
+        "不",
+        "人",
+        "都",
+        "一",
+        "一个",
+        "上",
+        "也",
+        "很",
+        "到",
+        "说",
+        "要",
+        "去",
+        "你",
+        "会",
+        "着",
+        "没有",
+        "看",
+        "好",
+        "自己",
+        "这",
+    }
+)
 
 
-def _tokenize(text: str) -> set[str]:
-    return {t.lower() for t in _TOKEN_RE.findall(text) if t.strip()}
-
-
-def _jaccard(a: set[str], b: set[str]) -> float:
-    if not a or not b:
-        return 0.0
-    inter = len(a & b)
-    union = len(a | b)
-    return inter / union if union else 0.0
+def _tokenize_chinese(text: str) -> list[str]:
+    """jieba 中文分词；保留条款号等拉丁标识，过滤停用词与单字噪声。"""
+    if not text or not str(text).strip():
+        return []
+    cleaned = re.sub(r"[^\w\s\-]", " ", str(text), flags=re.UNICODE)
+    words = jieba.lcut(cleaned)
+    out: list[str] = []
+    for w in words:
+        token = w.strip().lower()
+        if not token or token in _STOP_WORDS:
+            continue
+        # 保留含字母/数字的标识（如 art-5-excl）；中文词长度>1
+        if re.search(r"[a-z0-9]", token) or len(token) > 1:
+            out.append(token)
+    return out
 
 
 @dataclass(frozen=True)
@@ -145,17 +185,42 @@ def _keyword_score_chunks(
     clause_hint: str | None,
     profile: str,
 ) -> list[tuple[float, Any]]:
-    """关键词腿：Jaccard + 条款号加成（复用 KB 语义，不另起效力栈）。"""
-    q_tokens = _tokenize(query)
+    """关键词腿：BM25（jieba）+ 条款号加成；保留 profile 类型加权。
+
+    Rewrote from: REF-CASE-RECALL; REF-CASE-KB BM25
+    """
+    if not chunks:
+        return []
+
+    # 仅对非空分词块建 BM25；空块保持 0 分（仍可由条款号精确加成）
+    tokenized = [_tokenize_chinese(c.text) for c in chunks]
+    nonempty = [(idx, toks) for idx, toks in enumerate(tokenized) if toks]
+    norm_scores = [0.0] * len(chunks)
+
+    q_tokens = _tokenize_chinese(query)
     if clause_hint:
-        q_tokens |= _tokenize(clause_hint)
+        q_tokens = q_tokens + _tokenize_chinese(clause_hint)
+        # 条款号本身作为强查询词（jieba 可能切碎）
+        hint_key = clause_hint.strip().lower()
+        if hint_key and hint_key not in q_tokens:
+            q_tokens.append(hint_key)
+
+    if nonempty and q_tokens:
+        bm25 = BM25Okapi([toks for _, toks in nonempty])
+        raw_scores = list(bm25.get_scores(q_tokens))
+        max_raw = max(raw_scores) if raw_scores else 0.0
+        if max_raw > 0:
+            for (idx, _), raw in zip(nonempty, raw_scores):
+                norm_scores[idx] = float(raw) / max_raw
+
     profile_cfg = RETRIEVAL_PROFILES.get(profile) or {}
     prefer_types = list(profile_cfg.get("prefer_doc_types") or [])
     endorsement_first = bool(profile_cfg.get("endorsement_first"))
-    # (score, type_rank, chunk)：type_rank 越小越优先，与 KnowledgeBase.retrieve 对齐
+
+    # (score, type_rank, chunk)：type_rank 越小越优先
     scored: list[tuple[float, int, Any]] = []
-    for chunk in chunks:
-        score = _jaccard(q_tokens, chunk.tokens)
+    for idx, chunk in enumerate(chunks):
+        score = norm_scores[idx]
         if clause_hint and (
             chunk.clause_id == clause_hint or chunk.clause_item == clause_hint
         ):
@@ -219,7 +284,7 @@ def hybrid_retrieve(
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """混合检索主入口（仅 assist）。
 
-    流程：硬过滤 → 条款号短路或并行关键词+向量 → 线性加权 → 三联门。
+    流程：硬过滤 → 条款号短路或并行关键词(BM25)+向量 → 线性加权 → 三联门。
     向量关闭/故障时自动关键词降级。
 
     返回 (citations, retrieval_portrait)。
@@ -241,6 +306,7 @@ def hybrid_retrieve(
         "degrade_reason": None,
         "keyword_weight": config.keyword_weight,
         "vector_weight": config.vector_weight,
+        "keyword_leg": "bm25",
         "clause_short_circuit": False,
         "embedding_model": None,
         "chroma_collection": None,
