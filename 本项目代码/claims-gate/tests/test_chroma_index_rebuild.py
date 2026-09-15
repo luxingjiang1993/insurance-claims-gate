@@ -92,6 +92,43 @@ def test_local_embedding_explicit_and_labeled_non_semantic() -> None:
     assert "非语义" in (DeterministicLocalEmbedding.__doc__ or "")
 
 
+def test_retrieve_portrait_labels_local_embedding_non_semantic(
+    tmp_path: Path,
+) -> None:
+    """接缝 2b-portrait：local 索引下 retrieve 画像标明非语义。"""
+    from missions.chroma_index import (
+        ChromaIndexConfig,
+        LOCAL_EMBEDDING_LABEL,
+        rebuild_index,
+    )
+    from missions.track_llm_optional.chroma_search import ChromaVectorSearcher
+    from missions.track_llm_optional.hybrid_retrieval import HybridRetrievalConfig
+    from missions.track_llm_optional.retrieval import retrieve_chunks
+
+    persist = tmp_path / "chroma_local"
+    cfg = ChromaIndexConfig(
+        kb_root=KB_ROOT,
+        persist_dir=persist,
+        embedding_provider="local",
+    )
+    rebuild_index(cfg)
+    searcher = ChromaVectorSearcher(cfg)
+    _citations, portrait = retrieve_chunks(
+        "意外医疗费用",
+        kb_root=KB_ROOT,
+        vector_searcher=searcher,
+        cfg=HybridRetrievalConfig(
+            keyword_weight=0.7, vector_weight=0.3, vector_enabled=True
+        ),
+        return_portrait=True,
+    )
+    assert portrait.get("vector_enabled") is True
+    assert portrait.get("embedding_model") == LOCAL_EMBEDDING_LABEL
+    assert portrait.get("embedding_semantic") is False
+    notes = " ".join(str(n) for n in (portrait.get("notes") or []))
+    assert "非语义" in notes
+
+
 def test_cloud_embedding_never_silently_reuses_openai_api_key() -> None:
     """接缝 2c：缺 embedding Key 时不得静默复用 OPENAI_API_KEY。"""
     from missions.chroma_index import (

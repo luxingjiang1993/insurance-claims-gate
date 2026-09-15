@@ -30,6 +30,14 @@ def main() -> int:
             "提示: EMBEDDING_PROVIDER=local 使用确定性哈希（非语义），"
             "仅适合 CI/rebuild；Pilot 语义检索请用 cloud + 独立 embedding Key。"
         )
+    elif cfg.embedding_provider == "cloud" and not cfg.embedding_api_key.strip():
+        print(
+            "错误: EMBEDDING_PROVIDER=cloud 需要 CLAIMS_GATE_EMBEDDING_API_KEY "
+            "（或 EMBEDDING_API_KEY）；不得静默复用 OPENAI_API_KEY。"
+            "无 Key 时请设 EMBEDDING_PROVIDER=local（非语义）后再重建。",
+            file=sys.stderr,
+        )
+        return 2
     result = rebuild_index(cfg)
     print(
         f"rebuild ok: collection={result.collection_name} "

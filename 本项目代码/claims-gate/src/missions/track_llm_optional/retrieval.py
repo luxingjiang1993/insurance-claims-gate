@@ -89,6 +89,9 @@ def retrieve_chunks(
     chroma_cfg = None
     if searcher is None and hybrid_cfg.vector_enabled:
         searcher, chroma_cfg = _try_build_vector_searcher()
+    # 注入的 ChromaVectorSearcher 也带 cfg，须同样写入诚实画像
+    if chroma_cfg is None and searcher is not None:
+        chroma_cfg = getattr(searcher, "cfg", None)
 
     citations, portrait = hybrid_retrieve(
         q,

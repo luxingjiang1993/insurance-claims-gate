@@ -31,7 +31,7 @@
 |----|--------|
 | LLM | `OPENAI_API_KEY`（及可选 `OPENAI_BASE_URL` / `OPENAI_MODEL`） |
 | LangSmith | `LANGCHAIN_TRACING_V2=true` + `LANGCHAIN_API_KEY`（或 `LANGSMITH_API_KEY`） |
-| 向量 | 默认 `EMBEDDING_PROVIDER=cloud` + 独立 embedding Key；先重建：`python scripts/rebuild_chroma_index.py` |
+| 向量 | 默认 `EMBEDDING_PROVIDER=cloud` + `CLAIMS_GATE_EMBEDDING_API_KEY`；先重建：`python scripts/rebuild_chroma_index.py`（换 provider 后必须重建） |
 | 混合检索权重 | 默认 `KEYWORD_WEIGHT=0.7` / `VECTOR_WEIGHT=0.3` |
 
 **步骤与期望：**

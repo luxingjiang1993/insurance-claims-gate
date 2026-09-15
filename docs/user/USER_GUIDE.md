@@ -192,7 +192,7 @@ Issues 23–28 · 波次名：**W1 / Pilot Complete**
 
 **默认 CI：** `pytest -q` 仍不要求 LangSmith / LLM / cloud embedding Key；S2 可选测带 `langsmith_integration` / `track_llm_optional` / `eval_bypass` 等标记。CI 重建索引请显式 `EMBEDDING_PROVIDER=local`（确定性哈希，**非语义**，不得宣称语义检索质量）。
 
-**Provider / Key 分区（Pilot）：** LLM 用 `OPENAI_API_KEY`（或 `CLAIMS_GATE_LLM_API_KEY`）；语义 embedding 用 `CLAIMS_GATE_EMBEDDING_API_KEY`（或 `EMBEDDING_API_KEY`）且推荐 `EMBEDDING_PROVIDER=cloud`。缺 embedding Key **不得**静默复用 LLM Key。详见 `本项目代码/claims-gate/.env.example`。
+**Provider / Key 分区（Pilot）：** LLM 用 `OPENAI_API_KEY`（或 `CLAIMS_GATE_LLM_API_KEY`）；语义 embedding 用 `CLAIMS_GATE_EMBEDDING_API_KEY`（或 `EMBEDDING_API_KEY`）且推荐 `EMBEDDING_PROVIDER=cloud`。缺 embedding Key **不得**静默复用 LLM Key。切换 `EMBEDDING_PROVIDER`（尤其 local→cloud）后须先 `python scripts/rebuild_chroma_index.py` 再宣称语义检索，否则查询向量与索引不对齐。详见 `本项目代码/claims-gate/.env.example`。
 
 ### 3.3 Eval Ops Preview（W2）：评测台与门禁主路径区分
 
