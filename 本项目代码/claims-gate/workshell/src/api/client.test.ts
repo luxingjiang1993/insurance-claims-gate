@@ -636,4 +636,148 @@ describe("createClaimsApiClient", () => {
       body: { detail },
     });
   });
+
+  it("createEvalRun posts optional experiment_name and returns actor-attributed run", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        run_id: "eval-abc",
+        actor_user_id: "adjuster",
+        experiment_name: "exp-adj-1",
+        experiment_id: null,
+        dataset_name: "claims-gate-openeval-negatives",
+        summary: { passed: 2, total: 3 },
+        cases: [],
+        created_at: "2026-09-15T01:00:00+00:00",
+        langsmith_degraded: true,
+        gate_role: "bypass_not_machine_check",
+        blocks_track_a_gate: false,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-adj",
+    });
+    const run = await client.createEvalRun({ experiment_name: "exp-adj-1" });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("http://127.0.0.1:8000/eval/runs");
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: "POST",
+      body: JSON.stringify({ experiment_name: "exp-adj-1" }),
+    });
+    expect(callHeaders(fetchMock).get("Authorization")).toBe("Bearer sess-adj");
+    expect(run.actor_user_id).toBe("adjuster");
+    expect(run.run_id).toBe("eval-abc");
+    expect(run.langsmith_degraded).toBe(true);
+  });
+
+  it("listEvalRuns passes actor_user_id filter and returns runs", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        runs: [
+          {
+            run_id: "eval-a",
+            actor_user_id: "adjuster",
+            experiment_name: "exp-a",
+            experiment_id: null,
+            dataset_name: "claims-gate-openeval-negatives",
+            summary: { passed: 1, total: 2 },
+            cases: [],
+            created_at: "2026-09-15T01:00:00+00:00",
+            langsmith_degraded: true,
+            gate_role: "bypass_not_machine_check",
+            blocks_track_a_gate: false,
+          },
+        ],
+        filter_actor_user_id: "adjuster",
+        gate_role: "bypass_not_machine_check",
+        blocks_track_a_gate: false,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-adj",
+    });
+    const body = await client.listEvalRuns({ actor_user_id: "adjuster" });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:8000/eval/runs?actor_user_id=adjuster",
+    );
+    expect(body.runs).toHaveLength(1);
+    expect(body.runs[0]?.actor_user_id).toBe("adjuster");
+    expect(body.filter_actor_user_id).toBe("adjuster");
+  });
+
+  it("getEvalLeaderboard returns sortable rows from local eval_runs", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        rows: [
+          {
+            experiment_name: "exp-high",
+            primary_metric: 1,
+            primary_metric_name: "pass_rate",
+            created_at: "2026-09-15T02:00:00+00:00",
+            submitter: "adjuster",
+            run_id: "eval-high",
+            gate_role: "bypass_not_machine_check",
+            blocks_track_a_gate: false,
+          },
+          {
+            experiment_name: "exp-low",
+            primary_metric: 0.5,
+            primary_metric_name: "pass_rate",
+            created_at: "2026-09-15T01:00:00+00:00",
+            submitter: "supervisor",
+            run_id: "eval-low",
+            gate_role: "bypass_not_machine_check",
+            blocks_track_a_gate: false,
+          },
+        ],
+        sort_by: "primary_metric",
+        order: "desc",
+        primary_metric_name: "pass_rate",
+        data_source: "local_sqlite_eval_runs",
+        gate_role: "bypass_not_machine_check",
+        blocks_track_a_gate: false,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-sup",
+    });
+    const board = await client.getEvalLeaderboard({ order: "desc" });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:8000/eval/leaderboard?order=desc",
+    );
+    expect(board.rows).toHaveLength(2);
+    expect(board.rows[0]?.submitter).toBe("adjuster");
+    expect(board.rows[1]?.submitter).toBe("supervisor");
+    expect(board.data_source).toBe("local_sqlite_eval_runs");
+  });
+
+  it("surfaces createEvalRun API rejection without fake success", async () => {
+    const detail = {
+      error_code: "AUTH_FAILED",
+      message: "触发评测跑次须登录会话",
+    };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(401, { detail }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => null,
+    });
+
+    await expect(client.createEvalRun({})).rejects.toMatchObject({
+      name: "ApiClientError",
+      status: 401,
+      body: { detail },
+    });
+  });
 });

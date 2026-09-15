@@ -9,6 +9,9 @@ import type {
   ClaimSummary,
   DecisionDraft,
   DocumentExportResult,
+  EvalLeaderboardResult,
+  EvalRunListResult,
+  EvalRunRecord,
   HumanLatchApproveResult,
   HumanLatchRejectResult,
   LatchEventRow,
@@ -301,6 +304,50 @@ export function createClaimsApiClient(options: ClaimsApiClientOptions) {
         { method: "GET" },
       );
       return body.items;
+    },
+
+    /** 触发评测跑次并持久化（OpenEval 旁路；actor 取自会话）。 */
+    async createEvalRun(body: {
+      experiment_name?: string;
+      dataset_name?: string;
+    }): Promise<EvalRunRecord> {
+      const payload: { experiment_name?: string; dataset_name?: string } = {};
+      if (body.experiment_name !== undefined) {
+        payload.experiment_name = body.experiment_name;
+      }
+      if (body.dataset_name !== undefined) {
+        payload.dataset_name = body.dataset_name;
+      }
+      return request<EvalRunRecord>("/eval/runs", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    },
+
+    /** 列出评测跑次；可按 actor_user_id 过滤（多人互不覆盖）。 */
+    async listEvalRuns(options?: {
+      actor_user_id?: string;
+    }): Promise<EvalRunListResult> {
+      const qs = new URLSearchParams();
+      if (options?.actor_user_id) {
+        qs.set("actor_user_id", options.actor_user_id);
+      }
+      const suffix = qs.toString() ? `?${qs.toString()}` : "";
+      return request<EvalRunListResult>(`/eval/runs${suffix}`, {
+        method: "GET",
+      });
+    },
+
+    /** 评测排行榜：本地 eval_runs 真源；可按主指标升降序。 */
+    async getEvalLeaderboard(options?: {
+      order?: "asc" | "desc";
+    }): Promise<EvalLeaderboardResult> {
+      const order = options?.order ?? "desc";
+      const qs = new URLSearchParams({ order });
+      return request<EvalLeaderboardResult>(
+        `/eval/leaderboard?${qs.toString()}`,
+        { method: "GET" },
+      );
     },
   };
 }

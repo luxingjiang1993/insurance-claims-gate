@@ -2,7 +2,7 @@
 
 > **Pilot · Phase 1 shipped (Issues 01–13) · Phase 2a W0 Dev Complete (14–22) · Phase 2a W1 Pilot Complete (23–28)**  
 > Last updated: 2026-09-15 · Product code: `本项目代码/claims-gate/`  
-> Status badge: **W1 / Pilot Complete（Developer Preview）** — 作业壳 + 混合检索挂 assist + 真 LangSmith + OpenEval 实验历史对比。W2 排行榜 API（Issue 30）已 Preview；作业壳「评测」入口**未上线**；生产 UI / 真连核心 L2 仍延后。
+> Status badge: **W1 / Pilot Complete（Developer Preview）** — 作业壳 + 混合检索挂 assist + 真 LangSmith + OpenEval 实验历史对比。W2：排行榜 API（Issue 30）+ 作业壳「评测」入口（Issue 31）已 Preview；Eval Ops 手册收口（Issue 33）与金标 I/O（Issue 32）未关闭；生产 UI / 真连核心 L2 仍延后。
 
 条款门禁是个人意外险（含附加意外医疗）理赔的裁决辅助产品：输出结构化草案、条款项级引用、一次补件清单与人闸令牌门；**不替代**持牌核赔终裁，**不触发**银企支付。
 
@@ -26,7 +26,7 @@
 - **Phase 1** 交付面以 **HTTP API + Demo 脚本** 为主（已合门禁）。
 - **演示可无 Key（W0 地板仍成立）：** 登录 + 三角色 RBAC + SC 规则路径 + 人闸 + 文书分态 + AI 无 Key 降级 + 本地 trace。默认 `pytest -q` **不要求** LLM Key 与 LangSmith。
 - **Pilot 须 LangSmith 等（W1 / Pilot Complete）：** 满配验收须配置 LLM Key、LangSmith（`LANGCHAIN_TRACING_V2` + Key）、可重建 Chroma 索引；混合检索挂 assist、来源摘要、真 span、OpenEval 实验历史对比按套餐 L 验收。详见 [§3.2](#32-pilot-completew1演示可无-key-vs-pilot-须-langsmith)。勿当生产终裁 UI；评测分 **不**替代 `machine_check`。
-- **尚未上线（勿按已交付操作）：** W2 Eval Ops 完整面 — 作业壳「评测」入口与 Eval Ops 手册收口。局部 API 见 [§7](#7-reference)（Issue 29 跑次 + Issue 30 排行榜 Preview）。
+- **尚未上线（勿按已交付操作）：** W2 Eval Ops 手册收口与金标 I/O（Issues 32–33）；全量 Eval Ops DoD 未关闭。作业壳「评测」入口见下方 Preview（Issue 31）。局部 API 见 [§7.1a](#71a-评测跑次与排行榜w2-局部-preview--issues-29–30)。
 - 裁决结果是 **草案**，不具对外最终效力；AI 辅助建议 **不是** 终裁。
 - `PAYOUT_READY` ≠ 已打款；支付仍走核心人工流程。
 - 禁止用「秒赔」叙事包装责任争议案。
@@ -80,8 +80,9 @@
 | OpenEval ↔ LangSmith 实验历史对比 | Preview（W1） | Issue 27；`python -m missions.openeval_langsmith`；同 dataset 多 experiment 可历史对比；**不含**排行榜；不替代 `machine_check`；默认 pytest 不要求 Key |
 | 套餐 L 验收清单 | Preview（W1） | Issue 28；满配 / 关向量 / 关 LLM；见 `本项目代码/claims-gate/docs/acceptance/package-l.md`；不进默认 pytest |
 | OpenEval 评测跑次持久化 + actor | Preview（W2 局部） | Issue 29：`POST /eval/runs` / `GET /eval/runs?actor_user_id=`；复用 W0 演示用户；不替代 `machine_check` |
-| OpenEval 评测排行榜（可排序） | Preview（W2 局部） | Issue 30：`GET /eval/leaderboard`；真源本地 SQLite `eval_runs`；主指标 `pass_rate`；**不含**作业壳入口；榜分 ≠ 合门禁 |
-| 作业壳「评测」入口 / Eval Ops 手册收口 | Deferred（W2） | Issues 31、33；金标 I/O 钩子见 Issue 32 |
+| OpenEval 评测排行榜（可排序） | Preview（W2 局部） | Issue 30：`GET /eval/leaderboard`；真源本地 SQLite `eval_runs`；主指标 `pass_rate`；榜分 ≠ 合门禁 |
+| 作业壳「评测」独立入口 | Preview（W2 局部） | Issue 31：主导航「评测」；触发跑次 / 排行榜 / 按提交者过滤；与门禁主路径视觉分离；≥2 账号协作演示；拒绝不假成功 |
+| Eval Ops 手册收口 / 金标 I/O 钩子 | Deferred（W2） | Issues 32–33；勿宣称 W2 Eval Ops 已完全交付 |
 | 核赔作业 UI 全作业流 | Deferred | 真连 L2 / 生产壳等后续 |
 | 真连核心 L2 / 真 OCR | Deferred | 有干系人后 |
 | ≥300 人工金标运营 | Deferred | 机检入口已占位 |
@@ -155,9 +156,11 @@ npm run dev
 
 | 角色 | 可做什么 | 不可做什么 |
 |------|----------|------------|
-| `viewer` | 只读案件列表/详情、草案、人闸字段、本案流水 | 无写操作入口 |
-| `adjuster` | 材料登记、evaluate、一次补件、看裁决草案、点 AI 辅助与采纳送交 | 批准人闸 → API `PERMISSION_DENIED`，UI 不记成功 |
-| `supervisor` | 上述写路径 + 批准/驳回人闸（获 API 令牌）+ 文书分态 | 壳不自行签发令牌；出款就绪仍走 HTTP L2 |
+| `viewer` | 只读案件列表/详情、草案、人闸字段、本案流水；只读评测跑次/排行榜 | 无写操作入口（含不可触发评测跑次） |
+| `adjuster` | 材料登记、evaluate、一次补件、看裁决草案、点 AI 辅助与采纳送交；评测台触发跑次 | 批准人闸 → API `PERMISSION_DENIED`，UI 不记成功 |
+| `supervisor` | 上述写路径 + 批准/驳回人闸（获 API 令牌）+ 文书分态；评测台触发跑次 | 壳不自行签发令牌；出款就绪仍走 HTTP L2 |
+
+主导航含「案件作业」与独立「评测」入口（Issue 31 Preview）：评测台与门禁 evaluate 主路径分离，详见 [§7.1a](#71a-评测跑次与排行榜w2-局部-preview--issues-29–30)。
 
 **规则路径（与 `machine_check` 同语义）：** `adjuster` / `supervisor` 在详情页登记材料 → evaluate → 一次补件 → 查看裁决草案。字段来自 API，壳不另立规则。无 LLM Key 即可点完 SC-01/02/03。
 
@@ -182,7 +185,7 @@ Issues 23–28 · 波次名：**W1 / Pilot Complete**
 [`本项目代码/claims-gate/docs/acceptance/package-l.md`](../../本项目代码/claims-gate/docs/acceptance/package-l.md)  
 （满配 / 关向量 / 关 LLM）。勾选完成后可对照 `spec-2a-w1-pilot-complete.md` DoD。
 
-**本波不做 / 未上线：** OpenEval 排行榜、多人协作评测台（**W2 Eval Ops**）。对外文案勿暗示 Eval Ops 已交付。
+**本波不做 / 未上线：** 金标 I/O 钩子与 Eval Ops 手册收口（Issues 32–33）。排行榜 API + 作业壳「评测」入口已 Preview（Issues 30–31）；勿宣称 W2 Eval Ops 已完全交付。
 
 **默认 CI：** `pytest -q` 仍不要求 LangSmith / LLM；S2 可选测带 `langsmith_integration` / `track_llm_optional` / `eval_bypass` 等标记。
 
@@ -394,7 +397,9 @@ POST /claims/{case_id}/l2/close
 | GET | `/eval/runs` | 已登录（含 `viewer`） | 列出跑次；可选 `?actor_user_id=` 过滤 |
 | GET | `/eval/leaderboard` | 已登录（含 `viewer`） | 排行榜：实验名 / 主指标 `pass_rate` / 时间 / 提交者；`?order=desc\|asc` 按主指标排序（稳定） |
 
-无 LangSmith Key 时仍落本地表，响应含 `langsmith_degraded=true`。榜上分数 **不是** 条款门禁合门禁条件。作业壳「评测」入口尚未上线（Issue 31）。
+无 LangSmith Key 时仍落本地表，响应含 `langsmith_degraded=true`。榜上分数 **不是** 条款门禁合门禁条件。
+
+**作业壳入口（Issue 31 Preview）：** 登录后主导航点「评测」（与「案件作业」并列，不在案件 evaluate 主按钮背后）。可触发跑次、查看排行榜、按提交者过滤；用 `adjuster` / `supervisor` 分别登录可演示协作跑榜。页面标明评测旁路、非终裁、无秒赔。完整 Eval Ops 操作说明与 W2 DoD 收口见 Issue 33。
 
 OpenAPI：启动服务后访问 `/docs`（FastAPI 自动生成）。
 

@@ -246,6 +246,20 @@ pytest tests/langsmith_integration/test_openeval_experiment_real.py -m langsmith
 - 默认测：`tests/eval/test_eval_leaderboard_sort.py`（字段 + 稳定排序 + 两用户种子可见）；两用户 HTTP：`pytest -m eval_bypass`
 - **不含**作业壳「评测」入口（票 31）
 
+## Issue 31 作业壳「评测」独立入口 + 两账号协作跑榜
+
+`Rewrote from: REF-MISSIONS, REF-CASE-EVAL-ADVISOR`
+
+**前置：** 票 20（作业壳 AI 区）、29、30 已落地。**旁路台，非核赔终裁。**
+
+已落地：
+
+- 主导航独立「评测」入口（与「案件作业」并列；不挂在 evaluate 主按钮背后）
+- `workshell/src/pages/EvalOpsPage.tsx`：触发跑次 / 排行榜 / 按提交者过滤；评测旁路横幅与门禁主路径视觉分离；无终裁/秒赔误导
+- API 客户端：`createEvalRun` / `listEvalRuns` / `getEvalLeaderboard`；拒绝不假成功
+- 演示：`adjuster` / `supervisor` 分别登录触发；可过滤查看他人结果且互不覆盖；`viewer` 只读
+- 默认测：`workshell` 内 `appRoutes` / `evalOpsModel` / client 契约；**不含** Eval Ops 手册收口（票 33）
+
 ## Issue 16 作业壳：登录 + 案件只读浏览
 
 `Rewrote from: REF-MISSIONS`

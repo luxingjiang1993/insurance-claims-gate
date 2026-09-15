@@ -4,15 +4,23 @@ import { ApiClientError, type ClaimsApiClient } from "../api/client";
 import type { ClaimSummary, LoginResult } from "../api/types";
 import { ApiErrorView } from "../components/ApiErrorView";
 import { ReadonlyBanner } from "../components/ReadonlyBanner";
+import { ShellNav } from "../components/ShellNav";
 
 type Props = {
   api: ClaimsApiClient;
   session: LoginResult;
   onOpenCase: (caseId: string) => void;
+  onOpenEvalOps: () => void;
   onLogout: () => void;
 };
 
-export function CaseListPage({ api, session, onOpenCase, onLogout }: Props) {
+export function CaseListPage({
+  api,
+  session,
+  onOpenCase,
+  onOpenEvalOps,
+  onLogout,
+}: Props) {
   const [items, setItems] = useState<ClaimSummary[]>([]);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<ApiClientError | Error | null>(null);
@@ -47,6 +55,14 @@ export function CaseListPage({ api, session, onOpenCase, onLogout }: Props) {
     <section className="card">
       <header className="page-header">
         <div>
+          <ShellNav
+            active="list"
+            onNavigate={(route) => {
+              if (route === "evalOps") {
+                onOpenEvalOps();
+              }
+            }}
+          />
           <h1>案件列表</h1>
           <p className="muted">
             {session.display_name}（{session.username} / {session.role}）

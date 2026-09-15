@@ -164,3 +164,47 @@ export type LatchEventRow = {
   reason?: string;
   second_approver?: string | null;
 };
+
+/** 评测跑次（POST/GET /eval/runs；旁路，非合门禁）。 */
+export type EvalRunRecord = {
+  run_id: string;
+  actor_user_id: string;
+  experiment_name: string;
+  experiment_id: string | null;
+  dataset_name: string;
+  summary: Record<string, unknown>;
+  cases: unknown[];
+  created_at: string;
+  langsmith_degraded: boolean;
+  gate_role?: string;
+  blocks_track_a_gate?: boolean;
+};
+
+export type EvalRunListResult = {
+  runs: EvalRunRecord[];
+  filter_actor_user_id: string | null;
+  gate_role?: string;
+  blocks_track_a_gate?: boolean;
+};
+
+/** 排行榜一行（GET /eval/leaderboard）。 */
+export type EvalLeaderboardRow = {
+  experiment_name: string;
+  primary_metric: number;
+  primary_metric_name: string;
+  created_at: string;
+  submitter: string;
+  run_id: string;
+  gate_role?: string;
+  blocks_track_a_gate?: boolean;
+};
+
+export type EvalLeaderboardResult = {
+  rows: EvalLeaderboardRow[];
+  sort_by: string;
+  order: string;
+  primary_metric_name: string;
+  data_source: string;
+  gate_role?: string;
+  blocks_track_a_gate?: boolean;
+};
