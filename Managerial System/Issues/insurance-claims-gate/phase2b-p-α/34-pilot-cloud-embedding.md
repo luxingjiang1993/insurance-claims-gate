@@ -43,7 +43,10 @@
 - 默认 `EMBEDDING_PROVIDER=cloud`（dataclass + `from_env`）；独立 `CLAIMS_GATE_EMBEDDING_API_KEY` / `EMBEDDING_API_KEY`；**不**读 `OPENAI_API_KEY`
 - `local` 显式配置；标签 `deterministic_local_non_semantic`；rebuild 脚本与 USER_GUIDE / `.env.example` 标明非语义
 - 检索画像：`embedding_semantic=false` + notes 中文非语义提示
-- S0：`pytest -q` 无 cloud Key 全绿（164 通过）
+- S0：`pytest -q` 无 cloud Key 全绿
+- 复审跟进：retrieve 画像测覆盖 local 非语义；换 provider 须 rebuild 写入手册/`.env.example`；cloud 缺 Key 时 rebuild 清晰退出码 2
+
+Commits: `5a23cd7`, `bc0d6a2`
 
 ## Comments
 
