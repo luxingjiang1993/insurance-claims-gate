@@ -1,0 +1,16 @@
+{
+  "schema": "claims-gate-gold-label-dataset-v1",
+  "dataset_id": "preview-hook",
+  "gold_ops_complete": false,
+  "dual_annotation_workflow": false,
+  "docs_note": "外形样例：关联 case_id 的导入/导出钩子；合成占位，非真实双人金标；全量运营仍延后",
+  "rewrote_from": "REF-CASE-OPENEVALS, REF-MISSIONS",
+  "records": [
+    {
+      "case_id": "CLM-SC01-001",
+      "inputs": { "scene": "sc01" },
+      "expected": { "route": "supplement" },
+      "notes": "延续票 11 抽检 case_id；OpenEvals 式 inputs/expected"
+    }
+  ]
+}

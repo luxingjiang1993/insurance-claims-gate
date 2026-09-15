@@ -16,7 +16,7 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 
 **W0：** 已关闭（14–22 resolved）。  
 **W1：** 已关闭（23–28 resolved；SPEC Status=`closed`）。  
-**W2：** 开放；frontier 为 **29**（仅依赖 28）。  
+**W2：** 开放；frontier 为 **33**（30–32 resolved）。  
 开工前将对应票 `Status` 改为 `claimed`。
 
 ## Phase 1 任务图（01–13 · 均已 resolved）
@@ -70,10 +70,10 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 
 | NN | 标题 | Blocked by | Status |
 |----|------|------------|--------|
-| 29 | 评测跑次持久化 + actor 归因（复用 W0 用户） | 28 | ready-for-agent |
-| 30 | 排行榜：实验名 / 主指标 / 时间 / 提交者 + 可排序 | 28, 29 | ready-for-agent |
-| 31 | 作业壳「评测」独立入口 + 两账号协作跑榜演示 | 20, 29, 30 | ready-for-agent |
-| 32 | 金标运营接口预留（导入/导出 + case_id） | 29 | ready-for-agent |
+| 29 | 评测跑次持久化 + actor 归因（复用 W0 用户） | 28 | resolved |
+| 30 | 排行榜：实验名 / 主指标 / 时间 / 提交者 + 可排序 | 28, 29 | resolved |
+| 31 | 作业壳「评测」独立入口 + 两账号协作跑榜演示 | 20, 29, 30 | resolved |
+| 32 | 金标运营接口预留（导入/导出 + case_id） | 29 | resolved |
 | 33 | Eval Ops 手册 + 分数≠合门禁文案 + S0 仍绿 | 30, 31, 32 | ready-for-agent |
 
 ```text

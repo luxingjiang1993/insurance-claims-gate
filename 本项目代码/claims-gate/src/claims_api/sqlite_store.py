@@ -1,7 +1,8 @@
-"""SQLite 案件域持久化：案件/材料/草案/人闸事件/ledger/用户会话/评测跑次。
+"""SQLite 案件域持久化：案件/材料/草案/人闸事件/ledger/用户会话/评测跑次/金标钩子。
 
 Rewrote from: REF-MISSIONS（外置状态外形换 SQLite）；演示 RBAC 种子 REF-COURSE-04；
 Issue 29 评测跑次表 REF-CASE-OPENEVALS, REF-CASE-EVAL-ADVISOR, REF-MISSIONS
+Issue 32 金标 I/O 表 REF-CASE-OPENEVALS, REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -70,6 +71,17 @@ CREATE TABLE IF NOT EXISTS eval_runs (
     cases_json TEXT NOT NULL,
     created_at TEXT NOT NULL,
     langsmith_degraded INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS gold_label_records (
+    dataset_id TEXT NOT NULL,
+    case_id TEXT NOT NULL,
+    inputs_json TEXT NOT NULL,
+    expected_json TEXT NOT NULL,
+    notes TEXT NOT NULL DEFAULT '',
+    actor_user_id TEXT NOT NULL,
+    imported_at TEXT NOT NULL,
+    PRIMARY KEY (dataset_id, case_id)
 );
 """
 
@@ -358,6 +370,89 @@ class SqliteCaseStore:
                     "cases": list(json.loads(row["cases_json"])),
                     "created_at": str(row["created_at"]),
                     "langsmith_degraded": bool(row["langsmith_degraded"]),
+                }
+            )
+        return out
+
+    def upsert_gold_label_record(
+        self,
+        *,
+        dataset_id: str,
+        case_id: str,
+        inputs: dict[str, Any],
+        expected: dict[str, Any],
+        notes: str,
+        actor_user_id: str,
+        imported_at: str,
+    ) -> dict[str, Any]:
+        """按 dataset_id+case_id 覆盖写入金标钩子行（非双人标注工作流）。"""
+        self._conn.execute(
+            """
+            INSERT INTO gold_label_records(
+                dataset_id, case_id, inputs_json, expected_json,
+                notes, actor_user_id, imported_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(dataset_id, case_id) DO UPDATE SET
+                inputs_json = excluded.inputs_json,
+                expected_json = excluded.expected_json,
+                notes = excluded.notes,
+                actor_user_id = excluded.actor_user_id,
+                imported_at = excluded.imported_at
+            """,
+            (
+                dataset_id,
+                case_id,
+                json.dumps(inputs, ensure_ascii=False),
+                json.dumps(expected, ensure_ascii=False),
+                notes,
+                actor_user_id,
+                imported_at,
+            ),
+        )
+        self._conn.commit()
+        return {
+            "dataset_id": dataset_id,
+            "case_id": case_id,
+            "inputs": dict(inputs),
+            "expected": dict(expected),
+            "notes": notes,
+            "actor_user_id": actor_user_id,
+            "imported_at": imported_at,
+        }
+
+    def list_gold_label_records(
+        self,
+        *,
+        dataset_id: str | None = None,
+        case_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """列出金标钩子行；可按数据集或 case_id 过滤。"""
+        sql = """
+            SELECT dataset_id, case_id, inputs_json, expected_json,
+                   notes, actor_user_id, imported_at
+            FROM gold_label_records
+            WHERE 1=1
+        """
+        params: list[Any] = []
+        if dataset_id:
+            sql += " AND dataset_id = ?"
+            params.append(dataset_id)
+        if case_id:
+            sql += " AND case_id = ?"
+            params.append(case_id)
+        sql += " ORDER BY dataset_id ASC, case_id ASC"
+        rows = self._conn.execute(sql, params).fetchall()
+        out: list[dict[str, Any]] = []
+        for row in rows:
+            out.append(
+                {
+                    "dataset_id": str(row["dataset_id"]),
+                    "case_id": str(row["case_id"]),
+                    "inputs": dict(json.loads(row["inputs_json"])),
+                    "expected": dict(json.loads(row["expected_json"])),
+                    "notes": str(row["notes"]),
+                    "actor_user_id": str(row["actor_user_id"]),
+                    "imported_at": str(row["imported_at"]),
                 }
             )
         return out

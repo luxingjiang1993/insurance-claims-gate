@@ -780,4 +780,59 @@ describe("createClaimsApiClient", () => {
       body: { detail },
     });
   });
+
+  it("importGoldLabels posts dataset with case_id", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        dataset_id: "preview-hook",
+        imported_count: 1,
+        gold_ops_complete: false,
+        dual_annotation_workflow: false,
+        gate_role: "bypass_not_machine_check",
+        blocks_track_a_gate: false,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-adj",
+    });
+    const result = await client.importGoldLabels({
+      dataset_id: "preview-hook",
+      records: [{ case_id: "CLM-SC01-001", inputs: {}, expected: {} }],
+    });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:8000/eval/gold-labels/import",
+    );
+    expect(result.imported_count).toBe(1);
+    expect(result.gold_ops_complete).toBe(false);
+  });
+
+  it("exportGoldLabels filters by dataset_id and case_id", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        dataset_id: "preview-hook",
+        records: [{ case_id: "CLM-SC01-001", inputs: {}, expected: {} }],
+        gold_ops_complete: false,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClaimsApiClient({
+      baseUrl: "http://127.0.0.1:8000",
+      getToken: () => "sess-adj",
+    });
+    const body = await client.exportGoldLabels({
+      dataset_id: "preview-hook",
+      case_id: "CLM-SC01-001",
+    });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:8000/eval/gold-labels/export?dataset_id=preview-hook&case_id=CLM-SC01-001",
+    );
+    expect(body.records[0]?.case_id).toBe("CLM-SC01-001");
+    expect(body.gold_ops_complete).toBe(false);
+  });
 });

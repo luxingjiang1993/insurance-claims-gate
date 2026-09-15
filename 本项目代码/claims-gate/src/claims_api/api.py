@@ -12,6 +12,7 @@ Issue 19 AI 辅助建议降级/关键词/采纳再 evaluate REF-MISSIONS, REF-CO
 Issue 21 本案流水 + 本地 JSONL span（LangSmith 仅配置位）REF-MISSIONS；
 Issue 29 评测跑次持久化 + actor 归因 REF-CASE-OPENEVALS, REF-CASE-EVAL-ADVISOR, REF-MISSIONS
 Issue 30 评测排行榜排序 REF-CASE-EVAL-ADVISOR, REF-CASE-OPENEVALS, REF-MISSIONS
+Issue 32 金标导入/导出钩子 REF-CASE-OPENEVALS, REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -235,6 +236,26 @@ class EvalRunCreateIn(BaseModel):
 
     experiment_name: str | None = None
     dataset_name: str | None = None
+
+
+class GoldLabelRecordIn(BaseModel):
+    """金标钩子单行：必须关联案件键。"""
+
+    case_id: str = Field(min_length=1)
+    inputs: dict[str, Any] = Field(default_factory=dict)
+    expected: dict[str, Any] = Field(default_factory=dict)
+    notes: str = ""
+
+
+class GoldLabelImportIn(BaseModel):
+    """金标数据集导入钩子；禁止把运营完成写成已交付。"""
+
+    dataset_id: str = Field(min_length=1)
+    records: list[GoldLabelRecordIn]
+    gold_ops_complete: bool = False
+    dual_annotation_workflow: bool = False
+    docs_note: str | None = None
+    dataset_schema: str | None = None
 
 
 def get_service() -> ClaimsService:
@@ -1074,3 +1095,75 @@ def list_eval_leaderboard(
         "gate_role": "bypass_not_machine_check",
         "blocks_track_a_gate": False,
     }
+
+
+@app.post("/eval/gold-labels/import")
+def import_gold_labels(
+    body: GoldLabelImportIn,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """金标数据集导入钩子：记录须含 case_id；不实现双人全量运营。
+
+    旁路：失败不改写人闸；不进 machine_check；不得宣称金标已达标。
+    """
+    from missions.gold_label_io import GoldLabelIoError, import_dataset, parse_dataset
+
+    session = _authorize("import_gold_labels", authorization)
+    if session is None:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error_code": ErrorCode.AUTH_FAILED.value,
+                "message": "导入金标数据集须登录会话",
+            },
+        )
+    payload = body.model_dump()
+    if payload.get("dataset_schema") and not payload.get("schema"):
+        payload["schema"] = payload["dataset_schema"]
+    try:
+        dataset = parse_dataset(payload)
+        result = import_dataset(
+            get_store(),
+            dataset,
+            actor_user_id=str(session["username"]),
+        )
+    except GoldLabelIoError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error_code": ErrorCode.VALIDATION_FAILED.value,
+                "message": str(exc),
+            },
+        ) from exc
+    return result.to_dict()
+
+
+@app.get("/eval/gold-labels/export")
+def export_gold_labels(
+    dataset_id: str | None = None,
+    case_id: str | None = None,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """金标数据集导出钩子：可按 dataset_id / case_id 过滤；完成标志恒为 false。"""
+    from missions.gold_label_io import EVAL_GATE_ROLE, export_dataset
+
+    session = _authorize("export_gold_labels", authorization)
+    if session is None:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error_code": ErrorCode.AUTH_FAILED.value,
+                "message": "导出金标数据集须登录会话",
+            },
+        )
+    dataset = export_dataset(
+        get_store(),
+        dataset_id=dataset_id,
+        case_id=case_id,
+    )
+    out = dataset.to_dict()
+    out["gate_role"] = EVAL_GATE_ROLE
+    out["blocks_track_a_gate"] = False
+    out["filter_dataset_id"] = dataset_id
+    out["filter_case_id"] = case_id
+    return out

@@ -12,6 +12,8 @@ import type {
   EvalLeaderboardResult,
   EvalRunListResult,
   EvalRunRecord,
+  GoldLabelExportResult,
+  GoldLabelImportResult,
   HumanLatchApproveResult,
   HumanLatchRejectResult,
   LatchEventRow,
@@ -346,6 +348,41 @@ export function createClaimsApiClient(options: ClaimsApiClientOptions) {
       const qs = new URLSearchParams({ order });
       return request<EvalLeaderboardResult>(
         `/eval/leaderboard?${qs.toString()}`,
+        { method: "GET" },
+      );
+    },
+
+    /** 金标数据集导入钩子（须含 case_id；不宣称运营完成）。 */
+    async importGoldLabels(body: {
+      dataset_id: string;
+      records: Array<{
+        case_id: string;
+        inputs?: Record<string, unknown>;
+        expected?: Record<string, unknown>;
+        notes?: string;
+      }>;
+    }): Promise<GoldLabelImportResult> {
+      return request<GoldLabelImportResult>("/eval/gold-labels/import", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    },
+
+    /** 金标数据集导出钩子；可按 dataset_id / case_id 过滤。 */
+    async exportGoldLabels(options?: {
+      dataset_id?: string;
+      case_id?: string;
+    }): Promise<GoldLabelExportResult> {
+      const qs = new URLSearchParams();
+      if (options?.dataset_id) {
+        qs.set("dataset_id", options.dataset_id);
+      }
+      if (options?.case_id) {
+        qs.set("case_id", options.case_id);
+      }
+      const suffix = qs.toString() ? `?${qs.toString()}` : "";
+      return request<GoldLabelExportResult>(
+        `/eval/gold-labels/export${suffix}`,
         { method: "GET" },
       );
     },

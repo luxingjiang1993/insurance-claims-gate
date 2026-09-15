@@ -260,6 +260,21 @@ pytest tests/langsmith_integration/test_openeval_experiment_real.py -m langsmith
 - 演示：`adjuster` / `supervisor` 分别登录触发；可过滤查看他人结果且互不覆盖；`viewer` 只读
 - 默认测：`workshell` 内 `appRoutes` / `evalOpsModel` / client 契约；**不含** Eval Ops 手册收口（票 33）
 
+## Issue 32 金标运营接口预留（导入/导出 + case_id）
+
+`Rewrote from: REF-CASE-OPENEVALS, REF-MISSIONS`
+
+**前置：** 票 29 已落地。**旁路钩子，非合门禁；不是 ≥300 金标运营。**
+
+已落地：
+
+- `src/missions/gold_label_io.py`：解析/导入/导出；每条须 `case_id`；拒绝 `gold_ops_complete=true` 与双人全量标志
+- SQLite `gold_label_records`；HTTP `POST /eval/gold-labels/import`、`GET /eval/gold-labels/export`
+- 脚本：`python -m missions.gold_label_io import|export --file ...`
+- 作业壳评测台金标钩子面板（诚实文案，不宣称已达标）
+- 默认测：`tests/eval/test_gold_label_io_hooks.py` S0 隔离；HTTP 往返：`pytest -m eval_bypass`
+- **不含** Eval Ops 手册收口（票 33）
+
 ## Issue 16 作业壳：登录 + 案件只读浏览
 
 `Rewrote from: REF-MISSIONS`

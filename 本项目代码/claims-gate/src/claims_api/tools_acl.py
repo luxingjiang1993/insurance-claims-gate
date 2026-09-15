@@ -45,6 +45,8 @@ ALLOWED_TOOL_NAMES: frozenset[str] = frozenset(
         "create_eval_run",
         "list_eval_runs",
         "list_eval_leaderboard",
+        "import_gold_labels",
+        "export_gold_labels",
     }
 )
 
@@ -70,6 +72,7 @@ VIEWER_ALLOWED_TOOLS: frozenset[str] = frozenset(
         "auth_logout",
         "list_eval_runs",
         "list_eval_leaderboard",
+        "export_gold_labels",
     }
 )
 

@@ -16,6 +16,7 @@ import { ReadonlyBanner } from "../components/ReadonlyBanner";
 import { ShellNav } from "../components/ShellNav";
 import {
   DEMO_EVAL_ACTORS,
+  GOLD_LABEL_HOOK_NOTE,
   canCreateEvalRun,
   filterLeaderboardBySubmitter,
   filterRunsByActor,
@@ -51,6 +52,15 @@ export function EvalOpsPage({
   const [lastRunId, setLastRunId] = useState<string | null>(null);
   const [primaryMetricName, setPrimaryMetricName] = useState("pass_rate");
   const [dataSource, setDataSource] = useState("local_sqlite_eval_runs");
+  const [goldJson, setGoldJson] = useState(
+    '{\n  "dataset_id": "preview-hook",\n  "records": [{ "case_id": "CLM-SC01-001", "inputs": {}, "expected": {} }]\n}',
+  );
+  const [goldBusy, setGoldBusy] = useState(false);
+  const [goldError, setGoldError] = useState<ApiClientError | Error | null>(
+    null,
+  );
+  const [goldImportCount, setGoldImportCount] = useState<number | null>(null);
+  const [goldExportText, setGoldExportText] = useState("");
   const refreshGen = useRef(0);
 
   const allowTrigger = canCreateEvalRun(session.role);
@@ -117,6 +127,55 @@ export function EvalOpsPage({
       }
     } finally {
       setTriggerBusy(false);
+    }
+  }
+
+  async function handleGoldImport() {
+    if (!allowTrigger) {
+      return;
+    }
+    setGoldBusy(true);
+    setGoldError(null);
+    setGoldImportCount(null);
+    try {
+      const parsed = JSON.parse(goldJson) as {
+        dataset_id?: string;
+        records?: Array<{
+          case_id: string;
+          inputs?: Record<string, unknown>;
+          expected?: Record<string, unknown>;
+          notes?: string;
+        }>;
+      };
+      if (!parsed.dataset_id || !parsed.records) {
+        throw new Error("JSON 须含 dataset_id 与 records");
+      }
+      const result = await api.importGoldLabels({
+        dataset_id: parsed.dataset_id,
+        records: parsed.records,
+      });
+      setGoldImportCount(result.imported_count);
+    } catch (err) {
+      setGoldError(err instanceof Error ? err : new Error(String(err)));
+      setGoldImportCount(null);
+    } finally {
+      setGoldBusy(false);
+    }
+  }
+
+  async function handleGoldExport() {
+    setGoldBusy(true);
+    setGoldError(null);
+    try {
+      const exported = await api.exportGoldLabels({
+        dataset_id: "preview-hook",
+      });
+      setGoldExportText(JSON.stringify(exported, null, 2));
+    } catch (err) {
+      setGoldError(err instanceof Error ? err : new Error(String(err)));
+      setGoldExportText("");
+    } finally {
+      setGoldBusy(false);
     }
   }
 
@@ -328,6 +387,53 @@ export function EvalOpsPage({
               </tbody>
             </table>
           </>
+        ) : null}
+      </div>
+
+      <div className="action-panel">
+        <div className="panel-title-row">
+          <h2>金标导入/导出钩子（Preview）</h2>
+        </div>
+        <p className="muted">{GOLD_LABEL_HOOK_NOTE}</p>
+        {allowTrigger ? (
+          <label>
+            导入 JSON
+            <textarea
+              rows={6}
+              value={goldJson}
+              onChange={(e) => setGoldJson(e.target.value)}
+            />
+          </label>
+        ) : (
+          <p className="muted">当前角色仅可导出查看，不可导入。</p>
+        )}
+        <div className="action-row">
+          {allowTrigger ? (
+            <button
+              type="button"
+              disabled={goldBusy}
+              onClick={() => void handleGoldImport()}
+            >
+              {goldBusy ? "处理中…" : "导入钩子"}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="secondary"
+            disabled={goldBusy}
+            onClick={() => void handleGoldExport()}
+          >
+            导出 preview-hook
+          </button>
+        </div>
+        {goldImportCount !== null ? (
+          <div className="ok-banner" role="status">
+            已写入 {goldImportCount} 条（钩子落库；非金标运营完成）
+          </div>
+        ) : null}
+        {goldError ? <ApiErrorView error={goldError} /> : null}
+        {goldExportText ? (
+          <pre className="muted">{goldExportText}</pre>
         ) : null}
       </div>
     </section>

@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import type { EvalLeaderboardRow, EvalRunRecord } from "../api/types";
 import {
   DEMO_EVAL_ACTORS,
+  GOLD_LABEL_HOOK_NOTE,
   canCreateEvalRun,
   filterLeaderboardBySubmitter,
   filterRunsByActor,
@@ -85,5 +86,11 @@ describe("evalOpsModel", () => {
     if (fail.kind === "failure") {
       expect(fail.error.message).toBe("API 401");
     }
+  });
+
+  it("gold-label hook copy does not claim ops complete", () => {
+    expect(GOLD_LABEL_HOOK_NOTE).toContain("case_id");
+    expect(GOLD_LABEL_HOOK_NOTE).not.toContain("金标已达标");
+    expect(GOLD_LABEL_HOOK_NOTE).not.toContain("≥300 已完成");
   });
 });

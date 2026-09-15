@@ -208,3 +208,31 @@ export type EvalLeaderboardResult = {
   gate_role?: string;
   blocks_track_a_gate?: boolean;
 };
+
+/** 金标数据集钩子行（须含 case_id；非双人全量运营）。 */
+export type GoldLabelRecord = {
+  case_id: string;
+  inputs: Record<string, unknown>;
+  expected: Record<string, unknown>;
+  notes?: string;
+};
+
+export type GoldLabelImportResult = {
+  dataset_id: string;
+  imported_count: number;
+  gold_ops_complete: boolean;
+  dual_annotation_workflow?: boolean;
+  gate_role?: string;
+  blocks_track_a_gate?: boolean;
+};
+
+export type GoldLabelExportResult = {
+  dataset_id: string;
+  records: GoldLabelRecord[];
+  gold_ops_complete: boolean;
+  dual_annotation_workflow?: boolean;
+  docs_note?: string;
+  schema?: string;
+  gate_role?: string;
+  blocks_track_a_gate?: boolean;
+};
