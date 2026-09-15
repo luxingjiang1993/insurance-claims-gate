@@ -217,6 +217,20 @@ pytest tests/langsmith_integration/test_openeval_experiment_real.py -m langsmith
 2. **真实验：** `pytest -m langsmith_integration`，需真实 Key；缺则 skip。
 3. LangSmith UI / 实验分 **不**替代 `machine_check`。
 
+## Issue 29 评测跑次持久化 + actor 归因
+
+`Rewrote from: REF-CASE-OPENEVALS, REF-CASE-EVAL-ADVISOR, REF-MISSIONS`
+
+**前置：** W1 票 28（Pilot Complete）已关闭。**旁路，非合门禁主缝。**
+
+已落地：
+
+- SQLite `eval_runs` 表：每条含 `actor_user_id`（复用 W0 演示用户）
+- `src/missions/eval_run_persist.py`：经 OpenEval 旁路触发并持久化；无 LangSmith 时 `langsmith_degraded=true`
+- HTTP：`POST /eval/runs`（adjuster/supervisor）、`GET /eval/runs?actor_user_id=`（可过滤；viewer 只读）
+- 默认测：`tests/eval/test_eval_run_persist_actor.py`（S0 隔离 + 本地表过滤）；两用户跑次：`pytest -m eval_bypass`
+- **不含**排行榜排序（票 30）与作业壳评测入口（票 31）
+
 ## Issue 16 作业壳：登录 + 案件只读浏览
 
 `Rewrote from: REF-MISSIONS`

@@ -26,7 +26,7 @@
 - **Phase 1** 交付面以 **HTTP API + Demo 脚本** 为主（已合门禁）。
 - **演示可无 Key（W0 地板仍成立）：** 登录 + 三角色 RBAC + SC 规则路径 + 人闸 + 文书分态 + AI 无 Key 降级 + 本地 trace。默认 `pytest -q` **不要求** LLM Key 与 LangSmith。
 - **Pilot 须 LangSmith 等（W1 / Pilot Complete）：** 满配验收须配置 LLM Key、LangSmith（`LANGCHAIN_TRACING_V2` + Key）、可重建 Chroma 索引；混合检索挂 assist、来源摘要、真 span、OpenEval 实验历史对比按套餐 L 验收。详见 [§3.2](#32-pilot-completew1演示可无-key-vs-pilot-须-langsmith)。勿当生产终裁 UI；评测分 **不**替代 `machine_check`。
-- **尚未上线（勿按已交付操作）：** W2 Eval Ops — OpenEval 排行榜与多人协作评测台。
+- **尚未上线（勿按已交付操作）：** W2 Eval Ops 完整面 — OpenEval **排行榜**与作业壳「评测」入口。局部 API 见 [§7](#7-reference)（Issue 29 跑次持久化 Preview）。
 - 裁决结果是 **草案**，不具对外最终效力；AI 辅助建议 **不是** 终裁。
 - `PAYOUT_READY` ≠ 已打款；支付仍走核心人工流程。
 - 禁止用「秒赔」叙事包装责任争议案。
@@ -79,7 +79,8 @@
 | 真 LangSmith span + ledger `trace_id` | Preview（W1） | Issue 26；**Pilot 满配须** `LANGCHAIN_TRACING_V2=true` + Key；无 Key 不阻断演示；默认 pytest 不要求；不替代 `machine_check` |
 | OpenEval ↔ LangSmith 实验历史对比 | Preview（W1） | Issue 27；`python -m missions.openeval_langsmith`；同 dataset 多 experiment 可历史对比；**不含**排行榜；不替代 `machine_check`；默认 pytest 不要求 Key |
 | 套餐 L 验收清单 | Preview（W1） | Issue 28；满配 / 关向量 / 关 LLM；见 `本项目代码/claims-gate/docs/acceptance/package-l.md`；不进默认 pytest |
-| OpenEval 排行榜 / 多人协作 | Deferred（W2） | **未上线**；勿与 W1 Pilot Complete 混淆 |
+| OpenEval 评测跑次持久化 + actor | Preview（W2 局部） | Issue 29：`POST /eval/runs` / `GET /eval/runs?actor_user_id=`；复用 W0 演示用户；**不含**排行榜与作业壳评测入口；不替代 `machine_check` |
+| OpenEval 排行榜 / 作业壳评测台 | Deferred（W2） | 排行榜排序、作业壳「评测」入口与完整 Eval Ops 手册仍未上线 |
 | 核赔作业 UI 全作业流 | Deferred | 真连 L2 / 生产壳等后续 |
 | 真连核心 L2 / 真 OCR | Deferred | 有干系人后 |
 | ≥300 人工金标运营 | Deferred | 机检入口已占位 |
@@ -380,6 +381,17 @@ POST /claims/{case_id}/l2/close
 | POST | `/claims/{id}/l2/payout-ready` | 出款就绪回写 |
 | POST | `/claims/{id}/l2/close` | 结案回写 |
 | POST | `/kb/citations/validate` | citation 落库门 |
+
+### 7.1a 评测跑次（W2 局部 Preview · Issue 29）
+
+旁路 API，**不**替代 `machine_check` / 人闸。须 Bearer 登录（W0 种子用户）。
+
+| Method | Path | 角色 | 用途 |
+|--------|------|------|------|
+| POST | `/eval/runs` | `adjuster` / `supervisor` | 触发 OpenEval 旁路跑次并持久化；`actor_user_id` = 当前用户 |
+| GET | `/eval/runs` | 已登录（含 `viewer`） | 列出跑次；可选 `?actor_user_id=` 过滤 |
+
+无 LangSmith Key 时仍落本地表，响应含 `langsmith_degraded=true`。排行榜与作业壳「评测」入口尚未上线。
 
 OpenAPI：启动服务后访问 `/docs`（FastAPI 自动生成）。
 

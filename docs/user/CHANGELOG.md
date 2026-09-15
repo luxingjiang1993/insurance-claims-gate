@@ -90,15 +90,21 @@
 
 ---
 
-## Phase 2a · W2 — Eval Ops（未启动实现主路径）
+## Phase 2a · W2 — Eval Ops（进行中）
 
-**Status:** Not started as shipped surface.  
-W1 DoD 关闭后方可将实现重心转到 W2。用户可见能力落地前，勿将排行榜 / 多人评测台写成已上线。
+**Status:** 实现主路径已启动；完整 Eval Ops（排行榜 / 作业壳入口 / 手册收口）未关闭。  
+W1 DoD（票 28）已满足。勿将排行榜写成已上线。
 
 ---
 
 ## Unreleased
 
-（暂无。）
+### Added
+
+- 评测跑次持久化 + actor 归因（Issue 29 Preview）：`POST /eval/runs`、`GET /eval/runs?actor_user_id=`；复用 W0 演示用户；OpenEval 旁路；默认 `pytest -q` 不要求评测绿。`Rewrote from: REF-CASE-OPENEVALS, REF-CASE-EVAL-ADVISOR, REF-MISSIONS`。
+
+### Not yet（仍属 W2 未交付）
+
+- 排行榜排序、作业壳「评测」入口、金标 I/O 钩子、Eval Ops 手册收口（Issues 30–33）。
 
 ---

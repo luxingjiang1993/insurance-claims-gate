@@ -1,6 +1,7 @@
-"""SQLite 案件域持久化：案件/材料/草案/人闸事件/ledger/用户会话。
+"""SQLite 案件域持久化：案件/材料/草案/人闸事件/ledger/用户会话/评测跑次。
 
-Rewrote from: REF-MISSIONS（外置状态外形换 SQLite）；演示 RBAC 种子 REF-COURSE-04
+Rewrote from: REF-MISSIONS（外置状态外形换 SQLite）；演示 RBAC 种子 REF-COURSE-04；
+Issue 29 评测跑次表 REF-CASE-OPENEVALS, REF-CASE-EVAL-ADVISOR, REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -57,6 +58,18 @@ CREATE TABLE IF NOT EXISTS ledger_summary (
     arbitration_winner TEXT,
     trace_id TEXT,
     FOREIGN KEY (case_id) REFERENCES cases(case_id)
+);
+
+CREATE TABLE IF NOT EXISTS eval_runs (
+    run_id TEXT PRIMARY KEY,
+    actor_user_id TEXT NOT NULL,
+    experiment_name TEXT NOT NULL,
+    experiment_id TEXT,
+    dataset_name TEXT NOT NULL,
+    summary_json TEXT NOT NULL,
+    cases_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    langsmith_degraded INTEGER NOT NULL DEFAULT 0
 );
 """
 
@@ -255,3 +268,96 @@ class SqliteCaseStore:
     def delete_session(self, token: str) -> None:
         self._conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
         self._conn.commit()
+
+    def save_eval_run(
+        self,
+        *,
+        run_id: str,
+        actor_user_id: str,
+        experiment_name: str,
+        experiment_id: str | None,
+        dataset_name: str,
+        summary: dict[str, Any],
+        cases: list[dict[str, Any]],
+        created_at: str,
+        langsmith_degraded: bool = False,
+    ) -> dict[str, Any]:
+        """持久化一条评测跑次（W2）；含 actor_user_id，供按用户过滤。"""
+        self._conn.execute(
+            """
+            INSERT INTO eval_runs(
+                run_id, actor_user_id, experiment_name, experiment_id,
+                dataset_name, summary_json, cases_json, created_at, langsmith_degraded
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                run_id,
+                actor_user_id,
+                experiment_name,
+                experiment_id,
+                dataset_name,
+                json.dumps(summary, ensure_ascii=False),
+                json.dumps(cases, ensure_ascii=False),
+                created_at,
+                1 if langsmith_degraded else 0,
+            ),
+        )
+        self._conn.commit()
+        return {
+            "run_id": run_id,
+            "actor_user_id": actor_user_id,
+            "experiment_name": experiment_name,
+            "experiment_id": experiment_id,
+            "dataset_name": dataset_name,
+            "summary": dict(summary),
+            "cases": list(cases),
+            "created_at": created_at,
+            "langsmith_degraded": bool(langsmith_degraded),
+        }
+
+    def list_eval_runs(
+        self, *, actor_user_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        """列出评测跑次；可按 actor_user_id 过滤（互不覆盖）。"""
+        if actor_user_id:
+            rows = self._conn.execute(
+                """
+                SELECT run_id, actor_user_id, experiment_name, experiment_id,
+                       dataset_name, summary_json, cases_json, created_at,
+                       langsmith_degraded
+                FROM eval_runs
+                WHERE actor_user_id = ?
+                ORDER BY created_at ASC, run_id ASC
+                """,
+                (actor_user_id,),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                """
+                SELECT run_id, actor_user_id, experiment_name, experiment_id,
+                       dataset_name, summary_json, cases_json, created_at,
+                       langsmith_degraded
+                FROM eval_runs
+                ORDER BY created_at ASC, run_id ASC
+                """
+            ).fetchall()
+        out: list[dict[str, Any]] = []
+        for row in rows:
+            out.append(
+                {
+                    "run_id": str(row["run_id"]),
+                    "actor_user_id": str(row["actor_user_id"]),
+                    "experiment_name": str(row["experiment_name"]),
+                    "experiment_id": (
+                        str(row["experiment_id"])
+                        if row["experiment_id"] is not None
+                        else None
+                    ),
+                    "dataset_name": str(row["dataset_name"]),
+                    "summary": dict(json.loads(row["summary_json"])),
+                    "cases": list(json.loads(row["cases_json"])),
+                    "created_at": str(row["created_at"]),
+                    "langsmith_degraded": bool(row["langsmith_degraded"]),
+                }
+            )
+        return out

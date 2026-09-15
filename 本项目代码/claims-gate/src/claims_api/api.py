@@ -9,7 +9,8 @@ Issue 14 SQLite + 种子登录会话 REF-MISSIONS；
 Issue 15 人闸 RBAC 硬门 + S0 负例 REF-MISSIONS；
 Issue 16 作业壳列表/详情可读字段 + CORS REF-MISSIONS；
 Issue 19 AI 辅助建议降级/关键词/采纳再 evaluate REF-MISSIONS, REF-COURSE-03, REF-CASE-HYBRID, REF-RAG-CY；
-Issue 21 本案流水 + 本地 JSONL span（LangSmith 仅配置位）REF-MISSIONS
+Issue 21 本案流水 + 本地 JSONL span（LangSmith 仅配置位）REF-MISSIONS；
+Issue 29 评测跑次持久化 + actor 归因 REF-CASE-OPENEVALS, REF-CASE-EVAL-ADVISOR, REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.testclient import TestClient
 from pydantic import BaseModel, Field
 
 from missions.rag import KnowledgeBase
@@ -227,6 +229,13 @@ class L2CloseIn(BaseModel):
     close_opinion: str = Field(min_length=1)
 
 
+class EvalRunCreateIn(BaseModel):
+    """触发评测跑次：可选实验名；actor 取自会话。"""
+
+    experiment_name: str | None = None
+    dataset_name: str | None = None
+
+
 def get_service() -> ClaimsService:
     return _service
 
@@ -234,6 +243,11 @@ def get_service() -> ClaimsService:
 def get_auth() -> AuthService:
     assert _auth is not None
     return _auth
+
+
+def get_store() -> SqliteCaseStore:
+    assert _store is not None
+    return _store
 
 
 def reset_service(db_path: Path | None = None) -> ClaimsService:
@@ -948,4 +962,64 @@ def validate_citation(
         "chunk_id": chunk.chunk_id,
         "authority_rank": chunk.authority_rank,
         "effective_date": chunk.effective_date,
+    }
+
+
+@app.post("/eval/runs")
+def create_eval_run(
+    body: EvalRunCreateIn | None = None,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """触发 OpenEval 旁路跑次并持久化；actor_user_id = 会话用户（W0 演示用户）。
+
+    旁路：失败不改写人闸；不进 machine_check；无 LangSmith 时 langsmith_degraded。
+    """
+    from missions.eval_run_persist import trigger_and_persist_eval_run
+    from missions.openeval_langsmith import DEFAULT_DATASET_NAME
+
+    session = _authorize("create_eval_run", authorization)
+    if session is None:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error_code": ErrorCode.AUTH_FAILED.value,
+                "message": "触发评测跑次须登录会话",
+            },
+        )
+    payload = body or EvalRunCreateIn()
+    # 同进程黑盒：沿用 OpenEval 旁路 TestClient 接缝（非合门禁）
+    http = TestClient(app)
+    record = trigger_and_persist_eval_run(
+        http,
+        get_store(),
+        actor_user_id=str(session["username"]),
+        experiment_name=payload.experiment_name,
+        dataset_name=payload.dataset_name or DEFAULT_DATASET_NAME,
+    )
+    return record.to_dict()
+
+
+@app.get("/eval/runs")
+def list_eval_runs(
+    actor_user_id: str | None = None,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """列出已持久化评测跑次；可按 actor_user_id 过滤（多人互不覆盖）。"""
+    from missions.eval_run_persist import list_persisted_eval_runs
+
+    session = _authorize("list_eval_runs", authorization)
+    if session is None:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error_code": ErrorCode.AUTH_FAILED.value,
+                "message": "查看评测跑次须登录会话",
+            },
+        )
+    runs = list_persisted_eval_runs(get_store(), actor_user_id=actor_user_id)
+    return {
+        "runs": [r.to_dict() for r in runs],
+        "filter_actor_user_id": actor_user_id,
+        "gate_role": "bypass_not_machine_check",
+        "blocks_track_a_gate": False,
     }
