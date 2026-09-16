@@ -12,6 +12,8 @@
 | 49 | 四步步数预算 | 44, 40 | resolved |
 | 50 | κ / judge-human | 44, 38 | resolved |
 | 51 | 连接状态只读 | 44, 43 | resolved |
-| 52 | β DoD 收口 | 45–51 | ready-for-agent |
+| 52 | β DoD 收口 | 45–51 | resolved |
 
 **本波不做：** 未触发的 γ（RRF/rerank/MultiQuery/fan-out/灌榜）；流 Q 实现（另 SPEC）。
+
+**β DoD closed 2026-09-16。** 验收：`本项目代码/claims-gate/docs/acceptance/beta-dod.md`。

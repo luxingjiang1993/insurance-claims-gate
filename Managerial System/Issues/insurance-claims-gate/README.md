@@ -19,7 +19,7 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 
 **W0–W2：** 已关闭（14–33 resolved）。  
 **2b-P-α：** **closed**（34–44 resolved；α DoD 2026-09-16）。验收：`本项目代码/claims-gate/docs/acceptance/alpha-dod.md`。  
-**2b-P-β：** **解阻**（Blocked by 44 已满足）；可开工 45–51（见各票依赖）。  
+**2b-P-β：** **closed**（45–52 resolved；β DoD 2026-09-16）。验收：`本项目代码/claims-gate/docs/acceptance/beta-dod.md`。  
 **2b-Q：** **已切票**（53–56 `ready-for-agent`）；Frontier：**53**（44 已 resolved）。SPEC：`spec-2b-q-relay-a2a3.md`。完成旗与 P 隔离（仅 H8）。  
 γ 触发项与 ≥300 金标 / L2 等：勿预切；勿仅凭扩面草案放松 I1–I8。
 
@@ -118,15 +118,15 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 | NN | 标题 | Blocked by | Status |
 |----|------|------------|--------|
 | 45 | 条款项切块 | 44, 34 | resolved |
-| 46 | Recall 指标 S2 | 44, 36, 35 | ready-for-agent |
+| 46 | Recall 指标 S2 | 44, 36, 35 | resolved |
 | 47 | 三维 S2 | 44, 46, 42 | resolved |
 | 48 | 夜间 S2 告警 | 44, 47 | resolved |
-| 49 | 四步步数预算 | 44, 40 | ready-for-agent |
+| 49 | 四步步数预算 | 44, 40 | resolved |
 | 50 | κ / judge-human | 44, 38 | resolved |
-| 51 | 连接状态只读 | 44, 43 | ready-for-agent |
-| 52 | β DoD 收口 | 45–51 | ready-for-agent |
+| 51 | 连接状态只读 | 44, 43 | resolved |
+| 52 | β DoD 收口 | 45–51 | resolved |
 
-详见 [`phase2b-p-β/`](./phase2b-p-β/)。γ 未触发不预切票。
+详见 [`phase2b-p-β/`](./phase2b-p-β/)。**β DoD closed 2026-09-16。** 验收：`本项目代码/claims-gate/docs/acceptance/beta-dod.md`。γ 未触发不预切票。
 
 ## Phase 2b · Q 任务图（53–56）
 

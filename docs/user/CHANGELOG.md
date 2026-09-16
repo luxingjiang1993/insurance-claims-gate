@@ -154,7 +154,11 @@
 
 ---
 
-## Unreleased
+## Phase 2b · P-β — Claims Assist 可证伪质量（2026-09）
+
+**Status:** Closed for β DoD（Issues 45–52；验收 `本项目代码/claims-gate/docs/acceptance/beta-dod.md`）。  
+**Scope:** 条款项切块；冻结种子 H1/H2 有数；三维 S2；夜间告警；四步预算；κ；连接状态。默认 `pytest -q` / S0 仍绿。  
+**Honest deferral：** H4=`deferred`（薄切片 n&lt;10，禁止宣称 grounded）；H5 为规则/夹具金标线（非 ≥300 运营）；γ（rerank / MultiQuery / fan-out / 灌榜）未触发、未上线；流 Q 另 SPEC。
 
 ### Added
 
@@ -164,7 +168,26 @@
 - Assist 四步步数预算（Issue 49 / GitHub #36）：编排外形 `retrieve→gate→draft→self-check`（≤4）；响应可测 `orchestration_steps` / `orchestration_owner=app-owned`；未知/乱序/超步强制失败；口头不卖 LangGraph / 第二套 Agent 平台。验收见 `本项目代码/claims-gate/docs/acceptance/assist-four-step-budget.md`；手册 §3.9。`Rewrote from: REF-CASE-DELIBERATIVE`。
 - Judge–human / κ 实填（Issue 50 / GitHub #37）：绑金标薄切片双标；标者间 Cohen κ 可报告；**κ≥0.60**（另须 n≥10 + 忠实率≥0.85 + 非合成）才可宣称 grounded；合成/外形样例不得冒充。验收见 `本项目代码/claims-gate/docs/acceptance/judge-human-kappa.md`；手册 §3.10。`Rewrote from: REF-CASE-OPENEVALS`。
 - 连接状态只读（Issue 51 / GitHub #38）：`GET /provider/connection-status` + 作业壳「连接状态」；LLM / Embedding / LangSmith 已配置？降级？模型名？**永不回显 Key**。手册 §3.11。`Rewrote from: REF-MISSIONS`。
+- β DoD 收口（Issue 52 / GitHub #39）：H1/H2 有数 + H4=`deferred` + H5 夹具金标线 + S0 绿 + 手册诚实；γ 未假上线。验收见 `本项目代码/claims-gate/docs/acceptance/beta-dod.md`；手册 §3.12。
 
 ### Changed
 
 - 条款项级切块 + 父条款回填（Issue 45 / GitHub #32）：默认一 `clause_item` 一块；过长按段落切并回填父 id；人改 KB 源 markdown 后仍用 `python scripts/rebuild_chroma_index.py` 重建；citation 仍 `doc_id`+`clause_item`+`doc_version` 三联门。`Rewrote from: RAGFlow 模板切块协议；REF-CASE-KB`。
+
+### Guarantees (user-visible)
+
+- 默认 `pytest -q`：无 LLM / 无 LangSmith / 无 cloud embedding Key 仍绿。
+- H1/H2 / 三维质量 / 夜间告警失败只影响 S2 旁路，不红轨 A。
+- 可称「2b-P-β 可证伪质量已关闭」时，须同时标注 H4 deferred、γ 未上线。
+
+### Not in this wave
+
+- H4 grounded 宣称（须真双标 n≥10 + 忠实率/κ 达标）
+- γ：RRF / rerank / MultiQuery / fan-out / 往榜灌质量主指标（未触发）
+- 流 Q（Missions A2/A3）— 另 SPEC；完成旗隔离
+
+---
+
+## Unreleased
+
+（无；下一批用户可见合入再开节。）

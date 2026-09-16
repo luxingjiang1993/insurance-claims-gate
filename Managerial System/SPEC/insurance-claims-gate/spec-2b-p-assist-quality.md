@@ -5,7 +5,7 @@
 | feature_slug | `insurance-claims-gate` |
 | spec_id | `SPEC-02B-P-ASSIST-QUALITY` |
 | wave | `2b-P`（实现分 `phase2b-p-α` / `phase2b-p-β`） |
-| Status | `ready-for-agent`（α DoD **closed** 2026-09-16；β 仍 open） |
+| Status | `closed`（α DoD **closed** 2026-09-16；β DoD **closed** 2026-09-16） |
 | 规划真源 | [`docs/agents/phase2b-depth-planning-backlog.DRAFT.md`](../../../docs/agents/phase2b-depth-planning-backlog.DRAFT.md)（`draft-decided`） |
 | 前置 | Phase 2a W0–W2 已 closed；[`spec.md`](./spec.md) 决策 16–18 继续有效 |
 | 后继 | [`spec-2b-q-relay-a2a3.md`](./spec-2b-q-relay-a2a3.md)（`SPEC-02B-Q-RELAY-A2A3`；Issues `phase2b-q/` 53–56；**不在本 SPEC 范围**） |
@@ -56,7 +56,7 @@ Phase 2a 已能演示双轨与评测台外形，但核赔员点「AI 辅助」�
 - [x] **H3 / H6 / H7 可演示**；H1 种子集存在  
 - [x] 默认 `pytest -q` 无 LLM / 无 LangSmith 仍绿  
 
-### β 可证伪质量（`phase2b-p-β` · Blocked by α DoD）
+### β 可证伪质量（`phase2b-p-β`）— **closed 2026-09-16**（Issue 52 / GitHub #39；验收 `本项目代码/claims-gate/docs/acceptance/beta-dod.md`）
 
 - [x] 条款项级切块 + 父条款回填；人可改 chunk 后重建；citation 仍三联门  
 - [x] 在冻结 Demo 检索种子上跑 Recall@K / MRR（S2/nightly）；对照 H1/H2 门槛  
@@ -65,8 +65,8 @@ Phase 2a 已能演示双轨与评测台外形，但核赔员点「AI 辅助」�
 - [x] assist 步数≤4 外形（retrieve→gate→draft→self-check）；架构 app-owned  
 - [x] Judge–human agreement / κ 实填（绑金标薄切片）；合成样例不得冒充  
 - [x] 只读「连接状态」页/API（已配置？降级？模型名？无 Key）  
-- [ ] **H1/H2 有数**；**H4/H5 有金标线**（或诚实 deferred）  
-- [ ] 用户手册已同步 α/β 用户可见行为；触发项（γ）未写成已上线  
+- [x] **H1/H2 有数**；**H4/H5 有金标线**（或诚实 deferred）  
+- [x] 用户手册已同步 α/β 用户可见行为；触发项（γ）未写成已上线  
 
 ### γ（仅触发 · 见附录 · 不预切无条件实现票）
 
@@ -218,3 +218,4 @@ P-R9 OCR/多模态；P-E7 成本/Langfuse 只读；Q-A7 Production latch；N1 �
 - 2026-09-15：`/to-spec` 自质询决议与 `draft-decided` 规划清单发布；接缝 S0/S1/S2 经人类确认。
 - 2026-09-16：α DoD 关闭（Issue 44）；验收见 `本项目代码/claims-gate/docs/acceptance/alpha-dod.md`；解阻 β 与 SPEC-Q。  
 - 2026-09-16：SPEC-Q 已发布；流 Q Issues 53–56 切票（完成旗与本 SPEC 隔离）。
+- 2026-09-16：β DoD 关闭（Issue 52 / GitHub #39）；验收见 `本项目代码/claims-gate/docs/acceptance/beta-dod.md`；H1/H2 有数；H4=`deferred`；H5 规则夹具过门；γ 未触发。
