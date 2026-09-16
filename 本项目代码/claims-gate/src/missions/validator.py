@@ -1,7 +1,8 @@
 """Validator：HTTP 黑盒 + contract.machine_check；只报问题，不改产品代码。
 
 Rewrote from: REF-MISSIONS（missions/validator.py）；
-P1-7 一致率占位字段 Rewrote from: REF-CASE-EVAL-ADVISOR, REF-MISSIONS
+P1-7 一致率占位字段 Rewrote from: REF-CASE-EVAL-ADVISOR, REF-MISSIONS；
+Q-A6 独立 profile / 零产品写 Rewrote from: REF-MISSIONS
 """
 
 from __future__ import annotations
@@ -22,8 +23,8 @@ from .models import (
     RoleName,
 )
 from .rag import KnowledgeBase
+from .role_profiles import VALIDATOR_MODEL_NAME, VALIDATOR_RETRIEVE_PROFILE
 from .store import ArtifactStore
-
 
 @dataclass
 class ValidationReport:
@@ -36,10 +37,21 @@ class ValidationReport:
 
 
 class Validator:
-    def __init__(self, kb: KnowledgeBase, store: ArtifactStore, project_root: Path) -> None:
+    def __init__(
+        self,
+        kb: KnowledgeBase,
+        store: ArtifactStore,
+        project_root: Path,
+        *,
+        retrieve_profile: str = VALIDATOR_RETRIEVE_PROFILE,
+        model_name: str = VALIDATOR_MODEL_NAME,
+    ) -> None:
         self.kb = kb
         self.store = store
         self.project_root = project_root
+        # 与 Worker 可区分的检索画像 / 模型名（轻量 S0；不触发真多模型）
+        self.retrieve_profile = retrieve_profile
+        self.model_name = model_name
 
     def validate_milestone(self, state: MissionState) -> tuple[MissionState, ValidationReport]:
         assert state.contract is not None
@@ -55,7 +67,7 @@ class Validator:
                 self.kb.retrieve(
                     assertion.behavior + " " + assertion.acceptance,
                     role=RoleName.VALIDATOR,
-                    profile="validator_skeptical_top5",
+                    profile=self.retrieve_profile,
                     top_k=5,
                     clause_hint=assertion.policy_clause_id,
                 )
@@ -66,7 +78,10 @@ class Validator:
             kind="validation_start",
             message=f"第 {state.validation_rounds} 轮 HTTP 黑盒验收",
             role=RoleName.VALIDATOR,
-            extra={"retrieval_profile": "validator_skeptical_top5"},
+            extra={
+                "retrieval_profile": self.retrieve_profile,
+                "model_name": self.model_name,
+            },
         )
 
         client = self._build_http_client()
@@ -106,6 +121,11 @@ class Validator:
         else:
             state.phase = "validation_failed"
 
+        process_notes = (
+            "Validator 不修改产品代码；失败只出 fail report，交 Orchestrator 开 fix；"
+            "Rewrote from: REF-CASE-KB, REF-MISSIONS"
+        )
+        rewrote = "REF-CASE-KB, REF-MISSIONS"
         handoff = HandoffRecord(
             handoff_id=f"h-val-r{state.validation_rounds}",
             mission_id=state.mission_id,
@@ -115,10 +135,12 @@ class Validator:
             commands=commands,
             citations_used=citations[:8],
             process_followed=True,
-            process_notes="Validator 不修改产品代码；失败交 Orchestrator 开 fix；Rewrote from: REF-CASE-KB, REF-MISSIONS",
-            rewrote_from="REF-CASE-KB, REF-MISSIONS",
+            process_notes=process_notes,
+            rewrote_from=rewrote,
         )
         self.store.append_handoff(state, handoff)
+        if not report.passed:
+            self._write_fail_report(report, process_notes=process_notes, rewrote_from=rewrote)
         self.store.emit(
             state,
             kind="validation_done",
@@ -127,11 +149,34 @@ class Validator:
             extra={
                 "passed": report.passed,
                 "failed_assertions": report.failed_assertions,
+                "retrieval_profile": self.retrieve_profile,
+                "model_name": self.model_name,
                 # 占位：缺省 null；可由合成抽检表事后填入，不参与合门禁
                 "judge_human_agreement": report.judge_human_agreement,
             },
         )
         return state, report
+
+    def _write_fail_report(
+        self,
+        report: ValidationReport,
+        *,
+        process_notes: str,
+        rewrote_from: str,
+    ) -> None:
+        """失败报告只写入 artifacts，永不写产品树。"""
+        payload = {
+            "passed": report.passed,
+            "failed_assertions": list(report.failed_assertions),
+            "notes": list(report.notes),
+            "citations_count": report.citations_count,
+            "retrieval_profile": self.retrieve_profile,
+            "model_name": self.model_name,
+            "process_notes": process_notes,
+            "rewrote_from": rewrote_from,
+            "judge_human_agreement": report.judge_human_agreement,
+        }
+        self.store.write_fail_report(payload)
 
     def _build_http_client(self) -> TestClient:
         src = str(self.project_root / "src")

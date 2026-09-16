@@ -21,6 +21,7 @@ from .models import (
 )
 from .owns_paths import find_hard_banned, find_outside_allow_envelope
 from .rag import KnowledgeBase
+from .role_profiles import WORKER_MODEL_NAME, WORKER_RETRIEVE_PROFILE
 from .store import ArtifactStore
 
 FQ_DEMO_01_ID = "F-Q-DEMO-01"
@@ -59,10 +60,16 @@ class Worker:
         kb: KnowledgeBase,
         store: ArtifactStore,
         project_root: Path,
+        *,
+        retrieve_profile: str = WORKER_RETRIEVE_PROFILE,
+        model_name: str = WORKER_MODEL_NAME,
     ) -> None:
         self.kb = kb
         self.store = store
         self.project_root = project_root
+        # 与 Validator 可区分的检索画像 / 模型名（Q-A6 对照）
+        self.retrieve_profile = retrieve_profile
+        self.model_name = model_name
 
     def run_feature(self, state: MissionState, feature: MissionFeature) -> MissionState:
         if state.writer_lock_held_by and state.writer_lock_held_by != feature.feature_id:
@@ -96,13 +103,18 @@ class Worker:
             kind="worker_start",
             message=f"Worker 开始 {feature.feature_id}: {feature.title}",
             role=RoleName.WORKER,
-            extra={"owns_paths": feature.owns_paths, "broadcast_ack": broadcast},
+            extra={
+                "owns_paths": feature.owns_paths,
+                "broadcast_ack": broadcast,
+                "retrieval_profile": self.retrieve_profile,
+                "model_name": self.model_name,
+            },
         )
 
         citations = self.kb.retrieve(
             feature.title + " " + " ".join(feature.claims_assertions),
             role=RoleName.WORKER,
-            profile="worker_narrow_top3",
+            profile=self.retrieve_profile,
             top_k=3,
         )
 

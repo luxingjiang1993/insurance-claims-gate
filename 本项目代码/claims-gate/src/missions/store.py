@@ -51,6 +51,15 @@ class ArtifactStore:
         path.write_text(handoff.model_dump_json(indent=2), encoding="utf-8")
         self.save_state(state)
 
+    def write_fail_report(self, payload: dict[str, Any]) -> Path:
+        """Validator 失败报告：只写 artifacts，永不写产品树。"""
+        path = self.root / "fail_report.json"
+        path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        return path
+
     def emit(
         self,
         state: MissionState,

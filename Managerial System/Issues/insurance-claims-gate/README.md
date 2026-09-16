@@ -134,7 +134,7 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 |----|------|------------|--------|
 | 53 | Q-A2 Schema-bound Orchestrator | 44 | resolved |
 | 54 | Q-A3 Patch Worker + F-Q-DEMO-01 | 53 | ready-for-agent |
-| 55 | Q-A6 Validator 独立 profile | 54 | ready-for-agent |
+| 55 | Q-A6 Validator 独立 profile | 54 | resolved |
 | 56 | Q DoD 收口（H8） | 53, 54, 55 | ready-for-agent |
 
 详见 [`phase2b-q/`](./phase2b-q/)。Q-A7 Deferred 不切票。完成旗仅 H8，不与 P 共用。
