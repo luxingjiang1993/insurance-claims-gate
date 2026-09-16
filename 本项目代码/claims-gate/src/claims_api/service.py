@@ -212,23 +212,29 @@ class ClaimsService:
         ocr_text: str | None = None,
         customer_remark: str | None = None,
         image_ids: list[str] | None = None,
-    ) -> None:
-        """经 OCR Provider 规范化后再进入 absorb；备注仍直接收纳。"""
+    ) -> str | None:
+        """经 OCR Provider 规范化后再进入 absorb；备注仍直接收纳。
+
+        返回值：本调用若跑了 OCR Provider，则返回 Integration 状态；否则 None。
+        状态仅对本请求可观察（不跨案粘滞到 GET）。
+        """
         normalized: str | None = None
-        result = None
+        status: str | None = None
         if ocr_text is not None:
             result = self._ocr.extract(OcrExtractRequest(raw_payload=ocr_text))
             normalized = result.normalized_text
+            status = result.ocr_integration_status
         elif image_ids:
             # 无预填文本时按首张图抽取；Stub 空串不覆盖案件已有 ocr_text
             result = self._ocr.extract(OcrExtractRequest(image_id=image_ids[0]))
             if result.normalized_text:
                 normalized = result.normalized_text
-        if result is not None:
-            self._last_ocr_integration_status = result.ocr_integration_status
+            status = result.ocr_integration_status
+        self._last_ocr_integration_status = status
         absorb_user_controlled_text(
             case, ocr_text=normalized, customer_remark=customer_remark
         )
+        return status
 
     def set_citation_validator(self, validator: CitationValidator) -> None:
         """注入条款落库校验（对外通知失败关闭）。"""
@@ -809,6 +815,8 @@ class ClaimsService:
     ) -> DecisionDraft:
         """材料齐全断言 → Router 表驱动补件 / 拒赔 / 减赔 / 通赔建议。"""
         case = self.get_claim(case_id)
+        # 本请求 OCR 状态；未跑 Provider 时保持 None（不跨请求粘滞）
+        self._last_ocr_integration_status = None
         # OCR 经 Provider 规范化后收纳；备注直接收纳；不得改写人闸矩阵输入
         self._absorb_via_ocr_provider(
             case, ocr_text=ocr_text, customer_remark=customer_remark
@@ -1165,6 +1173,7 @@ class ClaimsService:
     ) -> ClaimCase:
         """客户补传材料元数据；OCR 经 Provider 规范化后收纳，不改人闸规则。"""
         case = self.get_claim(case_id)
+        self._last_ocr_integration_status = None
         self._absorb_via_ocr_provider(
             case,
             ocr_text=ocr_text,

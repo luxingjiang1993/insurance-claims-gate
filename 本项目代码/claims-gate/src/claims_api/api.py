@@ -474,7 +474,6 @@ def get_claim(
         "payout_ready": summary["payout_ready"],
         "ocr_text": case.ocr_text,
         "customer_remark": case.customer_remark,
-        "ocr_integration_status": _service.last_ocr_integration_status,
     }
 
 
@@ -694,15 +693,17 @@ def register_materials(
         ) from exc
     except ClaimsDomainError as exc:
         raise _http_domain_error(exc) from exc
-    return {
+    out = {
         "case_id": case.case_id,
         "material_codes": list(case.material_codes),
         "image_ids": list(case.image_ids),
         "gate_status": case.gate_status,
         "ocr_text": case.ocr_text,
         "customer_remark": case.customer_remark,
-        "ocr_integration_status": _service.last_ocr_integration_status,
     }
+    if _service.last_ocr_integration_status is not None:
+        out["ocr_integration_status"] = _service.last_ocr_integration_status
+    return out
 
 
 @app.post("/claims/{case_id}/supplement/notify")

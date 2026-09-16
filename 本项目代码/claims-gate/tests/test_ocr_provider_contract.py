@@ -130,12 +130,16 @@ def test_inject_via_provider_cannot_issue_latch_or_payout_ready() -> None:
     header = client.get("/claims/CLM-AMT-C-001").json()
     assert inject in (header.get("ocr_text") or "")
 
-    # 无合规签发令牌时写回仍拒
+    # 无合规签发令牌时写回仍拒；支付适配计数不递增
+    from claims_api.api import get_service
+
+    before = get_service().payment_adapter_calls
     wb = client.post("/claims/CLM-AMT-C-001/l2/payout-ready", json={})
     assert wb.status_code in (400, 403, 422)
     case = client.get("/claims/CLM-AMT-C-001").json()
     assert case.get("gate_status") != "PAYOUT_READY"
     assert case.get("payout_ready") is False
+    assert get_service().payment_adapter_calls == before
 
 
 def test_default_ci_has_no_live_ocr_dependency(stub: StubOcrProvider) -> None:
