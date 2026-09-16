@@ -3,9 +3,10 @@
 允许确定性假检索（enable_llm=False，默认）；若调用 LLM 须显式打开且 CI 不依赖。
 规则 vs RAG 冲突仍 fail-closed 进人闸；handbook_ops 不得单独支撑对外拒赔。
 混合检索仅挂本路径；evaluate 不得调用向量。
+检索与草稿槽经 AssistToolRing 白名单调度（H6）；不得写 latch/支付/evaluate 权威字段。
 
 完整方差预算 / 金标门槛数值化仍属 P2-4；本模块只做最小可跑。
-Rewrote from: REF-CASE-RECALL, REF-RAG-CY, REF-CASE-HYBRID, REF-MISSIONS
+Rewrote from: REF-CASE-RECALL, REF-RAG-CY, REF-CASE-HYBRID, REF-MISSIONS, REF-CASE-FC
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ from missions.assist_disposition import (
     mark_citations_unadoptable_for_abstain,
     resolve_assist_disposition,
 )
+from missions.assist_tool_ring import AssistToolRing
 from missions.retrieval_profiles import RETRIEVAL_PROFILES
 
 from .config import TrackBConfig
@@ -187,15 +189,20 @@ def draft_assist(
 ) -> DraftAssistResult:
     """检索 → 辅助起草。默认 enable_llm=False（关键词确定性提名）。"""
     track_cfg = cfg or TrackBConfig()
-    # 混合检索仅挂 assist；返回值含 adoptable / reject_reason
-    retrieved = retrieve_chunks(
-        query,
-        kb_root=kb_root,
-        retrieval_profile=retrieval_profile,
-        top_k=top_k,
-        return_portrait=True,
+    # 经白名单工具环调度 retrieve（禁 latch/支付/evaluate 权威写）
+    ring = AssistToolRing(
+        retrieve_fn=lambda **kw: _ring_retrieve(kb_root=kb_root, **kw),
     )
-    citations, retrieval_portrait = retrieved
+    retrieved_payload = ring.invoke(
+        "retrieve",
+        {
+            "query": query,
+            "retrieval_profile": retrieval_profile,
+            "top_k": top_k,
+        },
+    )
+    citations = list(retrieved_payload.get("citations") or [])
+    retrieval_portrait = dict(retrieved_payload.get("retrieval") or {})
     stance = _infer_stance(citations, query)
     llm_text, used_llm, degrade_reason = _maybe_llm_draft(
         query, citations, enable_llm=enable_llm
@@ -262,24 +269,64 @@ def draft_assist(
             f"原草稿摘录已收回（不可送交采纳）。\n---\n{draft_text}"
         )
 
+    # draft_slots：仅填建议体槽；硬钉无令牌 / 无出款就绪（H6）
+    slots = ring.invoke(
+        "draft_slots",
+        {
+            "query": query,
+            "draft_text": draft_text,
+            "suggested_stance": stance,
+            "citations": citations,
+            "notes": notes,
+            "retrieval_profile": retrieval_profile,
+            "assist_disposition": disposition,
+            "abstain_reason": abstain_reason,
+            "human_latch_suggested": latch_suggested,
+            "human_latch_required": human_latch,
+            "degraded": degraded,
+            "degrade_reason": degrade_reason if degraded else None,
+            "inference_track": track_cfg.inference_track,
+        },
+    )
+
     return DraftAssistResult(
         inference_track=track_cfg.inference_track,
         query=query,
         retrieval_profile=retrieval_profile,
-        citations=citations,
-        draft_text=draft_text,
+        citations=list(slots.get("citations") or citations),
+        draft_text=str(slots.get("draft_text") or draft_text),
         used_llm=used_llm,
         suggested_stance=stance,
-        human_latch_required=human_latch,
+        human_latch_required=bool(slots.get("human_latch_required", human_latch)),
         conflict_route_id=conflict_route,
         can_external_deny=can_external_deny,
         enable_llm=enable_llm,
-        notes=notes,
+        notes=list(slots.get("notes") or notes),
         assist_invocation_id=f"assist-{uuid.uuid4().hex[:16]}",
         degraded=degraded,
         degrade_reason=degrade_reason if degraded else None,
         retrieval=retrieval_portrait,
         assist_disposition=disposition,
         abstain_reason=abstain_reason,
-        human_latch_suggested=latch_suggested,
+        human_latch_suggested=bool(
+            slots.get("human_latch_suggested", latch_suggested)
+        ),
     )
+
+
+def _ring_retrieve(
+    *,
+    query: str,
+    retrieval_profile: str,
+    top_k: int,
+    kb_root: Path | None = None,
+) -> dict[str, Any]:
+    """供 AssistToolRing.retrieve 注入：混合检索仅挂 assist。"""
+    citations, portrait = retrieve_chunks(
+        query,
+        kb_root=kb_root,
+        retrieval_profile=retrieval_profile,
+        top_k=top_k,
+        return_portrait=True,
+    )
+    return {"citations": citations, "retrieval": portrait}

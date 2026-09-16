@@ -104,7 +104,7 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 | 37 | citation Schema 槽 | — | ready-for-agent |
 | 38 | 金标薄切片 | — | ready-for-agent |
 | 39 | 辅助拒答 + 壳 | 37 | ready-for-agent |
-| 40 | 工具环 ACL | 37 | ready-for-agent |
+| 40 | 工具环 ACL | 37 | resolved |
 | 41 | span 树 | 40 | ready-for-agent |
 | 42 | 忠实检查（规则） | 37, 38 | ready-for-agent |
 | 43 | Provider 文档 | — | ready-for-agent |
