@@ -37,9 +37,9 @@
 
 ## Answer
 
-- 模块：`missions/citation_faithfulness.py` — 规则 `stance_conflict` / `entity_overlap` / `support_registry`；主指标恒 `rules_fixtures`；`llm_judge_as_primary=false`；`evaluate_gold_thin_slice_faithfulness` 绑 P-E3，n&lt;10 → H4=`deferred`，禁止宣称 grounded。
-- 夹具：`artifacts/citation_faithfulness/fixtures.v1.json`；CLI：`PYTHONPATH=src python -m missions.citation_faithfulness run --file ...`。
-- 挂接：`assist_disposition` 委托 `is_citation_unfaithful_for_assist`（与夹具同缝）。
+- 模块：`missions/citation_faithfulness.py` — 规则 `stance_conflict` / `entity_overlap` / `support_registry`；主指标恒 `rules_fixtures`；`llm_judge_as_primary=false`；`evaluate_gold_thin_slice_faithfulness` 绑 P-E3，n&lt;10 → H4=`deferred`，禁止宣称 grounded；无可机读 assertion+citation 时 `faithfulness_rate=None`（不自洽冒充）。
+- 夹具：`artifacts/citation_faithfulness/fixtures.v1.json`；`bound_case_ids` 过滤子集 n；CLI：`PYTHONPATH=src python -m missions.citation_faithfulness run --file ...`。
+- 挂接：`assist_disposition` 委托 `is_citation_unfaithful_for_assist`（与夹具同规则栈：stance/entity/registry）。
 - S0：`tests/eval/test_citation_faithfulness.py` 契约（不进 `checks.py`）；S2：`@pytest.mark.eval_bypass` 夹具全量。
 - Rewrote from: REF-CASE-OPENEVALS
 

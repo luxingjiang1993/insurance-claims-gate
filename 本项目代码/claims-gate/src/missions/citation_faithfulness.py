@@ -293,7 +293,7 @@ def is_citation_unfaithful_for_assist(
     query: str,
     citations: list[dict[str, Any]],
 ) -> bool:
-    """供 assist_disposition 调用的薄封装（与夹具同规则）。"""
+    """供 assist_disposition 调用的薄封装（与夹具同规则栈）。"""
     if not citations:
         return False
     # 查询同时含通赔与免赔提示 → 自相矛盾，不忠实
@@ -303,7 +303,7 @@ def is_citation_unfaithful_for_assist(
         return False
     for c in citations:
         result = check_citation_faithfulness(assertion=query, citation=c)
-        if not result.faithful and result.rule == "stance_conflict":
+        if not result.faithful:
             return True
     return False
 
@@ -387,19 +387,24 @@ def run_faithfulness_fixtures(
         )
 
     subset = raw.get("gold_thin_slice_subset") or {}
-    bound_ids = list(subset.get("bound_case_ids") or [])
+    bound_ids = [str(x) for x in (subset.get("bound_case_ids") or [])]
     report.gold_subset_n = len(bound_ids)
     report.gold_subset_h4_status = assess_h4_status(report.gold_subset_n)
 
     source = subset.get("source")
     if source:
-        # 相对 claims-gate 根解析
+        # 相对 claims-gate 根解析；n 以 bound 子集为准（P-E3 边界诚实）
         root = Path(__file__).resolve().parents[2]
         src_path = root / str(source)
         if src_path.is_file():
             gold = load_dataset_file(src_path)
-            report.gold_subset_n = len(gold.records)
-            report.gold_subset_h4_status = gold.h4_status
+            if bound_ids:
+                bound_set = set(bound_ids)
+                filtered = [r for r in gold.records if r.case_id in bound_set]
+                report.gold_subset_n = len(filtered)
+            else:
+                report.gold_subset_n = len(gold.records)
+            report.gold_subset_h4_status = assess_h4_status(report.gold_subset_n)
 
     return report
 
@@ -409,47 +414,47 @@ def evaluate_gold_thin_slice_faithfulness(
 ) -> GoldThinSliceFaithfulnessReport:
     """在金标薄切片上汇总忠实率外形；n 不足诚实 deferred。
 
-    α：若记录缺少可机读 assertion+citation，仅按 expected.citation_faithful
-    计数外形，不假装已跑双标运营。禁止 grounded 宣称。
+    α：仅当 inputs 含可机读 assertion+citation 时才跑规则计分；
+    缺少机读字段时 faithfulness_rate=None，禁止用 expected 自洽冒充。
+    禁止 grounded 宣称。
     """
     n = len(dataset.records)
     h4 = assess_h4_status(n)
     matched = 0
     scored = 0
+    skipped_no_machine_inputs = 0
     for rec in dataset.records:
         expected = rec.expected or {}
         if "citation_faithful" not in expected:
             continue
         want = bool(expected.get("citation_faithful"))
         inputs = rec.inputs or {}
-        assertion = str(
-            inputs.get("assertion")
-            or inputs.get("suggestion_span")
-            or ""
-        )
+        assertion = str(inputs.get("assertion") or "").strip()
         citation = inputs.get("citation")
-        if isinstance(citation, dict) and assertion:
-            result = check_citation_faithfulness(
-                assertion=assertion,
-                citation=citation,
-            )
-            actual = result.faithful
-        else:
-            # 外形样例无完整 assertion+citation：以 expected 自洽计分，
-            # 明确标注非真双标运营跑分
-            actual = want
+        if not (isinstance(citation, dict) and assertion):
+            skipped_no_machine_inputs += 1
+            continue
+        result = check_citation_faithfulness(
+            assertion=assertion,
+            citation=citation,
+        )
         scored += 1
-        if actual is want:
+        if result.faithful is want:
             matched += 1
 
     rate: float | None
     if scored == 0:
         rate = None
-        detail = "无 citation_faithful 期望字段可计"
+        detail = (
+            "无可用机读 assertion+citation 跑规则；"
+            f"跳过 {skipped_no_machine_inputs} 条外形样例；"
+            "非 LLM judge；禁止用 expected 自洽冒充忠实率"
+        )
     else:
         rate = matched / scored
         detail = (
             f"规则/夹具计分 {matched}/{scored}；"
+            f"跳过无机构造 {skipped_no_machine_inputs}；"
             "非 LLM judge；非真外聘双标运营跑分"
         )
 

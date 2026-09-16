@@ -178,6 +178,52 @@ def test_disposition_uses_shared_faithfulness_rules() -> None:
     assert latch is True
 
 
+def test_disposition_entity_gap_also_abstains() -> None:
+    """与夹具同缝：通赔断言但摘录缺关键实体 → citation_unfaithful。"""
+    from missions.assist_disposition import resolve_assist_disposition
+
+    disposition, reason, _latch = resolve_assist_disposition(
+        query="骨折手术费可通赔",
+        conflict_route_id=None,
+        can_external_deny=True,
+        retrieval_profile="clause_primary",
+        stance="approve",
+        intended_external_action=None,
+        citations=[
+            {
+                "doc_id": "PA-ACC-MAIN",
+                "clause_item": "ART-3-COVER",
+                "quote": "保险人按约定给付意外伤害医疗费用",
+                "score": 0.9,
+                "adoptable": True,
+            }
+        ],
+    )
+    assert disposition == "abstain"
+    assert reason == "citation_unfaithful"
+
+
+def test_gold_subset_filters_bound_case_ids() -> None:
+    """金标子集须按 bound_case_ids 过滤，不得用全文件 n 冒充子集。"""
+    from missions.citation_faithfulness import run_faithfulness_fixtures
+
+    report = run_faithfulness_fixtures(FIXTURES)
+    assert report.gold_subset_n == 1
+    assert report.gold_subset_h4_status == "deferred"
+
+
+def test_gold_rate_none_when_rules_cannot_run() -> None:
+    """无可机读 assertion+citation 时不得用 expected 自洽冒充忠实率。"""
+    from missions.citation_faithfulness import evaluate_gold_thin_slice_faithfulness
+    from missions.gold_label_io import load_dataset_file
+
+    dataset = load_dataset_file(GOLD_EXAMPLE)
+    report = evaluate_gold_thin_slice_faithfulness(dataset)
+    assert report.faithfulness_rate is None
+    assert report.h4_status == "deferred"
+    assert report.grounded_claim_allowed is False
+
+
 @pytest.mark.eval_bypass
 def test_fixtures_file_runnable_all_cases_match() -> None:
     """S2：规则/夹具忠实检查可跑；全量与 expected 对齐。"""
