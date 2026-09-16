@@ -1,6 +1,7 @@
-"""轻量条款 KB：版本化切块 + 条款项级落库门。
+"""轻量条款 KB：条款项级切块 + 父条款回填 + 落库门。
 
-Rewrote from: REF-CASE-KB, REF-MISSIONS（missions/rag.py；升到 doc_id+clause_item+doc_version）
+Rewrote from: RAGFlow 模板切块协议；REF-CASE-KB, REF-MISSIONS
+（missions/rag.py；升到 doc_id+clause_item+doc_version；Issue 45 父条款回填）
 """
 
 from __future__ import annotations
@@ -11,6 +12,8 @@ from pathlib import Path
 from typing import Any
 
 from claims_api.error_codes import ErrorCode
+
+from .clause_chunking import make_chunk_id, split_clause_item_chunks
 from .models import RagCitation, RoleName
 from .retrieval_profiles import RETRIEVAL_PROFILES
 
@@ -40,6 +43,10 @@ class Chunk:
     authority_rank: int
     doc_type: str
     tokens: set[str]
+    # 父条款项 id（未拆分时等于 clause_item；拆段后各子块回填同一父 id）
+    parent_clause_item: str = ""
+    part_index: int = 0
+    part_count: int = 1
 
 
 @dataclass
@@ -107,22 +114,33 @@ class KnowledgeBase:
                 if not clause_item:
                     # 无条款项的前言块不入落库索引（仍可检索）
                     clause_item = clause_id
-                chunk_id = f"{doc_id}::{clause_item}::v{version}"
-                self.chunks.append(
-                    Chunk(
-                        doc_id=doc_id,
-                        chunk_id=chunk_id,
-                        title=title,
-                        clause_id=clause_id,
-                        clause_item=clause_item,
-                        text=part,
-                        doc_version=version,
-                        effective_date=effective_date,
-                        authority_rank=authority_rank,
-                        doc_type=doc_type,
-                        tokens=_tokenize(part),
+                # 条款项级切块：默认一块；过长按段切并回填父 id
+                for piece in split_clause_item_chunks(part, clause_item=clause_item):
+                    chunk_id = make_chunk_id(
+                        doc_id,
+                        clause_item,
+                        version,
+                        part_index=piece.part_index,
+                        part_count=piece.part_count,
                     )
-                )
+                    self.chunks.append(
+                        Chunk(
+                            doc_id=doc_id,
+                            chunk_id=chunk_id,
+                            title=title,
+                            clause_id=clause_id,
+                            clause_item=piece.clause_item,
+                            text=piece.text,
+                            doc_version=version,
+                            effective_date=effective_date,
+                            authority_rank=authority_rank,
+                            doc_type=doc_type,
+                            tokens=_tokenize(piece.text),
+                            parent_clause_item=piece.parent_clause_item,
+                            part_index=piece.part_index,
+                            part_count=piece.part_count,
+                        )
+                    )
 
     @staticmethod
     def _extract_field(text: str, label: str) -> str | None:
@@ -136,26 +154,42 @@ class KnowledgeBase:
                 return chunk
         return None
 
-    def resolve_clause(
+    def resolve_clause_parts(
         self,
         doc_id: str,
         clause_item: str,
         doc_version: str,
-    ) -> Chunk | None:
-        """条款项级精确命中：doc_id + clause_item + (doc_version 或等价生效日)。"""
+    ) -> list[Chunk]:
+        """同一三联键下的全部切块（含按段拆分的子块）。"""
+        out: list[Chunk] = []
         for chunk in self.chunks:
             if chunk.doc_id != doc_id or chunk.clause_item != clause_item:
                 continue
             if chunk.doc_version == doc_version or (
                 chunk.effective_date and chunk.effective_date == doc_version
             ):
-                return chunk
-        return None
+                out.append(chunk)
+        out.sort(key=lambda c: c.part_index)
+        return out
+
+    def resolve_clause(
+        self,
+        doc_id: str,
+        clause_item: str,
+        doc_version: str,
+    ) -> Chunk | None:
+        """条款项级精确命中：doc_id + clause_item + (doc_version 或等价生效日)。
+
+        若已按段拆分，返回 part_index 最小的子块（父条款回填后 clause_item 仍相同）。
+        """
+        parts = self.resolve_clause_parts(doc_id, clause_item, doc_version)
+        return parts[0] if parts else None
 
     def validate_citation(self, citation: dict[str, Any]) -> CitationGateResult:
         """对外可用 citation 落库门：三联键精确匹配；可选摘录须落在库内条目。
 
         禁止用全文最大相似冒充通过。版本键可为 doc_version 或等价 effective_date。
+        拆段后摘录可落在任一子块或父条款全文拼接上。
         """
         doc_id = str(citation.get("doc_id") or "").strip()
         clause_item = str(citation.get("clause_item") or "").strip()
@@ -171,8 +205,8 @@ class KnowledgeBase:
                 detail="缺少 doc_id/clause_item/doc_version(或 effective_date)",
             )
 
-        chunk = self.resolve_clause(doc_id, clause_item, doc_version)
-        if chunk is None:
+        parts = self.resolve_clause_parts(doc_id, clause_item, doc_version)
+        if not parts:
             # 文档存在但条款项/版本不匹配仍失败（非文档级门）
             doc_exists = any(c.doc_id == doc_id for c in self.chunks)
             detail = (
@@ -185,18 +219,19 @@ class KnowledgeBase:
                 detail=detail,
             )
 
+        primary = parts[0]
         if quote:
-            hay = _normalize_excerpt(chunk.text)
+            hay = _normalize_excerpt("".join(p.text for p in parts))
             needle = _normalize_excerpt(quote)
             if needle not in hay:
                 return CitationGateResult(
                     ok=False,
                     error_code=ErrorCode.CITATION_NOT_IN_KB.value,
                     detail="摘录无法对应库内条目",
-                    chunk=chunk,
+                    chunk=primary,
                 )
 
-        return CitationGateResult(ok=True, detail="ok", chunk=chunk)
+        return CitationGateResult(ok=True, detail="ok", chunk=primary)
 
     def retrieve(
         self,

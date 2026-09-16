@@ -1,9 +1,8 @@
 """条款 KB → Chroma 可重建向量索引。
 
 Pilot 默认 cloud；local 哈希（非语义）仅 CI/rebuild。
-Rewrote from: REF-MISSIONS（加深现有 chroma_index；Issue 34）
+Rewrote from: REF-MISSIONS（加深现有 chroma_index；Issue 34/45 父条款元数据）
 """
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -83,6 +82,9 @@ def rebuild_index(
             "doc_id": c.doc_id,
             "clause_id": c.clause_id,
             "clause_item": c.clause_item,
+            "parent_clause_item": c.parent_clause_item or c.clause_item,
+            "part_index": c.part_index,
+            "part_count": c.part_count,
             "doc_version": c.doc_version,
             "effective_date": c.effective_date,
             "doc_type": c.doc_type,

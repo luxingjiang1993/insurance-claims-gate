@@ -251,7 +251,7 @@ pytest -q
 1. **唯一写处：** 密钥只写在 `本项目代码/claims-gate/.env`（从 `.env.example` 复制）。作业壳仅 `VITE_CLAIMS_API_BASE`，**不得**持有 API Key；前端不可配置 Key。
 2. **分 Key：** LLM 与 Embedding 必须分开配置；一侧缺失时诚实降级，禁止静默互顶。
 3. **OpenAI-compatible：** 换国产/他厂端点 = 改 `OPENAI_*` / `EMBEDDING_*` 的 `BASE_URL` + `MODEL` + 对应 Key，不必另开换模大波。
-4. **重建索引：** 切换 `EMBEDDING_PROVIDER`（尤其 `local`→`cloud`）或换 embedding 模型后，须先 `python scripts/rebuild_chroma_index.py`，再宣称语义检索。
+4. **重建索引：** 切换 `EMBEDDING_PROVIDER`（尤其 `local`→`cloud`）或换 embedding 模型后，须先 `python scripts/rebuild_chroma_index.py`，再宣称语义检索。人改条款库 markdown（含过长条款的段落）后同样重建；切块默认一条款项一块，过长按段切并回填父条款项 id，citation 仍用三联门。
 5. **本波未交付：** 「连接状态」只读页/API（已配置？降级？模型名？无 Key 回显）属 **phase2b-p-β**，勿按已上线操作。
 
 **换模检查单（指针；不预切票）：**

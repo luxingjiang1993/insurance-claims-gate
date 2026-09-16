@@ -156,4 +156,6 @@
 
 ## Unreleased
 
-（空：α 用户可见项已折叠进上节；β 合入前保持空。）
+### Changed
+
+- 条款项级切块 + 父条款回填（Issue 45 / GitHub #32）：默认一 `clause_item` 一块；过长按段落切并回填父 id；人改 KB 源 markdown 后仍用 `python scripts/rebuild_chroma_index.py` 重建；citation 仍 `doc_id`+`clause_item`+`doc_version` 三联门。`Rewrote from: RAGFlow 模板切块协议；REF-CASE-KB`。

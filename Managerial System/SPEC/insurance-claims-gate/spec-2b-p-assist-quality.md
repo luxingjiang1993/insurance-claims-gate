@@ -8,7 +8,7 @@
 | Status | `ready-for-agent`（α DoD **closed** 2026-09-16；β 仍 open） |
 | 规划真源 | [`docs/agents/phase2b-depth-planning-backlog.DRAFT.md`](../../../docs/agents/phase2b-depth-planning-backlog.DRAFT.md)（`draft-decided`） |
 | 前置 | Phase 2a W0–W2 已 closed；[`spec.md`](./spec.md) 决策 16–18 继续有效 |
-| 后继 | P-α DoD 关闭后另开 [`spec-2b-q-relay-a2a3.md`](./spec-2b-q-relay-a2a3.md)（本期必做，**不在本 SPEC 范围**） |
+| 后继 | [`spec-2b-q-relay-a2a3.md`](./spec-2b-q-relay-a2a3.md)（`SPEC-02B-Q-RELAY-A2A3`；Issues `phase2b-q/` 53–56；**不在本 SPEC 范围**） |
 | 主测试接缝 | **S0** 合门禁；**S1** HTTP assist 作业面；**S2** 检索/忠实/金标质量旁路（不进默认绿） |
 | 术语 | `CONTEXT.md`（**Demo 检索种子**、**金标薄切片**、**辅助拒答**、**AI 辅助建议**、**裁决草案**） |
 
@@ -58,7 +58,7 @@ Phase 2a 已能演示双轨与评测台外形，但核赔员点「AI 辅助」�
 
 ### β 可证伪质量（`phase2b-p-β` · Blocked by α DoD）
 
-- [ ] 条款项级切块 + 父条款回填；人可改 chunk 后重建；citation 仍三联门  
+- [x] 条款项级切块 + 父条款回填；人可改 chunk 后重建；citation 仍三联门  
 - [ ] 在冻结 Demo 检索种子上跑 Recall@K / MRR（S2/nightly）；对照 H1/H2 门槛  
 - [ ] 三维 S2：检索 / 引用忠实 / 建议可用性；LLM 打分不得当唯一主指标  
 - [ ] 夜间 S2 质量门失败可告警且不红轨 A；手册写清旁路  
@@ -176,7 +176,7 @@ Phase 2a 已能演示双轨与评测台外形，但核赔员点「AI 辅助」�
 
 ## Out of Scope
 
-- 流 Q（Orchestrator Schema / Worker 真 patch / Validator 独立模型）— 另 SPEC  
+- 流 Q（Orchestrator Schema / Worker 真 patch / Validator 独立模型）— 见 [`spec-2b-q-relay-a2a3.md`](./spec-2b-q-relay-a2a3.md)；完成旗隔离  
 - γ 未触发项：RRF、rerank、MultiQuery/rewrite、只读 fan-out、往榜灌质量主指标  
 - ≥300 金标运营、真用户 M3/M4、真连 L2、真 OCR/DeepDoc、GraphRAG、ES/Infinity  
 - L3 出款、银企直连、UI 签发人闸、自审自批  
@@ -216,4 +216,5 @@ P-R9 OCR/多模态；P-E7 成本/Langfuse 只读；Q-A7 Production latch；N1 �
 ### 修订记录
 
 - 2026-09-15：`/to-spec` 自质询决议与 `draft-decided` 规划清单发布；接缝 S0/S1/S2 经人类确认。
-- 2026-09-16：α DoD 关闭（Issue 44）；验收见 `本项目代码/claims-gate/docs/acceptance/alpha-dod.md`；解阻 β 与未来 SPEC-Q。
+- 2026-09-16：α DoD 关闭（Issue 44）；验收见 `本项目代码/claims-gate/docs/acceptance/alpha-dod.md`；解阻 β 与 SPEC-Q。  
+- 2026-09-16：SPEC-Q 已发布；流 Q Issues 53–56 切票（完成旗与本 SPEC 隔离）。

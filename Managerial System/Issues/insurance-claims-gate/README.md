@@ -10,6 +10,7 @@
 | Phase 2a · W2 Eval Ops | [`phase2a-w2/`](./phase2a-w2/) | [`spec-2a-w2-eval-ops.md`](../../SPEC/insurance-claims-gate/spec-2a-w2-eval-ops.md) |
 | Phase 2b · P-α Assist 证据地基 | [`phase2b-p-α/`](./phase2b-p-α/) | [`spec-2b-p-assist-quality.md`](../../SPEC/insurance-claims-gate/spec-2b-p-assist-quality.md) |
 | Phase 2b · P-β Assist 可证伪质量 | [`phase2b-p-β/`](./phase2b-p-β/) | 同上（Blocked by 44） |
+| Phase 2b · Q Missions Relay A2/A3 | [`phase2b-q/`](./phase2b-q/) | [`spec-2b-q-relay-a2a3.md`](../../SPEC/insurance-claims-gate/spec-2b-q-relay-a2a3.md) |
 
 父索引：[`spec-2a-runnable-product-floor.md`](../../SPEC/insurance-claims-gate/spec-2a-runnable-product-floor.md)。  
 Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
@@ -19,7 +20,7 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 **W0–W2：** 已关闭（14–33 resolved）。  
 **2b-P-α：** **closed**（34–44 resolved；α DoD 2026-09-16）。验收：`本项目代码/claims-gate/docs/acceptance/alpha-dod.md`。  
 **2b-P-β：** **解阻**（Blocked by 44 已满足）；可开工 45–51（见各票依赖）。  
-**2b-Q：** 未切票；α DoD 已关，可 `/to-spec` → `spec-2b-q-relay-a2a3.md`。  
+**2b-Q：** **已切票**（53–56 `ready-for-agent`）；Frontier：**53**（44 已 resolved）。SPEC：`spec-2b-q-relay-a2a3.md`。完成旗与 P 隔离（仅 H8）。  
 γ 触发项与 ≥300 金标 / L2 等：勿预切；勿仅凭扩面草案放松 I1–I8。
 
 ## Phase 1 任务图（01–13 · 均已 resolved）
@@ -116,7 +117,7 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 
 | NN | 标题 | Blocked by | Status |
 |----|------|------------|--------|
-| 45 | 条款项切块 | 44, 34 | ready-for-agent |
+| 45 | 条款项切块 | 44, 34 | resolved |
 | 46 | Recall 指标 S2 | 44, 36, 35 | ready-for-agent |
 | 47 | 三维 S2 | 44, 46, 42 | ready-for-agent |
 | 48 | 夜间 S2 告警 | 44, 47 | ready-for-agent |
@@ -127,10 +128,22 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 
 详见 [`phase2b-p-β/`](./phase2b-p-β/)。γ 未触发不预切票。
 
+## Phase 2b · Q 任务图（53–56）
+
+| NN | 标题 | Blocked by | Status |
+|----|------|------------|--------|
+| 53 | Q-A2 Schema-bound Orchestrator | 44 | ready-for-agent |
+| 54 | Q-A3 Patch Worker + F-Q-DEMO-01 | 53 | ready-for-agent |
+| 55 | Q-A6 Validator 独立 profile | 54 | ready-for-agent |
+| 56 | Q DoD 收口（H8） | 53, 54, 55 | ready-for-agent |
+
+详见 [`phase2b-q/`](./phase2b-q/)。Q-A7 Deferred 不切票。完成旗仅 H8，不与 P 共用。
+
 ## GitHub Issues 映射
 
 本地票 `14`–`33` 已同步到 GitHub（标签：`ready-for-agent` · `phase-2a` · `wave:W0|W1|W2`）。  
 本地票 `34`–`52` 已同步到 GitHub（标签：`ready-for-agent` · `phase-2b` · `wave:2b-P-alpha|2b-P-beta`）。  
+本地票 `53`–`56` 同步标签：`ready-for-agent` · `phase-2b` · `wave:2b-Q`。  
 完整表：[`github-issue-map.json`](./github-issue-map.json)。
 
 | Local | GitHub | Wave |
@@ -140,5 +153,6 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 | 29–33 | [#16](https://github.com/luxingjiang1993/insurance-claims-gate/issues/16)–[#20](https://github.com/luxingjiang1993/insurance-claims-gate/issues/20) | W2 |
 | 34–44 | [#21](https://github.com/luxingjiang1993/insurance-claims-gate/issues/21)–[#31](https://github.com/luxingjiang1993/insurance-claims-gate/issues/31) | 2b-P-α |
 | 45–52 | [#32](https://github.com/luxingjiang1993/insurance-claims-gate/issues/32)–[#39](https://github.com/luxingjiang1993/insurance-claims-gate/issues/39) | 2b-P-β |
+| 53–56 | [#40](https://github.com/luxingjiang1993/insurance-claims-gate/issues/40)–[#43](https://github.com/luxingjiang1993/insurance-claims-gate/issues/43) | 2b-Q |
 
 各本地票首含 `github_issue: #N`；Issue 正文内 `Blocked by` 已写 GitHub `#` 引用。

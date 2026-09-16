@@ -144,13 +144,18 @@ def _hard_filter_chunks(
     if prefer_types:
         chunks = [c for c in chunks if c.doc_type in prefer_types]
     if profile_cfg.get("version_mode") == "current_effective":
-        best: dict[tuple[str, str], Any] = {}
+        # 按 (doc_id, clause_item) 取最新版本，保留该版本下全部切块（含按段子块）
+        best_ver: dict[tuple[str, str], str] = {}
         for c in chunks:
             key = (c.doc_id, c.clause_item)
-            prev = best.get(key)
-            if prev is None or c.doc_version >= prev.doc_version:
-                best[key] = c
-        chunks = list(best.values())
+            prev = best_ver.get(key)
+            if prev is None or c.doc_version >= prev:
+                best_ver[key] = c.doc_version
+        chunks = [
+            c
+            for c in chunks
+            if best_ver.get((c.doc_id, c.clause_item)) == c.doc_version
+        ]
     return chunks
 
 
