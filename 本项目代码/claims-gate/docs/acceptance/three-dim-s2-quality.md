@@ -33,4 +33,4 @@ pytest -m assist_quality -q tests/test_three_dim_s2_quality.py tests/test_sugges
 
 - 本验收证明三维旁路可跑且主指标非 LLM；不宣称 H4 grounded（仍见薄切片 + κ）。
 - 不实现 γ（rerank / MultiQuery / fan-out / 灌榜）。
-- 夜间告警见票 48（本票只交付三维可跑门）。
+- 夜间告警见票 48 / `docs/acceptance/nightly-s2-alert.md`（本票只交付三维可跑门）。

@@ -19,6 +19,7 @@
 | α DoD / H 演示 | H3/H6/H7 可复现；H1 种子存在 | [§3.5 α DoD](#35-assist-证据地基-α-dod2b-p-α--issue-44) |
 | H1/H2 召回旁路 | 冻结种子 Recall@K/MRR（S2） | [§3.6 H1/H2](#36-h1h2-召回旁路s2--issue-46) |
 | 三维质量旁路 | 检索 / 忠实 / 可用性（S2） | [§3.7 三维 S2](#37-三维-s2-质量旁路issue-47) |
+| 夜间 S2 告警 | 质量失败可观测（旁路） | [§3.8 夜间告警](#38-夜间-s2-质量门失败告警issue-48) |
 | Eval Ops 演示 | 作业壳「评测」跑榜 / 金标钩子（Preview） | [§3.3 Eval Ops](#33-eval-ops-previeww2评测台与门禁主路径区分) |
 | 核赔初审 | 材料受理 → 一次补件 / 进入初审 | [§5.1](#51-材料受理与一次补件-sc-01) |
 | 核赔员 | 除外拒赔草案 / 效力栈减赔 | [§5.2](#52-除外拒赔与文书分态-sc-02) · [§5.3](#53-批单效力栈减赔-sc-03) |
@@ -311,6 +312,20 @@ pytest -m assist_quality -q tests/test_three_dim_s2_quality.py
 ```
 
 报告默认：`artifacts/reports/three_dim_s2_quality.json`。可用性夹具：`artifacts/suggestion_usability/fixtures.v1.json`。
+
+### 3.8 夜间 S2 质量门失败告警（Issue 48）
+
+`Rewrote from: REF-MISSIONS` · 验收：[`本项目代码/claims-gate/docs/acceptance/nightly-s2-alert.md`](../../本项目代码/claims-gate/docs/acceptance/nightly-s2-alert.md)
+
+在三维 S2 旁路之上增加**可观测告警**：质量失败时升起 `alert_raised`，写入本地 JSON，并打 WARNING 日志。默认形态 = **日志 + 本地产物**；**不强制邮件**。旁路退出码可为非 0 便于夜间调度，但 **永不** 红轨 A / **不** 进 `machine_check` / **不** 进默认 `pytest -q`。
+
+```bash
+cd 本项目代码/claims-gate
+python scripts/run_nightly_s2_alert.py
+pytest -q tests/test_nightly_s2_alert.py
+```
+
+告警产物默认：`artifacts/reports/nightly_s2_alert.json`（字段含 `alert_raised`、`failed_dimensions`、`blocks_track_a_gate=false`）。合门禁仍以轨 A `machine_check` 为准。
 
 ---
 
