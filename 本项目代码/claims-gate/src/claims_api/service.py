@@ -9,7 +9,8 @@ Issue 14 SQLite 持久化 + 种子 RBAC 登录 REF-MISSIONS；
 Issue 19 AI 辅助建议降级/关键词/采纳再 evaluate REF-MISSIONS, REF-COURSE-03, REF-CASE-HYBRID, REF-RAG-CY；
 Issue 21 本案流水 + 本地 JSONL span（LangSmith 仅配置位）REF-MISSIONS；
 Issue 26 真 LangSmith span + ledger trace_id REF-CASE-EVAL-ADVISOR, REF-MISSIONS；
-Issue 39 辅助拒答 disposition / abstain 禁采纳 REF-MISSIONS
+Issue 39 辅助拒答 disposition / abstain 禁采纳 REF-MISSIONS；
+Issue 41 assist span 树本地 JSONL 回放 REF-CASE-EVAL-ADVISOR
 """
 
 from __future__ import annotations
@@ -26,6 +27,7 @@ from missions.assist_schema import (
     validate_assist_citations_schema,
     validate_assist_suggestion_dict,
 )
+from missions.assist_span_tree import emit_assist_span_tree
 from missions.rag import KnowledgeBase
 from missions.router import (
     CaseSignals,
@@ -1600,6 +1602,17 @@ class ClaimsService:
                 ErrorCode.VALIDATION_FAILED.value,
                 str(exc),
             ) from exc
+        # Issue 41：assist span 树（本地 JSONL / LangSmith 同构；无 Key 可回放；非合门禁）
+        emit_assist_span_tree(
+            case_id=case_id,
+            assist_invocation_id=result.assist_invocation_id,
+            disposition=result.assist_disposition,
+            abstain_reason=result.abstain_reason,
+            attributes={
+                "retrieval_profile": result.retrieval_profile,
+                "decision_type": "assist_suggestion",
+            },
+        )
         return body
 
     def _assert_assist_not_abstained(
