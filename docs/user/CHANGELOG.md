@@ -188,8 +188,33 @@
 
 ---
 
-## Unreleased
+## Phase 2b · Q — Missions Relay Honesty（2026-09）
+
+**Status:** Closed for Q DoD / H8（Issues 53–56；验收 `本项目代码/claims-gate/docs/acceptance/q-relay-a2a3-dod.md`）。  
+**Scope:** Schema-bound Orchestrator（A2）；Patch-capable Worker + `F-Q-DEMO-01`（A3）；Validator 独立 profile（轻量 A4 预备）。默认 `pytest -q` / S0 仍绿。  
+**Honest deferral：** Q-A7 pause/resume / credential proxy **Deferred**；**未**宣称 A5 / Production latch；**无** Mission Control 作业台；完成旗与流 P 隔离（不用 Issues 44–52 / assist 分作出口）。
+
+### Added
+
+- Q DoD 收口（Issue 56 / GitHub #43）：H8 可演示；独立验收件；SPEC 无条件 DoD 勾选；S0 `314 passed, 25 deselected`（2026-09-16）。手册 §3.13。
 
 ### Changed
 
-- OCR / 客户备注写入案件时会去掉首尾空白（全空白→空串）；仍只作可观察收纳，**不会**改写人闸 / `payout_ready`（流 Q 示范特性 `F-Q-DEMO-01` / Issue 54）。
+- OCR / 客户备注写入案件时会去掉首尾空白（全空白→空串）；仍只作可观察收纳，**不会**改写人闸 / `payout_ready`（示范特性 `F-Q-DEMO-01` / Issue 54）。
+
+### Guarantees (user-visible)
+
+- 默认 `pytest -q`：无 LLM / 无 LangSmith / 无 cloud embedding Key 仍绿。
+- 可称「2b-Q 中继诚实已关闭」时，须同时标注未宣称 A5 / Production latch、Q-A7 Deferred。
+
+### Not in this wave
+
+- Q-A7 pause/resume；credential proxy；A5 Production latch
+- Mission Control 生产作业台
+- 用流 P Assist 质量分宣称 A3
+
+---
+
+## Unreleased
+
+（无）

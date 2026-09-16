@@ -20,7 +20,7 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 **W0–W2：** 已关闭（14–33 resolved）。  
 **2b-P-α：** **closed**（34–44 resolved；α DoD 2026-09-16）。验收：`本项目代码/claims-gate/docs/acceptance/alpha-dod.md`。  
 **2b-P-β：** **closed**（45–52 resolved；β DoD 2026-09-16）。验收：`本项目代码/claims-gate/docs/acceptance/beta-dod.md`。  
-**2b-Q：** **已切票**（53–56）；Frontier：**54**（53 resolved）。SPEC：`spec-2b-q-relay-a2a3.md`。完成旗与 P 隔离（仅 H8）。  
+**2b-Q：** **closed**（53–56 resolved；Q DoD / H8 2026-09-16）。验收：`本项目代码/claims-gate/docs/acceptance/q-relay-a2a3-dod.md`。SPEC Status=`closed`。完成旗与 P 隔离（仅 H8）；**未**宣称 A5 / Production latch；Q-A7 Deferred。  
 γ 触发项与 ≥300 金标 / L2 等：勿预切；勿仅凭扩面草案放松 I1–I8。
 
 ## Phase 1 任务图（01–13 · 均已 resolved）
@@ -133,11 +133,11 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 | NN | 标题 | Blocked by | Status |
 |----|------|------------|--------|
 | 53 | Q-A2 Schema-bound Orchestrator | 44 | resolved |
-| 54 | Q-A3 Patch Worker + F-Q-DEMO-01 | 53 | ready-for-agent |
+| 54 | Q-A3 Patch Worker + F-Q-DEMO-01 | 53 | resolved |
 | 55 | Q-A6 Validator 独立 profile | 54 | resolved |
-| 56 | Q DoD 收口（H8） | 53, 54, 55 | ready-for-agent |
+| 56 | Q DoD 收口（H8） | 53, 54, 55 | resolved |
 
-详见 [`phase2b-q/`](./phase2b-q/)。Q-A7 Deferred 不切票。完成旗仅 H8，不与 P 共用。
+详见 [`phase2b-q/`](./phase2b-q/)。**本波已关闭。** Q-A7 Deferred 不切票。完成旗仅 H8，不与 P 共用；未宣称 A5 / Production latch。
 
 ## GitHub Issues 映射
 
