@@ -49,3 +49,4 @@ OCR Provider：`extract` → 规范化文本，再进入既有用户可控文本
 - 2026-09-16：`/to-spec` 切票；Status=ready-for-agent。
 - 2026-09-16：同步 GitHub Issue #47。
 - 2026-09-16：`/implement` 交付；Status=resolved；默认 `pytest -q` 337 passed。
+- 2026-09-16：code-review 后修：OCR 状态仅随 evaluate/materials 请求暴露；`current-phase-remaining` 恢复为单行 OCR 注记。
