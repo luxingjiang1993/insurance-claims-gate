@@ -21,6 +21,7 @@
 | 三维质量旁路 | 检索 / 忠实 / 可用性（S2） | [§3.7 三维 S2](#37-三维-s2-质量旁路issue-47) |
 | 夜间 S2 告警 | 质量失败可观测（旁路） | [§3.8 夜间告警](#38-夜间-s2-质量门失败告警issue-48) |
 | Assist 四步预算 | 编排≤4；app-owned | [§3.9 四步预算](#39-assist-四步步数预算issue-49) |
+| Judge–human / κ | 薄切片 κ 可报告（非 grounded） | [§3.10 κ](#310-judgehuman-κissue-50) |
 | Eval Ops 演示 | 作业壳「评测」跑榜 / 金标钩子（Preview） | [§3.3 Eval Ops](#33-eval-ops-previeww2评测台与门禁主路径区分) |
 | 核赔初审 | 材料受理 → 一次补件 / 进入初审 | [§5.1](#51-材料受理与一次补件-sc-01) |
 | 核赔员 | 除外拒赔草案 / 效力栈减赔 | [§5.2](#52-除外拒赔与文书分态-sc-02) · [§5.3](#53-批单效力栈减赔-sc-03) |
@@ -34,7 +35,7 @@
 - **演示可无 Key（W0 地板仍成立）：** 登录 + 三角色 RBAC + SC 规则路径 + 人闸 + 文书分态 + AI 无 Key 降级 + 本地 trace。默认 `pytest -q` **不要求** LLM Key、LangSmith 与 cloud embedding Key。
 - **Pilot 须 LangSmith 等（W1 / Pilot Complete）：** 满配验收须配置 LLM Key、独立 embedding Key（`EMBEDDING_PROVIDER=cloud`）、LangSmith（`LANGCHAIN_TRACING_V2` + Key）、可重建 Chroma 索引；混合检索挂 assist、来源摘要、真 span、OpenEval 实验历史对比按套餐 L 验收。详见 [§3.2](#32-pilot-completew1演示可无-key-vs-pilot-须-langsmith)。勿当生产终裁 UI；评测分 **不**替代 `machine_check`。
 - **Eval Ops Preview（W2）：** 作业壳独立「评测」入口、排行榜、多人跑次归因、金标导入/导出钩子已交付。操作见 [§3.3](#33-eval-ops-previeww2评测台与门禁主路径区分) 与 [§7.1a](#71a-评测跑次排行榜与金标-io-钩子w2-eval-ops-preview--issues-29–33)。**硬边界：** 排行榜 / 评测分数 ≠ `machine_check` 通过；合规主缝仍是轨 A `machine_check`；故意失败的评测跑次 **不**进入默认 `pytest -q` / S0 必过；**不得**宣称 ≥300 金标运营已达标。
-- **Assist 证据地基（2b-P-α closed）：** citation Schema 三联门 + 非法不可采纳（H3）；`assist_disposition` 拒答；BM25 关键词腿；Demo 检索种子 40 条冻结（非金标）；工具环白名单（H6）；默认无 LLM 轨 A 绿（H7）。验收见 [§3.5](#35-assist-证据地基-α-dod2b-p-α--issue-44)。**诚实：** H4=`deferred`；H1/H2 召回有数见 [§3.6](#36-h1h2-召回旁路s2--issue-46)（S2 旁路）；连接状态 / γ **未上线**。
+- **Assist 证据地基（2b-P-α closed）：** citation Schema 三联门 + 非法不可采纳（H3）；`assist_disposition` 拒答；BM25 关键词腿；Demo 检索种子 40 条冻结（非金标）；工具环白名单（H6）；默认无 LLM 轨 A 绿（H7）。验收见 [§3.5](#35-assist-证据地基-α-dod2b-p-α--issue-44)。**诚实：** H4=`deferred`（κ 协议已可报告，见 [§3.10](#310-judgehuman-κissue-50)，仍禁止宣称 grounded）；H1/H2 召回有数见 [§3.6](#36-h1h2-召回旁路s2--issue-46)（S2 旁路）；连接状态 / γ **未上线**。
 - **尚未上线（勿按已交付操作）：** ≥300 人工金标双标运营；核赔作业 UI 全作业流；真连核心 L2 / 真 OCR；连接状态只读页；rerank / MultiQuery / fan-out / 往榜灌质量主指标（γ，未触发）。
 - 裁决结果是 **草案**，不具对外最终效力；AI 辅助建议 **不是** 终裁。
 - `PAYOUT_READY` ≠ 已打款；支付仍走核心人工流程。
@@ -93,13 +94,14 @@
 | 作业壳「评测」独立入口 | Preview（W2） | Issue 31：主导航「评测」；触发跑次 / 排行榜 / 按提交者过滤；与门禁主路径视觉分离；≥2 账号协作演示；拒绝不假成功 |
 | 金标导入/导出钩子 | Preview（W2） | Issue 32：`POST /eval/gold-labels/import`、`GET /eval/gold-labels/export`、`python -m missions.gold_label_io`；须关联 `case_id`；**不是** ≥300 金标运营，不得宣称已达标 |
 | 金标薄切片协议 | Preview（2b-P-α） | Issue 38：双标 + 第三人裁决（角色占位）；导入导出加深；当前 **H4=`deferred`**（n&lt;10），禁止宣称 grounded；禁止宣称 ≥300 |
+| Judge–human / κ | Preview（2b-P-β） | Issue 50：标者间 Cohen κ 可报告；绑薄切片双标；**κ≥0.60** 才可宣称 grounded（另须 n≥10 + 忠实率≥0.85）；合成/外形样例不得冒充；见 [§3.10](#310-judgehuman-κissue-50) |
 | Eval Ops 手册 + 分数≠合门禁文案 | Preview（W2） | Issue 33：本手册 §3.3 / §7.1a；默认 `pytest -q` 仍绿；评测失败不进 S0 必过；金标全量运营仍 Deferred |
 | Provider 清单 + `.env` 分区 | Preview（2b-P-α） | Issue 43：§3.4；密钥仅 `claims-gate/.env`；分 Key；OpenAI-compatible；换模检查单指针；**不含**连接状态 UI（β） |
 | α DoD 验收（H3/H6/H7 + H1 种子） | Preview（2b-P-α closed） | Issue 44：`本项目代码/claims-gate/docs/acceptance/alpha-dod.md`；H4 仍 deferred；β/γ 未上线 |
 | 核赔作业 UI 全作业流 | Deferred | 真连 L2 / 生产壳等后续 |
 | 真连核心 L2 / 真 OCR | Deferred | 有干系人后 |
 | ≥300 人工金标运营 | Deferred | 机检入口已占位；W2 仅钩子，勿宣称达标 |
-| 连接状态只读 / H1·H2 有数 / γ 加深 | Deferred（β/γ） | β 票 45–52；γ 仅触发；勿按已上线操作 |
+| 连接状态只读 / γ 加深 | Deferred（β/γ） | 连接状态属 β 票 51；γ 仅触发；勿按已上线操作 |
 
 ---
 
@@ -341,6 +343,20 @@ pytest -q tests/test_assist_step_budget.py
 
 观测 span 树可更细（retrieve→fuse→gate→llm→…）；本节约束的是编排预算外形。
 
+### 3.10 Judge–human / κ（Issue 50）
+
+`Rewrote from: REF-CASE-OPENEVALS` · 验收：[`本项目代码/claims-gate/docs/acceptance/judge-human-kappa.md`](../../本项目代码/claims-gate/docs/acceptance/judge-human-kappa.md)
+
+在金标薄切片双标（`label_a` / `label_b`）上计算**标者间 Cohen κ**，并附带 Issue 11 加深的 judge–human 一致率外形。旁路能力：**不**进默认 `pytest -q` / `machine_check`。
+
+**H4 文案（与 SPEC 一致）：** 须 **n≥10** 且 **忠实率≥0.85** 且 **κ≥0.60** 且 **非合成**，才可宣称 grounded。当前仓库外形样例 n&lt;10 → **H4=`deferred`**；合成抽检 / 外形样例 **不得**冒充真外聘双标。
+
+```bash
+cd 本项目代码/claims-gate
+pytest -q tests/test_judge_human_kappa.py
+python -m missions.judge_human_kappa run --file artifacts/gold_thin_slice/gold_thin_slice.v1.example.json
+```
+
 ---
 
 ## 4. Core concepts
@@ -548,6 +564,8 @@ POST /claims/{case_id}/l2/close
 **金标钩子真源：** 本地 SQLite 表 `gold_label_records`（每条须有 `case_id`）。
 
 **金标薄切片（Issue 38 / 2b-P-α）：** 在 W2 钩子上加深「外聘核赔顾问双标 + 第三人裁决」协议。角色字段只用占位 id（如 `external_claims_advisor_a` / `external_claims_advisor_b` / `third_party_adjudicator`），**人名不进仓**。导入 schema 可为 `claims-gate-gold-thin-slice-v1`；每条可带 `annotation`。响应含 `h4_status`：α 目标 n≥10，**当前样例不足 → `deferred`，禁止宣称 grounded**；**禁止宣称 ≥300 运营已完成**。验收清单：`本项目代码/claims-gate/docs/acceptance/gold-thin-slice.md`。外形样例：`artifacts/gold_thin_slice/gold_thin_slice.v1.example.json`（非真双标运营）。
+
+**κ / Judge–human（Issue 50 / 2b-P-β）：** 对薄切片双标可报告标者间 Cohen κ；**κ≥0.60**（另须 n≥10 + 忠实率≥0.85 + 非合成）才可宣称 grounded。合成抽检不得冒充。操作见 [§3.10](#310-judgehuman-κissue-50)；验收：`本项目代码/claims-gate/docs/acceptance/judge-human-kappa.md`。
 
 | Method | Path | 角色 | 用途 |
 |--------|------|------|------|

@@ -1,8 +1,9 @@
-"""引用→断言忠实检查：α 规则/夹具为主（票 42 / P-H4）。
+"""引用→断言忠实检查：α 规则/夹具为主（票 42 / P-H4）；β 接 κ（票 50）。
 
 硬约束（旁路，非合门禁主缝）：
 - 主指标 = rules_fixtures；禁止把 LLM-as-judge 当唯一主指标；
 - 绑金标薄切片（P-E3）子集；n<10 则 H4=deferred，禁止宣称 grounded；
+- grounded 须另过 κ≥0.60（见 missions.judge_human_kappa）且非合成；
 - 默认 CI 合门禁仍以 missions.checks.machine_check 为准。
 
 规则（SPEC 决策 13）：
@@ -147,12 +148,19 @@ class GoldThinSliceFaithfulnessReport:
     matched: int = 0
     detail: str = ""
 
+    kappa: float | None = None
+    is_synthetic: bool = False
+
     def assert_grounded_claim_allowed(self) -> None:
-        """α：一律禁止宣称 grounded（须 β κ + 规模 + 忠实率门）。"""
+        """H4 全部门：n≥10 + 忠实率≥0.85 + κ≥0.60 + 非合成。"""
+        if self.grounded_claim_allowed:
+            return
         raise FaithfulnessEvalError(
             f"H4={self.h4_status}，禁止宣称 grounded"
             f"（primary_metric={self.primary_metric}；"
-            "须金标 n≥10、忠实率≥0.85 且 κ≥0.60，β 填 κ）"
+            f"n={self.n}；faithfulness_rate={self.faithfulness_rate}；"
+            f"κ={self.kappa}；is_synthetic={self.is_synthetic}；"
+            "须金标 n≥10、忠实率≥0.85 且 κ≥0.60 且非合成）"
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -160,9 +168,11 @@ class GoldThinSliceFaithfulnessReport:
             "n": self.n,
             "h4_status": self.h4_status,
             "faithfulness_rate": self.faithfulness_rate,
+            "kappa": self.kappa,
+            "is_synthetic": self.is_synthetic,
             "primary_metric": self.primary_metric,
             "llm_judge_as_primary": False,
-            "grounded_claim_allowed": False,
+            "grounded_claim_allowed": self.grounded_claim_allowed,
             "matched": self.matched,
             "detail": self.detail,
         }
@@ -458,13 +468,28 @@ def evaluate_gold_thin_slice_faithfulness(
             "非 LLM judge；非真外聘双标运营跑分"
         )
 
+    from missions.judge_human_kappa import (
+        assess_grounded_claim_allowed,
+        evaluate_thin_slice_kappa,
+    )
+
+    kappa_report = evaluate_thin_slice_kappa(
+        dataset,
+        faithfulness_rate=rate,
+    )
+    allowed = kappa_report.grounded_claim_allowed
+    if kappa_report.is_synthetic:
+        detail = f"{detail}；合成/外形样例不得冒充 grounded（κ 模块）"
+
     return GoldThinSliceFaithfulnessReport(
         n=n,
         h4_status=h4,
         faithfulness_rate=rate,
         matched=matched,
         detail=detail,
-        grounded_claim_allowed=False,
+        grounded_claim_allowed=allowed,
+        kappa=kappa_report.kappa,
+        is_synthetic=kappa_report.is_synthetic,
     )
 
 
