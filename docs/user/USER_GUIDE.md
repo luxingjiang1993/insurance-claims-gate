@@ -300,11 +300,20 @@ pytest -q tests/test_demo_retrieval_seeds.py           # H1 种子结构
 
 **本波未交付 / 勿宣称：** H4 grounded（当前 `deferred`）；rerank / MultiQuery / fan-out / 往榜灌质量主指标（γ，未触发）。H1/H2 召回有数见 [§3.6](#36-h1h2-召回旁路s2--issue-46)（S2 旁路，不进默认绿）。连接状态见 [§3.11](#311-连接状态只读2b-p-β--issue-51)。
 
-### 3.6 H1/H2 召回旁路（S2 · Issue 46）
+### 3.6 H1/H2 召回旁路（S2 · Issue 46 / G2 双剖面）
 
 `Rewrote from: REF-CASE-RECALL` · 验收：[`本项目代码/claims-gate/docs/acceptance/recall-metrics-s2.md`](../../本项目代码/claims-gate/docs/acceptance/recall-metrics-s2.md)
 
 在冻结 Demo 检索种子上复现 Recall@K / MRR，并对照门槛：**H1** 条款号子集 Recall@1 ≥ 0.95；**H2** 语义难例 Recall@5 ≥ 0.70 **或** MRR ≥ 0.55。失败只影响质量旁路退出码，**不**红轨 A / **不**进 `machine_check`。
+
+**双剖面（先剖面后数字）：**
+
+| 剖面 | 向量腿 | 用途 |
+|------|--------|------|
+| `demo_seed_eval` | 关 | 可复现基线（关键词 / 条款号短路） |
+| `pilot_cloud_embed` | 开 | Pilot 语义对照（有 embedding Key 时可跑） |
+
+禁止只用无剖面标签的短路 **1.00** 冒充语义满分；数字可低于 1.0。
 
 ```bash
 cd 本项目代码/claims-gate
@@ -312,7 +321,7 @@ python scripts/run_recall_metrics_s2.py
 pytest -m assist_quality -q tests/test_recall_eval_runner.py
 ```
 
-报告默认写入 `artifacts/reports/recall_metrics_s2.json`。默认 `pytest -q` 排除 `assist_quality`。
+报告默认写入 `artifacts/reports/recall_metrics_s2.json`（`report_kind=dual_retrieval_profile`）。默认 `pytest -q` 排除 `assist_quality`。evaluate 仍零向量 / 零 LLM。
 
 ### 3.7 三维 S2 质量旁路（Issue 47）
 
@@ -411,7 +420,7 @@ pytest -q                                        # S0
 ```
 
 **记录摘要（旁路，不进默认绿）：** H1 Recall@1=1.00（n=15）；H2 Recall@5=1.00 / MRR≈0.892（n=20）；H5 覆盖率=1.00、误起草率=0.00。  
-**测量剖面：** 默认 `retrieval_profile=demo_seed_eval`、**向量腿关闭**（关键词 / 条款号短路可复现）；与票 46 验收一致。这是 S2 旁路可复现基线，**不是** Pilot cloud embedding 满配语义证明。
+**测量剖面：** 并列 `demo_seed_eval`（向量关）与 `pilot_cloud_embed`（向量开）；**先剖面后数字**。demo 基线可复现短路满分，**禁止**无剖面标签冒充语义满分；与票 46 / 58 验收一致。
 
 **本波未交付 / 勿宣称：** H4 grounded（当前 `deferred`）；≥300 金标运营；rerank / MultiQuery / fan-out / 往榜灌质量主指标（γ，未触发）。流 Q 中继诚实见 [§3.13](#313-missions-relay-honesty-q-dod2b-q--issue-56)（非 Assist 完成旗）。
 

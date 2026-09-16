@@ -44,5 +44,22 @@ RETRIEVAL_PROFILES: dict[str, dict[str, Any]] = {
         ],
         "version_mode": "current_effective",
         "endorsement_first": False,
+        # 基线剖面：关键词/条款号短路；向量腿关闭
+        "eval_vector_enabled": False,
+    },
+    # S2 语义诚实剖面：向量开；有 embedding Key 时可跑；不得冒充作业默认
+    "pilot_cloud_embed": {
+        "id": "pilot_cloud_embed",
+        "description": "Pilot cloud embedding 语义剖面（S2 旁路；vector_enabled=true）",
+        "prefer_doc_types": [
+            "main_policy",
+            "rider",
+            "endorsement",
+            "special_agreement",
+            "handbook",
+        ],
+        "version_mode": "current_effective",
+        "endorsement_first": False,
+        "eval_vector_enabled": True,
     },
 }

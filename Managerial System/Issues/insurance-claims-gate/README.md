@@ -11,17 +11,21 @@
 | Phase 2b · P-α Assist 证据地基 | [`phase2b-p-α/`](./phase2b-p-α/) | [`spec-2b-p-assist-quality.md`](../../SPEC/insurance-claims-gate/spec-2b-p-assist-quality.md) |
 | Phase 2b · P-β Assist 可证伪质量 | [`phase2b-p-β/`](./phase2b-p-β/) | 同上（Blocked by 44） |
 | Phase 2b · Q Missions Relay A2/A3 | [`phase2b-q/`](./phase2b-q/) | [`spec-2b-q-relay-a2a3.md`](../../SPEC/insurance-claims-gate/spec-2b-q-relay-a2a3.md) |
+| Phase 2c · Live Honest Seams | [`phase2c/`](./phase2c/) | [`spec-2c-live-honest-seams.md`](../../SPEC/insurance-claims-gate/spec-2c-live-honest-seams.md) |
 
 父索引：[`spec-2a-runnable-product-floor.md`](../../SPEC/insurance-claims-gate/spec-2a-runnable-product-floor.md)。  
 Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 
 ## Frontier（可立即开工）
 
+**2c（当前）：** 57、59、60 无阻塞，可并行认领；58 Blocked by 57；61 Blocked by 57–60；62 Blocked by 57–61。详见 [`phase2c/`](./phase2c/)。SPEC Status=`ready-for-agent`。  
+**本窗口不做：** G1/H4 grounded、KB≥20、A5、真连现网、γ 无条件项。
+
 **W0–W2：** 已关闭（14–33 resolved）。  
 **2b-P-α：** **closed**（34–44 resolved；α DoD 2026-09-16）。验收：`本项目代码/claims-gate/docs/acceptance/alpha-dod.md`。  
 **2b-P-β：** **closed**（45–52 resolved；β DoD 2026-09-16）。验收：`本项目代码/claims-gate/docs/acceptance/beta-dod.md`。  
 **2b-Q：** **closed**（53–56 resolved；Q DoD / H8 2026-09-16）。验收：`本项目代码/claims-gate/docs/acceptance/q-relay-a2a3-dod.md`。SPEC Status=`closed`。完成旗与 P 隔离（仅 H8）；**未**宣称 A5 / Production latch；Q-A7 Deferred。  
-γ 触发项与 ≥300 金标 / L2 等：勿预切；勿仅凭扩面草案放松 I1–I8。
+γ 触发项与 ≥300 金标 / 真 L2 现网等：勿预切；勿仅凭扩面草案放松 I1–I8。
 
 ## Phase 1 任务图（01–13 · 均已 resolved）
 
@@ -139,11 +143,25 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 
 详见 [`phase2b-q/`](./phase2b-q/)。**本波已关闭。** Q-A7 Deferred 不切票。完成旗仅 H8，不与 P 共用；未宣称 A5 / Production latch。
 
+## Phase 2c · Live Honest Seams 任务图（57–62）
+
+| NN | 标题 | Blocked by | Status |
+|----|------|------------|--------|
+| 57 | G0 Live Pilot 路径 + Live 验收 | — | resolved |
+| 58 | G2 检索双剖面 | 57 | resolved |
+| 59 | G3 L2 Core Adapter + Recorded | — | ready-for-agent |
+| 60 | G3 OCR Provider + Recorded | — | ready-for-agent |
+| 61 | G4 诚实表 / 手册 / demo 同步 | 57–60 | ready-for-agent |
+| 62 | 2c DoD 收口 | 57–61 | ready-for-agent |
+
+详见 [`phase2c/`](./phase2c/)。已同步 GitHub `#44`–`#49`（标签：`ready-for-agent` · `phase-2c` · `wave:2c`）。
+
 ## GitHub Issues 映射
 
 本地票 `14`–`33` 已同步到 GitHub（标签：`ready-for-agent` · `phase-2a` · `wave:W0|W1|W2`）。  
 本地票 `34`–`52` 已同步到 GitHub（标签：`ready-for-agent` · `phase-2b` · `wave:2b-P-alpha|2b-P-beta`）。  
 本地票 `53`–`56` 同步标签：`ready-for-agent` · `phase-2b` · `wave:2b-Q`。  
+本地票 `57`–`62` 同步标签：`ready-for-agent` · `phase-2c` · `wave:2c`。  
 完整表：[`github-issue-map.json`](./github-issue-map.json)。
 
 | Local | GitHub | Wave |
@@ -154,5 +172,6 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 | 34–44 | [#21](https://github.com/luxingjiang1993/insurance-claims-gate/issues/21)–[#31](https://github.com/luxingjiang1993/insurance-claims-gate/issues/31) | 2b-P-α |
 | 45–52 | [#32](https://github.com/luxingjiang1993/insurance-claims-gate/issues/32)–[#39](https://github.com/luxingjiang1993/insurance-claims-gate/issues/39) | 2b-P-β |
 | 53–56 | [#40](https://github.com/luxingjiang1993/insurance-claims-gate/issues/40)–[#43](https://github.com/luxingjiang1993/insurance-claims-gate/issues/43) | 2b-Q |
+| 57–62 | [#44](https://github.com/luxingjiang1993/insurance-claims-gate/issues/44)–[#49](https://github.com/luxingjiang1993/insurance-claims-gate/issues/49) | 2c |
 
 各本地票首含 `github_issue: #N`；Issue 正文内 `Blocked by` 已写 GitHub `#` 引用。

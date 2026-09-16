@@ -19,7 +19,7 @@ python scripts/run_recall_metrics_s2.py
 
 报告默认：`artifacts/reports/recall_metrics_s2.json`（可再生成；不进 `machine_check`）。
 
-**记录（2026-09-16 · `retrieval_profile=demo_seed_eval` · 向量腿关闭）：**
+**记录（2026-09-16 · 双剖面 · demo_seed_eval 向量关为基线记录）：**
 
 | 假设 | 子集 | n | 度量 | 数值 | 门槛 | 过门 |
 |------|------|---|------|------|------|------|
