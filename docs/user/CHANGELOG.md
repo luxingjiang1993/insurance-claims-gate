@@ -117,15 +117,43 @@
 
 ---
 
-## Unreleased
+## Phase 2b · P-α — Claims Assist 证据地基（2026-09）
+
+**Status:** Closed for α DoD（Issues 34–44；验收 `本项目代码/claims-gate/docs/acceptance/alpha-dod.md`）。  
+**Scope:** Pilot cloud embedding 诚实默认；BM25；Demo 检索种子；citation Schema + 拒答 disposition；工具环 ACL；span 树；忠实规则夹具；Provider 文档。默认 `pytest -q` / S0 仍绿。  
+**Honest deferral：** H4=`deferred`（薄切片 n&lt;10，禁止宣称 grounded）；H1/H2 召回有数属 β；连接状态 UI 属 β；γ（rerank / MultiQuery / fan-out / 灌榜）未触发、未上线。
 
 ### Added
 
 - Assist citation Schema 槽 + 三联门（Issue 37 / GitHub #24）：`assist/adopt` 须携带 `doc_id`+`clause_item`+`doc_version`；非法 / 缺槽不可采纳（H3）；通过后仍 evaluate。作业壳无可用 citation 时禁用采纳。`Rewrote from: REF-COURSE-03`。
 - 金标薄切片协议 + 导入导出加深（Issue 38 / GitHub #25）：双标角色占位 + 第三人裁决；`case_id` 往返；α 样例 n&lt;10 → **H4=`deferred`**，禁止宣称 grounded；禁止宣称 ≥300 运营。验收见 `本项目代码/claims-gate/docs/acceptance/gold-thin-slice.md`。`Rewrote from: REF-CASE-OPENEVALS`。
 - 辅助拒答 disposition（Issue 39 / GitHub #26）：`assist_disposition=draft|abstain` + 原因枚举；`abstain` 禁用采纳；作业壳可见拒答原因；可 CTA 走人闸但不自动签发 `human_latch_token`。`Rewrote from: REF-MISSIONS`。
+- Demo 检索种子 40 条冻结（Issue 36 / GitHub #23）：15 条款号 + 20 语义难例 + 5 拒答/冲突；**不得称金标**。`Rewrote from: 人写`。
+- 工具环白名单 ACL（Issue 40 / GitHub #27）：仅 `retrieve` / `validate_citation` / `draft_slots`；越权写 latch/支付/evaluate 权威字段 = 0（H6）。`Rewrote from: REF-CASE-FC`。
+- assist span 树 + 本地 JSONL 回放（Issue 41 / GitHub #28）。`Rewrote from: REF-CASE-EVAL-ADVISOR`。
+- 引用忠实规则/夹具（Issue 42 / GitHub #29）；非 LLM-as-judge 主指标。`Rewrote from: REF-CASE-OPENEVALS`。
+- α DoD 收口（Issue 44 / GitHub #31）：H3/H6/H7 可复现 + H1 种子存在 + S0 绿 + 手册诚实；解阻 β 与未来 SPEC-Q。验收见 `本项目代码/claims-gate/docs/acceptance/alpha-dod.md`。
 
 ### Changed
 
-- Pilot 默认语义 embedding：`EMBEDDING_PROVIDER=cloud` + 独立 embedding Key；CI/rebuild 可用 `local` 哈希并标明**非语义**；缺 embedding Key 不得静默复用 `OPENAI_API_KEY`（Issue 34 / GitHub #21）。`Rewrote from: REF-MISSIONS`（加深现有 chroma_index）。
-- Provider 清单写入 USER_GUIDE §3.4 + `.env.example` 分区（`[B] LLM` / `[C] Embedding` / `[F] 本地 trace` / `[G] LangSmith` 等）；强调密钥仅 `claims-gate/.env`、分 Key、OpenAI-compatible、换模检查单指针；不含连接状态 UI（Issue 43 / GitHub #30）。`Rewrote from: REF-MISSIONS`。
+- Pilot 默认语义 embedding：`EMBEDDING_PROVIDER=cloud` + 独立 embedding Key；CI/rebuild 可用 `local` 哈希并标明**非语义**；缺 embedding Key 不得静默复用 `OPENAI_API_KEY`（Issue 34 / GitHub #21）。`Rewrote from: REF-MISSIONS`。
+- 关键词腿 Jaccard → BM25（jieba）；条款号短路保留（Issue 35 / GitHub #22）。`Rewrote from: REF-CASE-RECALL, REF-CASE-KB`。
+- Provider 清单写入 USER_GUIDE §3.4 + `.env.example` 分区；分 Key；不含连接状态 UI（Issue 43 / GitHub #30）。`Rewrote from: REF-MISSIONS`。
+
+### Guarantees (user-visible)
+
+- 默认 `pytest -q`：无 LLM / 无 LangSmith / 无 cloud embedding Key 仍绿（H7）。
+- 非法 citation 不可采纳（H3）；工具环不写人闸/支付/evaluate 权威字段（H6）。
+- 可称「2b-P-α 证据地基已关闭」时，须同时标注 H4 deferred、β/γ 未上线。
+
+### Not in this wave
+
+- H1/H2 召回门槛有数、三维 S2、夜间告警、连接状态、κ（属 **β**）
+- γ：RRF / rerank / MultiQuery / fan-out / 往榜灌质量主指标（未触发）
+- 流 Q（Missions A2/A3）— 另 SPEC；α DoD 已解锁切票
+
+---
+
+## Unreleased
+
+（空：α 用户可见项已折叠进上节；β 合入前保持空。）

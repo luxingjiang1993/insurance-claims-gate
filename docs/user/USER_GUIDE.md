@@ -1,8 +1,8 @@
 # Claims Gate User Guide
 
-> **Pilot · Phase 1 shipped (Issues 01–13) · Phase 2a W0 Dev Complete (14–22) · Phase 2a W1 Pilot Complete (23–28) · Phase 2a W2 Eval Ops Preview (29–33)**  
+> **Pilot · Phase 1 shipped (Issues 01–13) · Phase 2a W0 Dev Complete (14–22) · Phase 2a W1 Pilot Complete (23–28) · Phase 2a W2 Eval Ops Preview (29–33) · Phase 2b P-α Assist 证据地基 (34–44)**  
 > Last updated: 2026-09-16 · Product code: `本项目代码/claims-gate/`  
-> Status badge: **W2 / Eval Ops（Developer Preview）** — 排行榜 + 多人协作评测台 + 金标 I/O 钩子 + 本手册操作说明已交付。**诚实：** ≥300 人工金标运营仍延后，不得宣称金标已达标；排行榜分数 ≠ `machine_check` 通过。生产 UI / 真连核心 L2 仍延后。
+> Status badge: **2b-P-α / Assist 证据地基（closed）** — citation 三联门、拒答 disposition、BM25、Demo 检索种子、Provider 清单已交付；默认 `pytest -q` 仍绿。**诚实：** H4=`deferred`（薄切片 n&lt;10，禁止宣称 grounded）；H1/H2 召回有数 / 连接状态 UI / γ（rerank·MultiQuery·fan-out）**未上线**；≥300 金标运营 / 真连 L2 仍延后。W2 Eval Ops Preview 仍可用。
 
 条款门禁是个人意外险（含附加意外医疗）理赔的裁决辅助产品：输出结构化草案、条款项级引用、一次补件清单与人闸令牌门；**不替代**持牌核赔终裁，**不触发**银企支付。
 
@@ -16,6 +16,7 @@
 | 演示 / 核赔浏览 | 浏览器登录作业壳看案（可无 Key） | [§3.1 作业壳](#31-作业壳w0登录角色规则路径人闸文书ai-降级与本案流水preview) |
 | Pilot 验收 | 满配 + 关向量 + 关 LLM（套餐 L） | [§3.2 Pilot / 套餐 L](#32-pilot-completew1演示可无-key-vs-pilot-须-langsmith) |
 | 运维 / 换模 | Provider 清单、分 Key、换模检查单 | [§3.4 Provider](#34-provider-清单与密钥面2b-p-α--issue-43) |
+| α DoD / H 演示 | H3/H6/H7 可复现；H1 种子存在 | [§3.5 α DoD](#35-assist-证据地基-α-dod2b-p-α--issue-44) |
 | Eval Ops 演示 | 作业壳「评测」跑榜 / 金标钩子（Preview） | [§3.3 Eval Ops](#33-eval-ops-previeww2评测台与门禁主路径区分) |
 | 核赔初审 | 材料受理 → 一次补件 / 进入初审 | [§5.1](#51-材料受理与一次补件-sc-01) |
 | 核赔员 | 除外拒赔草案 / 效力栈减赔 | [§5.2](#52-除外拒赔与文书分态-sc-02) · [§5.3](#53-批单效力栈减赔-sc-03) |
@@ -29,7 +30,8 @@
 - **演示可无 Key（W0 地板仍成立）：** 登录 + 三角色 RBAC + SC 规则路径 + 人闸 + 文书分态 + AI 无 Key 降级 + 本地 trace。默认 `pytest -q` **不要求** LLM Key、LangSmith 与 cloud embedding Key。
 - **Pilot 须 LangSmith 等（W1 / Pilot Complete）：** 满配验收须配置 LLM Key、独立 embedding Key（`EMBEDDING_PROVIDER=cloud`）、LangSmith（`LANGCHAIN_TRACING_V2` + Key）、可重建 Chroma 索引；混合检索挂 assist、来源摘要、真 span、OpenEval 实验历史对比按套餐 L 验收。详见 [§3.2](#32-pilot-completew1演示可无-key-vs-pilot-须-langsmith)。勿当生产终裁 UI；评测分 **不**替代 `machine_check`。
 - **Eval Ops Preview（W2）：** 作业壳独立「评测」入口、排行榜、多人跑次归因、金标导入/导出钩子已交付。操作见 [§3.3](#33-eval-ops-previeww2评测台与门禁主路径区分) 与 [§7.1a](#71a-评测跑次排行榜与金标-io-钩子w2-eval-ops-preview--issues-29–33)。**硬边界：** 排行榜 / 评测分数 ≠ `machine_check` 通过；合规主缝仍是轨 A `machine_check`；故意失败的评测跑次 **不**进入默认 `pytest -q` / S0 必过；**不得**宣称 ≥300 金标运营已达标。
-- **尚未上线（勿按已交付操作）：** ≥300 人工金标双标运营；核赔作业 UI 全作业流；真连核心 L2 / 真 OCR。
+- **Assist 证据地基（2b-P-α closed）：** citation Schema 三联门 + 非法不可采纳（H3）；`assist_disposition` 拒答；BM25 关键词腿；Demo 检索种子 40 条冻结（非金标）；工具环白名单（H6）；默认无 LLM 轨 A 绿（H7）。验收见 [§3.5](#35-assist-证据地基-α-dod2b-p-α--issue-44)。**诚实：** H4=`deferred`；β 召回有数 / 连接状态 / γ **未上线**。
+- **尚未上线（勿按已交付操作）：** ≥300 人工金标双标运营；核赔作业 UI 全作业流；真连核心 L2 / 真 OCR；H1/H2 召回门槛有数；连接状态只读页；rerank / MultiQuery / fan-out / 往榜灌质量主指标（γ，未触发）。
 - 裁决结果是 **草案**，不具对外最终效力；AI 辅助建议 **不是** 终裁。
 - `PAYOUT_READY` ≠ 已打款；支付仍走核心人工流程。
 - 禁止用「秒赔」叙事包装责任争议案。
@@ -89,9 +91,11 @@
 | 金标薄切片协议 | Preview（2b-P-α） | Issue 38：双标 + 第三人裁决（角色占位）；导入导出加深；当前 **H4=`deferred`**（n&lt;10），禁止宣称 grounded；禁止宣称 ≥300 |
 | Eval Ops 手册 + 分数≠合门禁文案 | Preview（W2） | Issue 33：本手册 §3.3 / §7.1a；默认 `pytest -q` 仍绿；评测失败不进 S0 必过；金标全量运营仍 Deferred |
 | Provider 清单 + `.env` 分区 | Preview（2b-P-α） | Issue 43：§3.4；密钥仅 `claims-gate/.env`；分 Key；OpenAI-compatible；换模检查单指针；**不含**连接状态 UI（β） |
+| α DoD 验收（H3/H6/H7 + H1 种子） | Preview（2b-P-α closed） | Issue 44：`本项目代码/claims-gate/docs/acceptance/alpha-dod.md`；H4 仍 deferred；β/γ 未上线 |
 | 核赔作业 UI 全作业流 | Deferred | 真连 L2 / 生产壳等后续 |
 | 真连核心 L2 / 真 OCR | Deferred | 有干系人后 |
 | ≥300 人工金标运营 | Deferred | 机检入口已占位；W2 仅钩子，勿宣称达标 |
+| 连接状态只读 / H1·H2 有数 / γ 加深 | Deferred（β/γ） | β 票 45–52；γ 仅触发；勿按已上线操作 |
 
 ---
 
@@ -259,6 +263,24 @@ pytest -q
 5. 手册标明当前 Pilot 参照模型；**不得**因换模宣称合门禁 / `machine_check` 升级。
 
 分区模板：[`本项目代码/claims-gate/.env.example`](../../本项目代码/claims-gate/.env.example)（`[B] LLM` / `[C] Embedding` / `[F] 本地 trace` / `[G] LangSmith` 等）。
+
+### 3.5 Assist 证据地基 α DoD（2b-P-α · Issue 44）
+
+`Rewrote from: SPEC-02B-P α DoD` · 验收清单：[`本项目代码/claims-gate/docs/acceptance/alpha-dod.md`](../../本项目代码/claims-gate/docs/acceptance/alpha-dod.md)
+
+**已关闭（2026-09-16）：** H3 非法 citation 不可采纳；H6 工具环不得写 latch/支付/evaluate 权威字段；H7 默认 `pytest -q` 无 LLM/无 LangSmith 仍绿；H1 Demo 检索种子 40 条已冻结（**非金标**）。
+
+**快速复现（无 Key）：**
+
+```bash
+cd 本项目代码/claims-gate
+pytest -q tests/test_assist_citation_schema_adopt.py   # H3
+pytest -q tests/test_assist_tool_acl.py                # H6
+pytest -q                                              # H7 / S0
+pytest -q tests/test_demo_retrieval_seeds.py           # H1 种子结构
+```
+
+**本波未交付 / 勿宣称：** H1/H2 召回门槛有数（β）；H4 grounded（当前 `deferred`）；连接状态 UI（β）；rerank / MultiQuery / fan-out / 往榜灌质量主指标（γ，未触发）。
 
 ---
 
@@ -538,6 +560,6 @@ OpenAPI：启动服务后访问 `/docs`（FastAPI 自动生成）。
 | 字段 | 值 |
 |------|----|
 | doc_id | `USER-GUIDE-CLAIMS-GATE` |
-| phase_covered | Phase 1（01–13）+ Phase 2a W0（14–22）+ Phase 2a W1 Pilot Complete（23–28）+ Phase 2a W2 Eval Ops Preview（29–33） |
-| next_update_trigger | 金标全量运营 / 真连 L2 / 生产壳交付，或用户可见 API/作业流变更合入 |
+| phase_covered | Phase 1（01–13）+ Phase 2a W0–W2（14–33）+ Phase 2b P-α（34–44 closed） |
+| next_update_trigger | β 用户可见合入 / 金标全量运营 / 真连 L2 / 生产壳交付，或用户可见 API/作业流变更合入 |
 | owner | 产品 Owner（人类）；agents 按 `MAINTENANCE.md` 代写修订 |

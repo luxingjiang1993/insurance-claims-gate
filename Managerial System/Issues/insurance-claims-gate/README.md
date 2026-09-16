@@ -17,9 +17,9 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 ## Frontier（可立即开工）
 
 **W0–W2：** 已关闭（14–33 resolved）。  
-**2b-P-α：** 可开工（34–38、43 无阻塞；39–42、44 见依赖）。SPEC Status=`ready-for-agent`。  
-**2b-P-β：** 全部 Blocked by **44**（α DoD）。  
-**2b-Q：** 未切票；须 α DoD 后再 `/to-spec` → `spec-2b-q-relay-a2a3.md`。  
+**2b-P-α：** **closed**（34–44 resolved；α DoD 2026-09-16）。验收：`本项目代码/claims-gate/docs/acceptance/alpha-dod.md`。  
+**2b-P-β：** **解阻**（Blocked by 44 已满足）；可开工 45–51（见各票依赖）。  
+**2b-Q：** 未切票；α DoD 已关，可 `/to-spec` → `spec-2b-q-relay-a2a3.md`。  
 γ 触发项与 ≥300 金标 / L2 等：勿预切；勿仅凭扩面草案放松 I1–I8。
 
 ## Phase 1 任务图（01–13 · 均已 resolved）
@@ -98,19 +98,19 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 
 | NN | 标题 | Blocked by | Status |
 |----|------|------------|--------|
-| 34 | Pilot 默认 cloud embedding | — | ready-for-agent |
+| 34 | Pilot 默认 cloud embedding | — | resolved |
 | 35 | BM25 关键词腿 | — | resolved |
-| 36 | Demo 检索种子 40 | — | ready-for-agent |
-| 37 | citation Schema 槽 | — | ready-for-agent |
-| 38 | 金标薄切片 | — | ready-for-agent |
-| 39 | 辅助拒答 + 壳 | 37 | ready-for-agent |
+| 36 | Demo 检索种子 40 | — | resolved |
+| 37 | citation Schema 槽 | — | resolved |
+| 38 | 金标薄切片 | — | resolved |
+| 39 | 辅助拒答 + 壳 | 37 | resolved |
 | 40 | 工具环 ACL | 37 | resolved |
-| 41 | span 树 | 40 | ready-for-agent |
-| 42 | 忠实检查（规则） | 37, 38 | ready-for-agent |
-| 43 | Provider 文档 | — | ready-for-agent |
-| 44 | α DoD 收口 | 34–43 | ready-for-agent |
+| 41 | span 树 | 40 | resolved |
+| 42 | 忠实检查（规则） | 37, 38 | resolved |
+| 43 | Provider 文档 | — | resolved |
+| 44 | α DoD 收口 | 34–43 | resolved |
 
-详见 [`phase2b-p-α/`](./phase2b-p-α/)。
+详见 [`phase2b-p-α/`](./phase2b-p-α/)。**α DoD closed 2026-09-16。**
 
 ## Phase 2b · P-β 任务图（45–52）
 
