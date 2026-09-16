@@ -468,10 +468,7 @@ def evaluate_gold_thin_slice_faithfulness(
             "非 LLM judge；非真外聘双标运营跑分"
         )
 
-    from missions.judge_human_kappa import (
-        assess_grounded_claim_allowed,
-        evaluate_thin_slice_kappa,
-    )
+    from missions.judge_human_kappa import evaluate_thin_slice_kappa
 
     kappa_report = evaluate_thin_slice_kappa(
         dataset,
