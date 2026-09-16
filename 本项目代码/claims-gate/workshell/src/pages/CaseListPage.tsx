@@ -11,6 +11,7 @@ type Props = {
   session: LoginResult;
   onOpenCase: (caseId: string) => void;
   onOpenEvalOps: () => void;
+  onOpenProviderStatus: () => void;
   onLogout: () => void;
 };
 
@@ -19,6 +20,7 @@ export function CaseListPage({
   session,
   onOpenCase,
   onOpenEvalOps,
+  onOpenProviderStatus,
   onLogout,
 }: Props) {
   const [items, setItems] = useState<ClaimSummary[]>([]);
@@ -60,6 +62,8 @@ export function CaseListPage({
             onNavigate={(route) => {
               if (route === "evalOps") {
                 onOpenEvalOps();
+              } else if (route === "providerStatus") {
+                onOpenProviderStatus();
               }
             }}
           />

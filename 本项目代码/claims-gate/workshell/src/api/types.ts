@@ -246,3 +246,25 @@ export type GoldLabelExportResult = {
   gate_role?: string;
   blocks_track_a_gate?: boolean;
 };
+
+/** 单能力连接肖像（GET /provider/connection-status；无 Key 字段）。 */
+export type ProviderServiceStatus = {
+  configured: boolean;
+  degraded: boolean;
+  degrade_reason?: string | null;
+  model?: string;
+  base_url?: string | null;
+  provider?: string;
+  semantic?: boolean;
+  enabled?: boolean;
+  project?: string;
+  tracing_v2?: string;
+};
+
+/** Provider 只读连接状态聚合。 */
+export type ProviderConnectionStatus = {
+  llm: ProviderServiceStatus;
+  embedding: ProviderServiceStatus;
+  langsmith: ProviderServiceStatus;
+  hint?: string;
+};

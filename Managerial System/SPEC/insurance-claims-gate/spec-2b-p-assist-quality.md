@@ -64,7 +64,7 @@ Phase 2a 已能演示双轨与评测台外形，但核赔员点「AI 辅助」�
 - [x] 夜间 S2 质量门失败可告警且不红轨 A；手册写清旁路  
 - [x] assist 步数≤4 外形（retrieve→gate→draft→self-check）；架构 app-owned  
 - [x] Judge–human agreement / κ 实填（绑金标薄切片）；合成样例不得冒充  
-- [ ] 只读「连接状态」页/API（已配置？降级？模型名？无 Key）  
+- [x] 只读「连接状态」页/API（已配置？降级？模型名？无 Key）  
 - [ ] **H1/H2 有数**；**H4/H5 有金标线**（或诚实 deferred）  
 - [ ] 用户手册已同步 α/β 用户可见行为；触发项（γ）未写成已上线  
 

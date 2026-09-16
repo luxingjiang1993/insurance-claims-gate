@@ -27,6 +27,7 @@ type Props = {
   api: ClaimsApiClient;
   session: LoginResult;
   onNavigateHome: () => void;
+  onOpenProviderStatus: () => void;
   onLogout: () => void;
 };
 
@@ -34,6 +35,7 @@ export function EvalOpsPage({
   api,
   session,
   onNavigateHome,
+  onOpenProviderStatus,
   onLogout,
 }: Props) {
   const [runs, setRuns] = useState<EvalRunRecord[]>([]);
@@ -191,6 +193,8 @@ export function EvalOpsPage({
             onNavigate={(route) => {
               if (route === "list") {
                 onNavigateHome();
+              } else if (route === "providerStatus") {
+                onOpenProviderStatus();
               }
             }}
           />

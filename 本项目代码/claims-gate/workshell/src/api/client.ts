@@ -21,6 +21,7 @@ import type {
   LedgerEntry,
   LoginResult,
   MaterialsRegisterResult,
+  ProviderConnectionStatus,
   SupplementNotifyResult,
 } from "./types";
 
@@ -391,6 +392,13 @@ export function createClaimsApiClient(options: ClaimsApiClientOptions) {
         `/eval/gold-labels/export${suffix}`,
         { method: "GET" },
       );
+    },
+
+    /** 只读连接状态：已配置？降级？模型名？永不回显 Key。 */
+    async getProviderConnectionStatus(): Promise<ProviderConnectionStatus> {
+      return request<ProviderConnectionStatus>("/provider/connection-status", {
+        method: "GET",
+      });
     },
   };
 }

@@ -1,8 +1,8 @@
 # Claims Gate User Guide
 
-> **Pilot · Phase 1 shipped (Issues 01–13) · Phase 2a W0 Dev Complete (14–22) · Phase 2a W1 Pilot Complete (23–28) · Phase 2a W2 Eval Ops Preview (29–33) · Phase 2b P-α Assist 证据地基 (34–44)**  
+> **Pilot · Phase 1 shipped (Issues 01–13) · Phase 2a W0 Dev Complete (14–22) · Phase 2a W1 Pilot Complete (23–28) · Phase 2a W2 Eval Ops Preview (29–33) · Phase 2b P-α Assist 证据地基 (34–44) · Phase 2b P-β 连接状态 (51)**  
 > Last updated: 2026-09-16 · Product code: `本项目代码/claims-gate/`  
-> Status badge: **2b-P-α / Assist 证据地基（closed）** — citation 三联门、拒答 disposition、BM25、Demo 检索种子、Provider 清单已交付；默认 `pytest -q` 仍绿。**诚实：** H4=`deferred`（薄切片 n&lt;10，禁止宣称 grounded）；H1/H2 召回有数已以 **S2/nightly 旁路**交付（不进默认绿）；连接状态 UI / γ（rerank·MultiQuery·fan-out）**未上线**；≥300 金标运营 / 真连 L2 仍延后。W2 Eval Ops Preview 仍可用。
+> Status badge: **2b-P-β / 连接状态已交付（票 51）** — α 证据地基仍 closed；连接状态只读 API + 作业壳页已上线（无 Key 回显）。**诚实：** H4=`deferred`（薄切片 n&lt;10，禁止宣称 grounded）；H1/H2 召回有数已以 **S2/nightly 旁路**交付（不进默认绿）；γ（rerank·MultiQuery·fan-out）**未上线**；≥300 金标运营 / 真连 L2 仍延后。W2 Eval Ops Preview 仍可用。
 
 条款门禁是个人意外险（含附加意外医疗）理赔的裁决辅助产品：输出结构化草案、条款项级引用、一次补件清单与人闸令牌门；**不替代**持牌核赔终裁，**不触发**银企支付。
 
@@ -16,6 +16,7 @@
 | 演示 / 核赔浏览 | 浏览器登录作业壳看案（可无 Key） | [§3.1 作业壳](#31-作业壳w0登录角色规则路径人闸文书ai-降级与本案流水preview) |
 | Pilot 验收 | 满配 + 关向量 + 关 LLM（套餐 L） | [§3.2 Pilot / 套餐 L](#32-pilot-completew1演示可无-key-vs-pilot-须-langsmith) |
 | 运维 / 换模 | Provider 清单、分 Key、换模检查单 | [§3.4 Provider](#34-provider-清单与密钥面2b-p-α--issue-43) |
+| 运维 / 连接状态 | 已配置？降级？模型名？（无 Key） | [§3.11 连接状态](#311-连接状态只读2b-p-β--issue-51) |
 | α DoD / H 演示 | H3/H6/H7 可复现；H1 种子存在 | [§3.5 α DoD](#35-assist-证据地基-α-dod2b-p-α--issue-44) |
 | H1/H2 召回旁路 | 冻结种子 Recall@K/MRR（S2） | [§3.6 H1/H2](#36-h1h2-召回旁路s2--issue-46) |
 | 三维质量旁路 | 检索 / 忠实 / 可用性（S2） | [§3.7 三维 S2](#37-三维-s2-质量旁路issue-47) |
@@ -35,8 +36,9 @@
 - **演示可无 Key（W0 地板仍成立）：** 登录 + 三角色 RBAC + SC 规则路径 + 人闸 + 文书分态 + AI 无 Key 降级 + 本地 trace。默认 `pytest -q` **不要求** LLM Key、LangSmith 与 cloud embedding Key。
 - **Pilot 须 LangSmith 等（W1 / Pilot Complete）：** 满配验收须配置 LLM Key、独立 embedding Key（`EMBEDDING_PROVIDER=cloud`）、LangSmith（`LANGCHAIN_TRACING_V2` + Key）、可重建 Chroma 索引；混合检索挂 assist、来源摘要、真 span、OpenEval 实验历史对比按套餐 L 验收。详见 [§3.2](#32-pilot-completew1演示可无-key-vs-pilot-须-langsmith)。勿当生产终裁 UI；评测分 **不**替代 `machine_check`。
 - **Eval Ops Preview（W2）：** 作业壳独立「评测」入口、排行榜、多人跑次归因、金标导入/导出钩子已交付。操作见 [§3.3](#33-eval-ops-previeww2评测台与门禁主路径区分) 与 [§7.1a](#71a-评测跑次排行榜与金标-io-钩子w2-eval-ops-preview--issues-29–33)。**硬边界：** 排行榜 / 评测分数 ≠ `machine_check` 通过；合规主缝仍是轨 A `machine_check`；故意失败的评测跑次 **不**进入默认 `pytest -q` / S0 必过；**不得**宣称 ≥300 金标运营已达标。
-- **Assist 证据地基（2b-P-α closed）：** citation Schema 三联门 + 非法不可采纳（H3）；`assist_disposition` 拒答；BM25 关键词腿；Demo 检索种子 40 条冻结（非金标）；工具环白名单（H6）；默认无 LLM 轨 A 绿（H7）。验收见 [§3.5](#35-assist-证据地基-α-dod2b-p-α--issue-44)。**诚实：** H4=`deferred`（κ 协议已可报告，见 [§3.10](#310-judgehuman-κissue-50)，仍禁止宣称 grounded）；H1/H2 召回有数见 [§3.6](#36-h1h2-召回旁路s2--issue-46)（S2 旁路）；连接状态 / γ **未上线**。
-- **尚未上线（勿按已交付操作）：** ≥300 人工金标双标运营；核赔作业 UI 全作业流；真连核心 L2 / 真 OCR；连接状态只读页；rerank / MultiQuery / fan-out / 往榜灌质量主指标（γ，未触发）。
+- **Assist 证据地基（2b-P-α closed）：** citation Schema 三联门 + 非法不可采纳（H3）；`assist_disposition` 拒答；BM25 关键词腿；Demo 检索种子 40 条冻结（非金标）；工具环白名单（H6）；默认无 LLM 轨 A 绿（H7）。验收见 [§3.5](#35-assist-证据地基-α-dod2b-p-α--issue-44)。**诚实：** H4=`deferred`（κ 协议已可报告，见 [§3.10](#310-judgehuman-κissue-50)，仍禁止宣称 grounded）；H1/H2 召回有数见 [§3.6](#36-h1h2-召回旁路s2--issue-46)（S2 旁路）；γ **未上线**。
+- **连接状态（2b-P-β · Issue 51）：** `GET /provider/connection-status` + 作业壳「连接状态」页；展示 LLM / Embedding / LangSmith 是否已配置、是否降级、当前模型名；**永不回显 Key**。见 [§3.11](#311-连接状态只读2b-p-β--issue-51)。
+- **尚未上线（勿按已交付操作）：** ≥300 人工金标双标运营；核赔作业 UI 全作业流；真连核心 L2 / 真 OCR；rerank / MultiQuery / fan-out / 往榜灌质量主指标（γ，未触发）。
 - 裁决结果是 **草案**，不具对外最终效力；AI 辅助建议 **不是** 终裁。
 - `PAYOUT_READY` ≠ 已打款；支付仍走核心人工流程。
 - 禁止用「秒赔」叙事包装责任争议案。
@@ -96,12 +98,13 @@
 | 金标薄切片协议 | Preview（2b-P-α） | Issue 38：双标 + 第三人裁决（角色占位）；导入导出加深；当前 **H4=`deferred`**（n&lt;10），禁止宣称 grounded；禁止宣称 ≥300 |
 | Judge–human / κ | Preview（2b-P-β） | Issue 50：标者间 Cohen κ 可报告；绑薄切片双标；**κ≥0.60** 才可宣称 grounded（另须 n≥10 + 忠实率≥0.85）；合成/外形样例不得冒充；见 [§3.10](#310-judgehuman-κissue-50) |
 | Eval Ops 手册 + 分数≠合门禁文案 | Preview（W2） | Issue 33：本手册 §3.3 / §7.1a；默认 `pytest -q` 仍绿；评测失败不进 S0 必过；金标全量运营仍 Deferred |
-| Provider 清单 + `.env` 分区 | Preview（2b-P-α） | Issue 43：§3.4；密钥仅 `claims-gate/.env`；分 Key；OpenAI-compatible；换模检查单指针；**不含**连接状态 UI（β） |
+| Provider 清单 + `.env` 分区 | Preview（2b-P-α） | Issue 43：§3.4；密钥仅 `claims-gate/.env`；分 Key；OpenAI-compatible；换模检查单指针 |
+| 连接状态只读 | Preview（2b-P-β） | Issue 51：`GET /provider/connection-status` + 作业壳「连接状态」；已配置/降级/模型名；**无 Key 回显**；见 [§3.11](#311-连接状态只读2b-p-β--issue-51) |
 | α DoD 验收（H3/H6/H7 + H1 种子） | Preview（2b-P-α closed） | Issue 44：`本项目代码/claims-gate/docs/acceptance/alpha-dod.md`；H4 仍 deferred；β/γ 未上线 |
 | 核赔作业 UI 全作业流 | Deferred | 真连 L2 / 生产壳等后续 |
 | 真连核心 L2 / 真 OCR | Deferred | 有干系人后 |
 | ≥300 人工金标运营 | Deferred | 机检入口已占位；W2 仅钩子，勿宣称达标 |
-| 连接状态只读 / γ 加深 | Deferred（β/γ） | 连接状态属 β 票 51；γ 仅触发；勿按已上线操作 |
+| γ 加深（rerank 等） | Deferred（γ） | rerank / MultiQuery / fan-out / 灌榜仅触发；勿按已上线操作 |
 
 ---
 
@@ -242,7 +245,7 @@ pytest -q
 
 ### 3.4 Provider 清单与密钥面（2b-P-α · Issue 43）
 
-`Rewrote from: REF-MISSIONS` · P-CFG α（文档清单）；**不含**连接状态 UI（属 β）
+`Rewrote from: REF-MISSIONS` · P-CFG α（文档清单）；连接状态只读见 [§3.11](#311-连接状态只读2b-p-β--issue-51)
 
 | 能力 | 契约 / Provider | 主要环境变量 | Pilot 参照默认 | 缺 Key / 关闭时 |
 |------|-----------------|--------------|----------------|-----------------|
@@ -258,14 +261,14 @@ pytest -q
 2. **分 Key：** LLM 与 Embedding 必须分开配置；一侧缺失时诚实降级，禁止静默互顶。
 3. **OpenAI-compatible：** 换国产/他厂端点 = 改 `OPENAI_*` / `EMBEDDING_*` 的 `BASE_URL` + `MODEL` + 对应 Key，不必另开换模大波。
 4. **重建索引：** 切换 `EMBEDDING_PROVIDER`（尤其 `local`→`cloud`）或换 embedding 模型后，须先 `python scripts/rebuild_chroma_index.py`，再宣称语义检索。人改条款库 markdown（含过长条款的段落）后同样重建；切块默认一条款项一块，过长按段切并回填父条款项 id，citation 仍用三联门。
-5. **本波未交付：** 「连接状态」只读页/API（已配置？降级？模型名？无 Key 回显）属 **phase2b-p-β**，勿按已上线操作。
+5. **连接状态：** 改配后用作业壳「连接状态」或 `GET /provider/connection-status` 核对已配置 / 降级 / 模型名；响应**永不回显 Key**（见 [§3.11](#311-连接状态只读2b-p-β--issue-51)）。
 
 **换模检查单（指针；不预切票）：**
 
 1. 改 `.env`（分 Key：`OPENAI_*` / `EMBEDDING_*`）。
 2. `EMBEDDING_PROVIDER=cloud` 时重建 Chroma。
 3. 在冻结 Demo 检索种子 + 金标薄切片上重测 H1–H5（旁路，不进默认绿）。
-4. 更新本表与（β 交付后）连接状态展示的模型名。
+4. 更新本表与连接状态展示的模型名（刷新「连接状态」页）。
 5. 手册标明当前 Pilot 参照模型；**不得**因换模宣称合门禁 / `machine_check` 升级。
 
 分区模板：[`本项目代码/claims-gate/.env.example`](../../本项目代码/claims-gate/.env.example)（`[B] LLM` / `[C] Embedding` / `[F] 本地 trace` / `[G] LangSmith` 等）。
@@ -286,7 +289,7 @@ pytest -q                                              # H7 / S0
 pytest -q tests/test_demo_retrieval_seeds.py           # H1 种子结构
 ```
 
-**本波未交付 / 勿宣称：** H4 grounded（当前 `deferred`）；连接状态 UI（β）；rerank / MultiQuery / fan-out / 往榜灌质量主指标（γ，未触发）。H1/H2 召回有数见 [§3.6](#36-h1h2-召回旁路s2--issue-46)（S2 旁路，不进默认绿）。
+**本波未交付 / 勿宣称：** H4 grounded（当前 `deferred`）；rerank / MultiQuery / fan-out / 往榜灌质量主指标（γ，未触发）。H1/H2 召回有数见 [§3.6](#36-h1h2-召回旁路s2--issue-46)（S2 旁路，不进默认绿）。连接状态见 [§3.11](#311-连接状态只读2b-p-β--issue-51)。
 
 ### 3.6 H1/H2 召回旁路（S2 · Issue 46）
 
@@ -357,6 +360,32 @@ pytest -q tests/test_judge_human_kappa.py
 python -m missions.judge_human_kappa run --file artifacts/gold_thin_slice/gold_thin_slice.v1.example.json
 ```
 
+### 3.11 连接状态只读（2b-P-β · Issue 51）
+
+`Rewrote from: REF-MISSIONS` · P-CFG β
+
+运维 / Demo 讲解可查看当前进程对 LLM、Embedding、LangSmith 的**配置肖像**（已配置？降级？模型名 / 项目名？），**永不回显 API Key**。
+
+**作业壳：** 登录后主导航点「连接状态」→ 三行表（LLM / Embedding / LangSmith）；改 `.env` 并重启 API 后点「刷新」。
+
+**HTTP：**
+
+```bash
+# 先登录取 session_token
+curl -s -X POST http://127.0.0.1:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d "{\"username\":\"viewer\",\"password\":\"viewer\"}"
+curl -s http://127.0.0.1:8000/provider/connection-status \
+  -H "Authorization: Bearer <session_token>"
+```
+
+响应字段要点：`llm` / `embedding` / `langsmith` 各含 `configured`、`degraded`、`model`（或 `project`）；`embedding.provider=local` 时模型名为确定性哈希标签且 `semantic=false`。正文不得出现 Key 字面量。密钥仍只写在 `claims-gate/.env`（见 [§3.4](#34-provider-清单与密钥面2b-p-α--issue-43)）。
+
+```bash
+cd 本项目代码/claims-gate
+pytest -q tests/test_provider_connection_status.py
+```
+
 ---
 
 ## 4. Core concepts
@@ -373,6 +402,7 @@ python -m missions.judge_human_kappa run --file artifacts/gold_thin_slice/gold_t
 | **AI 辅助建议** | 显式点击才调用；产物非裁决草案；可看来源摘要（doc/条款项/版本与可采纳标注）；`abstain` 时可见拒答原因且禁用采纳（不自动发人闸令牌）；`draft` 且合法 citation 三联槽后方可采纳再 evaluate；编排外形≤4 步且 app-owned（非独立 Agent 平台）；UI 标明非终裁 |
 | **本案流水** | ledger + 人闸事件可回放；本地 JSONL 可配置；LangSmith Key 配置后含 `trace_id`；无 Key 不阻塞；不替代 `machine_check` |
 | **Eval Ops（评测台）** | 独立「评测」入口；跑次归因 + 排行榜；**分数 ≠ 合门禁**；金标 I/O 仅钩子，非 ≥300 运营 |
+| **连接状态** | 只读页 / `GET /provider/connection-status`；已配置·降级·模型名；**无 Key 回显** |
 
 ### 4.1 门禁状态（作业可读）
 
@@ -537,6 +567,7 @@ POST /claims/{case_id}/l2/close
 | Method | Path | 用途 |
 |--------|------|------|
 | GET | `/health` | 存活 |
+| GET | `/provider/connection-status` | Provider 连接状态只读（已配置/降级/模型名；无 Key；Issue 51） |
 | GET | `/claims/{id}` | 案件头 + 门禁态 |
 | POST | `/claims/{id}/evaluate` | 跑门禁裁决 |
 | GET | `/claims/{id}/decision` | 读草案 |

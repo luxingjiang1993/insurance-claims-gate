@@ -163,6 +163,7 @@
 - 夜间 S2 质量门失败告警（Issue 48 / GitHub #35 · 旁路）：`python scripts/run_nightly_s2_alert.py`；失败可观测（本地 JSON + 日志 WARNING）；**不强制邮件**；**不**红轨 A / **不**进默认 `pytest -q`。验收见 `本项目代码/claims-gate/docs/acceptance/nightly-s2-alert.md`；手册 §3.8。`Rewrote from: REF-MISSIONS`。
 - Assist 四步步数预算（Issue 49 / GitHub #36）：编排外形 `retrieve→gate→draft→self-check`（≤4）；响应可测 `orchestration_steps` / `orchestration_owner=app-owned`；未知/乱序/超步强制失败；口头不卖 LangGraph / 第二套 Agent 平台。验收见 `本项目代码/claims-gate/docs/acceptance/assist-four-step-budget.md`；手册 §3.9。`Rewrote from: REF-CASE-DELIBERATIVE`。
 - Judge–human / κ 实填（Issue 50 / GitHub #37）：绑金标薄切片双标；标者间 Cohen κ 可报告；**κ≥0.60**（另须 n≥10 + 忠实率≥0.85 + 非合成）才可宣称 grounded；合成/外形样例不得冒充。验收见 `本项目代码/claims-gate/docs/acceptance/judge-human-kappa.md`；手册 §3.10。`Rewrote from: REF-CASE-OPENEVALS`。
+- 连接状态只读（Issue 51 / GitHub #38）：`GET /provider/connection-status` + 作业壳「连接状态」；LLM / Embedding / LangSmith 已配置？降级？模型名？**永不回显 Key**。手册 §3.11。`Rewrote from: REF-MISSIONS`。
 
 ### Changed
 

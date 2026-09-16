@@ -373,6 +373,7 @@ def root() -> dict:
         "status": "ok",
         "docs": "/docs",
         "health": "/health",
+        "provider_connection_status": "/provider/connection-status",
         "hint": "试用夹具: GET /claims/CLM-SC01-001 ；登录: POST /auth/login ；OpenAPI: /docs",
     }
 
@@ -380,6 +381,30 @@ def root() -> dict:
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok", "inference_track": "deterministic"}
+
+
+@app.get("/provider/connection-status")
+def provider_connection_status(
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """只读连接状态：LLM / Embedding / LangSmith 已配置？降级？模型名？永不回显 Key。
+
+    Issue 51 / P-CFG β；Rewrote from: REF-MISSIONS
+    """
+    session = _authorize("read_provider_connection_status", authorization)
+    if session is None:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error_code": ErrorCode.AUTH_FAILED.value,
+                "message": "连接状态须登录会话",
+            },
+        )
+    from missions.provider_connection_status import (
+        build_provider_connection_status,
+    )
+
+    return build_provider_connection_status()
 
 
 @app.post("/auth/login")
