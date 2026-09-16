@@ -30,7 +30,14 @@ class MissionRunner:
         self.worker = Worker(self.kb, self.store, project_root)
         self.validator = Validator(self.kb, self.store, project_root)
 
-    def new_mission(self, mission_id: str, goal: str) -> MissionState:
+    def new_mission(
+        self,
+        mission_id: str,
+        goal: str,
+        *,
+        template_id: str = "scaffold",
+    ) -> MissionState:
+        """创建使命并 Schema-bound 规划；非法 plan/契约在入账前硬停。"""
         state = MissionState(
             mission_id=mission_id,
             phase="init",
@@ -38,7 +45,7 @@ class MissionRunner:
             demo_mode="claims_gate_scaffold",
         )
         self.store.save_state(state)
-        return self.orchestrator.plan(state, goal)
+        return self.orchestrator.plan(state, goal, template_id=template_id)
 
     def run_queued_workers_serial(self, state: MissionState) -> MissionState:
         for feature in state.features:

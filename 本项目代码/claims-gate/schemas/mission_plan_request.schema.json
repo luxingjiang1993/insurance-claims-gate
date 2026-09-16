@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mission_plan_request.schema.json",
+  "title": "MissionPlanRequest",
+  "description": "编排规划入参：goal 必填；template_id 为 Schema-bound 契约源（禁止用 goal 字符串匹配冒充）。Rewrote from: REF-COURSE-03（Schema 外形）；REF-MISSIONS（契约语义）。",
+  "type": "object",
+  "required": ["goal", "template_id"],
+  "additionalProperties": false,
+  "properties": {
+    "goal": {
+      "type": "string",
+      "minLength": 1,
+      "description": "使命目标；必须进入 validation contract.goal 并可观察"
+    },
+    "template_id": {
+      "type": "string",
+      "enum": ["scaffold", "sc01", "sc02", "sc03", "router"],
+      "description": "预登记规划模板 ID；契约断言由此查找，不由 goal 子串推断"
+    }
+  }
+}

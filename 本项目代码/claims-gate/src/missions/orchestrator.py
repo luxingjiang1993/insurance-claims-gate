@@ -1,6 +1,7 @@
 """编排者：契约先行；入账前 JSON Schema 硬停；不做实现与最终验收。
 
 Rewrote from: REF-MISSIONS（missions/orchestrator.py；断言换理赔脚手架）；
+REF-COURSE-03（Schema-bound plan request）；
 SC-03 效力栈减赔契约 REF-CASE-KB, REF-COURSE-04；
 Router/ledger REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS
 """
@@ -9,17 +10,17 @@ from __future__ import annotations
 
 from .contract_schema import validate_contract_dict
 from .models import (
-    Assertion,
     FeatureKind,
     FeatureStatus,
     HandoffRecord,
-    MachineCheck,
     MissionFeature,
     MissionState,
     RoleName,
     ValidationContract,
     utc_now_iso,
 )
+from .plan_schema import validate_plan_request
+from .plan_templates import get_plan_template
 from .rag import KnowledgeBase
 from .store import ArtifactStore
 
@@ -29,52 +30,30 @@ class Orchestrator:
         self.kb = kb
         self.store = store
 
-    def plan(self, state: MissionState, goal: str) -> MissionState:
-        if not goal or not goal.strip():
-            raise ValueError("goal 不能为空：编排必须由目标驱动")
+    def plan(
+        self,
+        state: MissionState,
+        goal: str,
+        *,
+        template_id: str = "scaffold",
+    ) -> MissionState:
+        """Schema-bound 规划：plan request + validation contract 双硬停后再入账。
+
+        契约源来自 template_id 目录查找，不以 goal 字符串 if/elif 为主规划源。
+        """
+        # 规划入参硬停（缺 goal / 非法 template_id）——尚未创建 implement feature
+        validate_plan_request({"goal": goal, "template_id": template_id})
+        goal_clean = goal.strip()
+        template = get_plan_template(template_id)
 
         state.current_role = RoleName.ORCHESTRATOR
         state.phase = "planning"
         state.writer_lock_held_by = None
         state.locked_paths = []
 
-        goal_l = goal.strip().lower()
-        is_router = any(
-            key in goal_l or key in goal
-            for key in (
-                "router",
-                "route_id",
-                "ledger",
-                "策略表",
-                "retrieval_profile",
-                "handbook_ops",
-            )
-        )
-        is_sc03 = (not is_router) and any(
-            key in goal_l or key in goal
-            for key in ("sc-03", "sc03", "减赔", "效力栈", "calc_steps", "endorsement_priority")
-        )
-        is_sc02 = (not is_router) and (not is_sc03) and any(
-            key in goal_l or key in goal
-            for key in ("sc-02", "sc02", "拒赔", "除外", "疾病摔伤", "人闸", "external_notify")
-        )
-        is_sc01 = (not is_router) and (not is_sc03) and (not is_sc02) and any(
-            key in goal_l or key in goal
-            for key in ("sc-01", "sc01", "一次补件", "通赔建议", "one_shot")
-        )
-        if is_router:
-            clause_id = "POL-CLAIM-005"
-        elif is_sc03:
-            clause_id = "POL-CLAIM-004"
-        elif is_sc02:
-            clause_id = "POL-CLAIM-003"
-        elif is_sc01:
-            clause_id = "POL-CLAIM-002"
-        else:
-            clause_id = "POL-CLAIM-001"
-        chunk = self.kb.get_clause(clause_id)
+        chunk = self.kb.get_clause(template.clause_id)
         if chunk is None:
-            raise RuntimeError(f"知识库缺少 {clause_id}，无法写出契约")
+            raise RuntimeError(f"知识库缺少 {template.clause_id}，无法写出契约")
 
         from .models import RagCitation
 
@@ -93,7 +72,7 @@ class Orchestrator:
             )
         ]
         for extra in self.kb.retrieve(
-            goal,
+            goal_clean,
             role=RoleName.ORCHESTRATOR,
             profile="orchestrator_goal_top5",
             top_k=5,
@@ -102,152 +81,13 @@ class Orchestrator:
             if extra.chunk_id != chunk.chunk_id:
                 citations.append(extra)
 
-        if is_router:
-            assertions = [
-                Assertion(
-                    id="A-001",
-                    behavior="Router 表驱动：同夹具轨 A 重复跑可复现；ledger 含 route_id/retrieval_profile/decision_type/validator_score",
-                    policy_clause_id=chunk.clause_id,
-                    acceptance="evaluate 两次 route 一致；GET ledger 含四字段",
-                    machine_check=MachineCheck(
-                        type="router_ledger_reproducible",
-                        params={"case_id": "CLM-SC02-001"},
-                    ),
-                    claimed_by_features=["F-001"],
-                ),
-            ]
-            title = "Router 确定性策略表 + ledger（轨 A）"
-            owns = [
-                "src/missions/router.py",
-                "src/claims_api/service.py",
-                "src/claims_api/api.py",
-                "src/missions/checks.py",
-            ]
-            feature_title = "实现 Router 策略表、冲突 fail-closed 与每案 ledger"
-            milestone = "M1-router"
-            rewrote = "REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS"
-        elif is_sc03:
-            assertions = [
-                Assertion(
-                    id="A-001",
-                    behavior="SC-03：批单缩责减赔须效力栈引用与可复核 calc_steps；冲突 fail-closed",
-                    policy_clause_id=chunk.clause_id,
-                    acceptance="HTTP：evaluate→reduce；overridden_by；export reduction_notice；payout_ready=false",
-                    machine_check=MachineCheck(
-                        type="sc03_endorsement_stack_reduction",
-                        params={"case_id": "CLM-SC03-001"},
-                    ),
-                    claimed_by_features=["F-001"],
-                ),
-            ]
-            title = "SC-03 效力栈减赔 + 理算步骤（轨 A）"
-            owns = [
-                "src/claims_api/api.py",
-                "src/claims_api/service.py",
-                "src/missions/rag.py",
-                "src/missions/checks.py",
-            ]
-            feature_title = "实现 SC-03 效力栈减赔与 calc_steps"
-            milestone = "M1-sc03"
-            rewrote = "REF-CASE-KB, REF-MISSIONS, REF-COURSE-04"
-        elif is_sc02:
-            assertions = [
-                Assertion(
-                    id="A-001",
-                    behavior="SC-02：疾病摔伤拒赔草案须条款项落库引用；DRAFT 可无人闸；人闸后方可 EXTERNAL_NOTIFY",
-                    policy_clause_id=chunk.clause_id,
-                    acceptance="HTTP：evaluate→DRAFT→approve→EXTERNAL；payout_ready=false",
-                    machine_check=MachineCheck(
-                        type="sc02_exclusion_reject_latch",
-                        params={"case_id": "CLM-SC02-001"},
-                    ),
-                    claimed_by_features=["F-001"],
-                ),
-                Assertion(
-                    id="A-002",
-                    behavior="拒赔升 EXTERNAL_NOTIFY 无人闸必须失败关闭",
-                    policy_clause_id=chunk.clause_id,
-                    acceptance="documents/export EXTERNAL_NOTIFY 返回 LATCH_REQUIRED 或 DOCUMENT_STATUS_FORBIDDEN",
-                    machine_check=MachineCheck(
-                        type="sc02_external_notify_requires_latch",
-                        params={"case_id": "CLM-SC02-001"},
-                    ),
-                    claimed_by_features=["F-001"],
-                ),
-            ]
-            title = "SC-02 除外拒赔草案 + 文书分态 + 人闸（轨 A）"
-            owns = [
-                "src/claims_api/api.py",
-                "src/claims_api/service.py",
-                "src/claims_api/models_domain.py",
-                "src/missions/checks.py",
-            ]
-            feature_title = "实现 SC-02 除外拒赔与人闸文书分态"
-            milestone = "M1-sc02"
-            rewrote = "REF-MISSIONS"
-        elif is_sc01:
-            assertions = [
-                Assertion(
-                    id="A-001",
-                    behavior="同 one_shot_hash 拆轮补件必须失败关闭",
-                    policy_clause_id=chunk.clause_id,
-                    acceptance="supplement/notify 子集缺项返回 VALIDATION_FAILED",
-                    machine_check=MachineCheck(
-                        type="one_shot_split_round_rejected",
-                        params={"case_id": "CLM-SC01-001"},
-                    ),
-                    claimed_by_features=["F-001"],
-                ),
-                Assertion(
-                    id="A-002",
-                    behavior="SC-01：缺发票一次补件后补传，产出通赔建议且未人闸前不出款就绪",
-                    policy_clause_id=chunk.clause_id,
-                    acceptance="HTTP：evaluate→export→materials→evaluate；payout_ready=false",
-                    machine_check=MachineCheck(
-                        type="sc01_one_shot_supplement_approve",
-                        params={"case_id": "CLM-SC01-001"},
-                    ),
-                    claimed_by_features=["F-001"],
-                ),
-            ]
-            title = "SC-01 一次补件 → 通赔建议（轨 A）"
-            owns = [
-                "src/claims_api/api.py",
-                "src/claims_api/service.py",
-                "src/claims_api/models_domain.py",
-                "src/missions/checks.py",
-            ]
-            feature_title = "实现 SC-01 一次补件与通赔建议确定性轨"
-            milestone = "M1-sc01"
-            rewrote = "REF-MISSIONS, REF-COURSE-03"
-        else:
-            assertions = [
-                Assertion(
-                    id="A-001",
-                    behavior="L1 只读返回案件头且门禁态为 MATERIALS_INTAKE",
-                    policy_clause_id="POL-CLAIM-001",
-                    acceptance="GET /claims/{case_id} 含最低字段且 gate_status=MATERIALS_INTAKE",
-                    machine_check=MachineCheck(
-                        type="claim_header_l1",
-                        params={"case_id": "CLM-SC01-001", "gate_status": "MATERIALS_INTAKE"},
-                    ),
-                    claimed_by_features=["F-001"],
-                )
-            ]
-            title = "条款门禁脚手架：案件头只读"
-            owns = [
-                "src/claims_api/api.py",
-                "src/claims_api/service.py",
-                "src/claims_api/error_codes.py",
-            ]
-            feature_title = "实现 L1 案件头只读与 MATERIALS_INTAKE"
-            milestone = "M0-scaffold"
-            rewrote = "REF-MISSIONS"
+        assertions = template.build_assertions(template.clause_id)
+        rewrote = template.rewrote_from
 
         contract = ValidationContract(
             mission_id=state.mission_id,
-            title=title,
-            goal=goal.strip(),
+            title=template.title,
+            goal=goal_clean,
             broadcast_constraints=[
                 "验收标准以 validation contract.machine_check 为准，不得从实现反推",
                 "同一时刻只允许一个 Worker 持有写锁",
@@ -261,19 +101,19 @@ class Orchestrator:
             inference_track="deterministic",
         )
 
-        # 入账前 JSON Schema 硬停（P1-2）
+        # 入账前 JSON Schema 硬停（P1-2 / Q-S0-A）
         validate_contract_dict(contract.model_dump(mode="json"))
         state.contract = contract
 
         state.features = [
             MissionFeature(
                 feature_id="F-001",
-                title=feature_title,
-                milestone=milestone,
+                title=template.feature_title,
+                milestone=template.milestone,
                 kind=FeatureKind.IMPLEMENT,
                 claims_assertions=[a.id for a in assertions],
                 status=FeatureStatus.QUEUED,
-                owns_paths=owns,
+                owns_paths=list(template.owns_paths),
             )
         ]
 
@@ -283,12 +123,9 @@ class Orchestrator:
             message="validation contract 已外置；inference_track=deterministic",
             role=RoleName.ORCHESTRATOR,
             extra={
-                "goal": goal,
+                "goal": goal_clean,
+                "template_id": template.template_id,
                 "assertion_count": len(assertions),
-                "router": is_router,
-                "sc01": is_sc01,
-                "sc02": is_sc02,
-                "sc03": is_sc03,
             },
         )
 
@@ -299,12 +136,18 @@ class Orchestrator:
             completed=[
                 "写出带 machine_check 的 validation contract",
                 "JSON Schema 入账前硬停通过",
+                f"goal={goal_clean}",
+                f"template_id={template.template_id}",
                 f"拆分 features: {[f.feature_id for f in state.features]}",
             ],
             incomplete=["等待 Worker 串行实现", "等待 Validator 黑盒验收"],
             citations_used=citations[:8],
             process_followed=True,
-            process_notes=f"编排者不实现代码，不自行最终验收；Rewrote from: {rewrote}",
+            process_notes=(
+                f"编排者不实现代码，不自行最终验收；"
+                f"Schema-bound template_id={template.template_id}；"
+                f"Rewrote from: {rewrote}"
+            ),
             broadcast_ack=contract.broadcast_constraints,
             rewrote_from=rewrote,
         )
