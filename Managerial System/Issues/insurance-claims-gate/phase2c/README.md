@@ -8,7 +8,7 @@ SPEC：[`spec-2c-live-honest-seams.md`](../../../SPEC/insurance-claims-gate/spec
 |----|------|------------|--------|
 | 57 | G0 Live Pilot 路径 + Live 验收 | — | resolved |
 | 58 | G2 检索双剖面 `pilot_cloud_embed` | 57 | resolved |
-| 59 | G3 L2 Core Adapter + Recorded | — | ready-for-agent |
+| 59 | G3 L2 Core Adapter + Recorded | — | resolved |
 | 60 | G3 OCR Provider + Recorded + 威胁不变式 | — | ready-for-agent |
 | 61 | G4 诚实表 / 手册 / demo 同步 | 57, 58, 59, 60 | ready-for-agent |
 | 62 | 2c DoD 收口 | 57–61 | ready-for-agent |

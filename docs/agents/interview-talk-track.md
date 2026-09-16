@@ -57,7 +57,7 @@
 
 - SC-01 一次补件；SC-02 除外拒赔 + 文书分态；SC-03 批单效力栈减赔。  
 - 作业壳三角色：`viewer` 只读、`adjuster` 作业但不能批闸、`supervisor` 批闸拿令牌。  
-- `PAYOUT_READY` ≠ 已打款；L2 是出款就绪回写 / 结案模拟，无真连现网。
+- `PAYOUT_READY` ≠ 已打款；L2 是 **Integration-Ready** 出款就绪回写 / 结案（InMemory+Recorded），无真连现网；禁止「已接核心」。
 
 **一句话过渡：** 「壳只是客户端；合不合门，看服务端 `machine_check` 和人闸令牌。」
 
@@ -99,7 +99,7 @@
 |--------------|------|
 | 已 grounded | H4 deferred |
 | 质量加深已上线 | γ 未触发 |
-| 已接核心/OCR | 真 L2 / 真 OCR 延后 |
+| 已接核心/OCR | L2/OCR 为 **Integration-Ready**（契约+录制）；真连现网延后；禁止 Deployed 口径 |
 | 中继已生产闸 | Q-A7 / A5 未宣称 |
 | 评测榜 = 合规 | 榜分 ≠ `machine_check` |
 

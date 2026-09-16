@@ -1,0 +1,36 @@
+{
+  "integration_status": "Integration-Ready",
+  "note": "录制夹具；非现网核心。禁止宣称已接核心 / Deployed。",
+  "payout_ready": {
+    "CLM-AMT-C-001": {
+      "request": {
+        "case_id": "CLM-AMT-C-001",
+        "decision_type": "approve",
+        "recommended_payout_amount": 80000,
+        "policy_no": "PA-2026-000802",
+        "human_latch_present": true
+      },
+      "response": {
+        "case_id": "CLM-AMT-C-001",
+        "gate_status": "PAYOUT_READY",
+        "core_ref": "REC-L2-PR-001",
+        "payment_adapter_called": false
+      }
+    }
+  },
+  "close": {
+    "CLM-AMT-C-001": {
+      "request": {
+        "case_id": "CLM-AMT-C-001",
+        "close_opinion": "核赔结案：同意给付，支付由核心人工办理"
+      },
+      "response": {
+        "case_id": "CLM-AMT-C-001",
+        "gate_status": "CLOSED",
+        "close_opinion": "核赔结案：同意给付，支付由核心人工办理",
+        "core_ref": "REC-L2-CL-001",
+        "payment_adapter_called": false
+      }
+    }
+  }
+}

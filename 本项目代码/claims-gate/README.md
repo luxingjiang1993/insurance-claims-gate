@@ -97,9 +97,9 @@
 - `evaluate` 响应与 `GET /claims/{id}/ledger` 含 `route_id` / `retrieval_profile` / `decision_type` / `validator_score`
 - 轨 A 同夹具复跑可复现；`machine_check` type=`router_ledger_reproducible`
 
-## Issue 08 L2 出款就绪 / 结案回写模拟
+## Issue 08 / 59 L2 出款就绪 / 结案回写（Integration-Ready）
 
-`Rewrote from: REF-MISSIONS, REF-CASE-FC`
+`Rewrote from: REF-MISSIONS, REF-CASE-FC`；SPEC-02C G3（票 59）
 
 已落地：
 
@@ -107,7 +107,10 @@
 - 无人闸令牌 → `LATCH_REQUIRED`，`payout_ready` 保持 false
 - 夹具 `CLM-MISMATCH-001`：主数据不一致 → `MASTER_DATA_MISMATCH`，禁止出款就绪
 - `POST /claims/{id}/l2/close`：可达 `CLOSED`；载荷不含自动支付指令（与出款解耦）
+- **L2 Core Provider**（`claims_api/l2_core_provider.py`）：`InMemory`（默认）+ `Recorded` 夹具；人闸/主数据校验仍在服务层；换适配器不放行人闸
+- 契约测：`tests/test_l2_core_provider_contract.py`（无现网账号可绿）
 - 支付类工具 ACL 仍默认拒绝；`machine_check`：`l2_payout_ready_writeback` / `l2_close_without_payment`
+- **口径：** Integration-Ready（Ready ≠ Deployed）；**禁止**宣称「已接核心」/ L3 / A5
 
 ## Issue 09 轨 B 隔离 + 威胁负例
 

@@ -83,7 +83,7 @@
 | 轨 A 确定性裁决 + `machine_check` | Shipped | 默认合门禁 |
 | SC-01 / SC-02 / SC-03 HTTP 黑盒 | Shipped | Solo Demo |
 | 人闸矩阵（金额档 / 通融 / 预赔 / 调查） | Shipped | 试点默认档 |
-| L2 出款就绪 / 结案模拟 | Shipped | 无真连现网 |
+| L2 出款就绪 / 结案（Integration-Ready） | Shipped | Provider：InMemory + Recorded；**非**已接核心 / 非 Deployed |
 | 轨 B 最小 RAG 起草 | Preview | 不挡轨 A |
 | Eval 负例旁路 / 合成抽检表 | Preview | 不冒充金标 |
 | 作业壳登录 + 案件只读浏览 | Preview（W0） | Issue 16 |
@@ -563,14 +563,14 @@ POST /claims/{case_id}/human-latch/reject
 {"rejected_by":"supervisor_01","reason":"..."}
 ```
 
-**出款就绪（模拟 L2，不支付）：**
+**出款就绪（Integration L2 · Integration-Ready，不支付、非已接核心）：**
 
 ```http
 POST /claims/{case_id}/l2/payout-ready
 {"human_latch_token":"<token>"}
 ```
 
-无令牌 → `LATCH_REQUIRED`。主数据不一致夹具 `CLM-MISMATCH-001` → `MASTER_DATA_MISMATCH`，禁止出款就绪。
+无令牌 → `LATCH_REQUIRED`。主数据不一致夹具 `CLM-MISMATCH-001` → `MASTER_DATA_MISMATCH`，禁止出款就绪。响应可含 `l2_integration_status=Integration-Ready`；有 Provider 契约与录制夹具，**不等于**已接保司现网核心。
 
 **结案：**
 

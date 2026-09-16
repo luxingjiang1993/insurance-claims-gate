@@ -951,7 +951,7 @@ def l2_payout_ready(
     body: L2PayoutReadyIn | None = None,
     authorization: str | None = Header(default=None),
 ) -> dict[str, Any]:
-    """L2 模拟回写出款就绪：人闸后置 PAYOUT_READY；不触发银企支付。"""
+    """L2 出款就绪回写：人闸后经 Provider 置 PAYOUT_READY；Integration-Ready，非已接核心。"""
     _authorize("l2_payout_ready", authorization)
     payload = body or L2PayoutReadyIn()
     try:
@@ -977,7 +977,7 @@ def l2_close(
     body: L2CloseIn,
     authorization: str | None = Header(default=None),
 ) -> dict[str, Any]:
-    """L2 结案回写：CLOSED 与出款解耦；载荷不含自动支付指令。"""
+    """L2 结案回写：经 Provider 达 CLOSED；与出款解耦；非 L3 / 非已接核心。"""
     _authorize("l2_close", authorization)
     try:
         return _service.writeback_close(case_id, close_opinion=body.close_opinion)

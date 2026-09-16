@@ -4,7 +4,7 @@ Rewrote from: REF-MISSIONS（transfer_api/service.py 换垂直）；补件法义
 SC-02 拒赔分态 REF-MISSIONS；效力栈减赔 / calc_steps REF-CASE-KB, REF-COURSE-04；
 金额档/通融/预赔/调查冻决/峰值降级 REF-MISSIONS（limits 表驱动换域，阈值取 PRD §7）；
 Router 策略表 + ledger REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS；
-L2 出款就绪/结案回写模拟 REF-MISSIONS, REF-CASE-FC；
+L2 出款就绪/结案回写（Provider 接缝 InMemory/Recorded）REF-MISSIONS, REF-CASE-FC；SPEC-02C G3；
 Issue 14 SQLite 持久化 + 种子 RBAC 登录 REF-MISSIONS；
 Issue 19 AI 辅助建议降级/关键词/采纳再 evaluate REF-MISSIONS, REF-COURSE-03, REF-CASE-HYBRID, REF-RAG-CY；
 Issue 21 本案流水 + 本地 JSONL span（LangSmith 仅配置位）REF-MISSIONS；
@@ -38,6 +38,12 @@ from missions.router import (
 from missions.track_llm_optional.pipeline import draft_assist
 
 from .error_codes import ErrorCode
+from .l2_core_provider import (
+    InMemoryL2CoreProvider,
+    L2CloseRequest,
+    L2CoreProvider,
+    L2PayoutReadyRequest,
+)
 from .latch_matrix import is_fake_exgratia_clause_approve_citation, resolve_latch
 from .langsmith_trace import emit_langsmith_span
 from .local_trace import emit_span
@@ -167,10 +173,15 @@ class ClaimsService:
         self,
         kb: KnowledgeBase | None = None,
         store: SqliteCaseStore | None = None,
+        l2_core: L2CoreProvider | None = None,
     ) -> None:
         self._kb = kb if kb is not None else KnowledgeBase(_DEFAULT_KB_ROOT)
         self._citation_validator: CitationValidator | None = None
         self._store = store
+        # Integration L2 核心回写；默认进程内。Ready ≠ Deployed / 已接核心
+        self._l2_core: L2CoreProvider = (
+            l2_core if l2_core is not None else InMemoryL2CoreProvider()
+        )
         # 银企/支付适配器调用计数：L2 回写路径禁止递增（Demo 可观察）
         self.payment_adapter_calls: int = 0
         # assist_invocation_id → disposition 快照；abstain 禁采纳（Issue 39）
@@ -1298,7 +1309,7 @@ class ClaimsService:
         *,
         human_latch_token: str | None,
     ) -> dict[str, Any]:
-        """L2 模拟回写出款就绪：须人闸令牌；不触发银企支付。"""
+        """L2 出款就绪回写：须人闸令牌；经 Provider 回写；不触发银企支付。"""
         case = self.get_claim(case_id)
         if case.freeze_active:
             raise ClaimsDomainError(
@@ -1323,7 +1334,22 @@ class ClaimsService:
             )
         self._assert_master_data_aligned(case)
 
-        # 明确不调用银企/支付适配器（payment_adapter_calls 保持不变）
+        # 门禁已过：经 L2 Provider 回写；payment_adapter_calls 保持不变
+        ack = self._l2_core.writeback_payout_ready(
+            L2PayoutReadyRequest(
+                case_id=case.case_id,
+                decision_type=decision.decision_type,
+                recommended_payout_amount=decision.recommended_payout_amount,
+                policy_no=case.policy_no,
+                human_latch_present=True,
+            )
+        )
+        if ack.payment_adapter_called or ack.gate_status != "PAYOUT_READY":
+            raise ClaimsDomainError(
+                ErrorCode.VALIDATION_FAILED.value,
+                "L2 Provider 回写异常：禁止支付或状态非 PAYOUT_READY",
+                extra={"gate_status": ack.gate_status},
+            )
         case.gate_status = "PAYOUT_READY"
         decision.gate_status = "PAYOUT_READY"
         decision.payout_ready = True
@@ -1343,6 +1369,8 @@ class ClaimsService:
             "decision_type": decision.decision_type,
             "human_latch_token": case.human_latch_token,
             "inference_track": "deterministic",
+            "l2_core_ref": ack.core_ref,
+            "l2_integration_status": "Integration-Ready",
         }
 
     def writeback_close(
@@ -1351,7 +1379,7 @@ class ClaimsService:
         *,
         close_opinion: str,
     ) -> dict[str, Any]:
-        """L2 结案回写：可达 CLOSED；载荷不含自动支付指令；与出款解耦。"""
+        """L2 结案回写：经 Provider 达 CLOSED；载荷不含自动支付指令；与出款解耦。"""
         case = self.get_claim(case_id)
         if case.freeze_active:
             raise ClaimsDomainError(
@@ -1363,8 +1391,18 @@ class ClaimsService:
                 ErrorCode.VALIDATION_FAILED.value,
                 "结案意见不能为空",
             )
+        opinion = close_opinion.strip()
+        ack = self._l2_core.writeback_close(
+            L2CloseRequest(case_id=case.case_id, close_opinion=opinion)
+        )
+        if ack.payment_adapter_called or ack.gate_status != "CLOSED":
+            raise ClaimsDomainError(
+                ErrorCode.VALIDATION_FAILED.value,
+                "L2 Provider 结案回写异常：禁止支付或状态非 CLOSED",
+                extra={"gate_status": ack.gate_status},
+            )
         case.gate_status = "CLOSED"
-        case.close_opinion = close_opinion.strip()
+        case.close_opinion = ack.close_opinion or opinion
         if case.latest_decision is not None:
             case.latest_decision.gate_status = "CLOSED"
         self._append_ledger(
@@ -1389,6 +1427,8 @@ class ClaimsService:
             ),
             "payment_adapter_called": False,
             "inference_track": "deterministic",
+            "l2_core_ref": ack.core_ref,
+            "l2_integration_status": "Integration-Ready",
         }
 
     def export_document(

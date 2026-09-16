@@ -220,3 +220,4 @@
 ### Added
 
 - H1/H2 召回旁路双剖面（Issue 58 / G2）：`demo_seed_eval`（向量关）与 `pilot_cloud_embed`（向量开）并列报告；先剖面后数字；禁止无标签短路 1.00 冒充语义满分。`python scripts/run_recall_metrics_s2.py` 默认双剖面。
+- L2 Core Provider（Issue 59 / G3）：出款就绪回写与结案经可插拔 Provider（默认 InMemory + Recorded 契约夹具）；HTTP 人闸前置不变；**Integration-Ready**，禁止「已接核心」。

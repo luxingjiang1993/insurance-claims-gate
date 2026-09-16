@@ -94,6 +94,7 @@ def test_payout_ready_after_latch_no_payment_adapter() -> None:
     assert body["gate_status"] == "PAYOUT_READY"
     assert body["payout_ready"] is True
     assert body.get("payment_adapter_called") is False
+    assert body.get("l2_integration_status") == "Integration-Ready"
     assert "auto_pay" not in body
     assert "payment_instruction" not in body
     assert svc.payment_adapter_calls == before
