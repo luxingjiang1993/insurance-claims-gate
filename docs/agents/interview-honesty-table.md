@@ -15,9 +15,9 @@
 | A4 生产 Judge | **未宣称** | 仅 Validator 独立 profile（轻量预备） |
 | A5 / Q-A7 Production latch | **Deferred** | 无 pause/resume、无凭证代理 |
 | Mission Control 作业台 | **无** | 不要打开一个不存在的台 |
-| Integration L2 真连核心 | **延后** | 现为模拟回写 |
+| Integration L2 真连核心 | **延后** | L2 Provider 为 **Integration-Ready**（InMemory+Recorded）；禁止「已接核心」 |
 | Integration L3 / 秒赔 | **Won't** | 支付在核心；系统不打款 |
 | ≥300 人工金标运营 | **延后** | Demo 检索种子 **不是** 金标 |
-| 真 OCR 供应商 | **延后** | 现为写入前 strip，可观察收纳 |
+| 真 OCR 供应商 | **延后** | OCR Provider：**Integration-Ready**（Stub+Recorded）；禁止「生产 OCR 已上线」 |
 
 **收口：** 权威在轨 A + 人闸；Assist 可证伪；中继到 A2/A3；未宣称 A5 / grounded / 生产自动出款。

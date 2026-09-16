@@ -474,6 +474,7 @@ def get_claim(
         "payout_ready": summary["payout_ready"],
         "ocr_text": case.ocr_text,
         "customer_remark": case.customer_remark,
+        "ocr_integration_status": _service.last_ocr_integration_status,
     }
 
 
@@ -533,6 +534,8 @@ def evaluate_claim(
         raise _http_domain_error(exc) from exc
     out = decision.to_dict()
     out["case_id"] = case_id
+    if _service.last_ocr_integration_status is not None:
+        out["ocr_integration_status"] = _service.last_ocr_integration_status
     return out
 
 
@@ -698,6 +701,7 @@ def register_materials(
         "gate_status": case.gate_status,
         "ocr_text": case.ocr_text,
         "customer_remark": case.customer_remark,
+        "ocr_integration_status": _service.last_ocr_integration_status,
     }
 
 

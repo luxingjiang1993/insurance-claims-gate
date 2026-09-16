@@ -120,7 +120,8 @@
 
 - 轨 B 隔离：`src/missions/track_llm_optional/` 配置占位 + `tests/track_llm_optional/`；`pytest.ini` 默认 `-m "not track_llm_optional"`
 - 契约：轨 B 失败不阻断轨 A；默认 CI/Demo 禁止依赖 LLM 抽样才能通过 SC
-- OCR/客户备注经 `absorb_user_controlled_text` 仅收纳可观察，不得翻转 `human_latch_required` / `payout_ready`
+- OCR/客户备注经 Provider 规范化后由 `absorb_user_controlled_text` 收纳可观察，不得翻转 `human_latch_required` / `payout_ready`
+- OCR Provider：`StubOcrProvider` + `RecordedOcrProvider`（契约测）；默认 CI 无真 OCR 账号；**Integration-Ready**，禁止「生产 OCR 已上线」
 - `machine_check` type=`threat_inject_ocr_remark_no_latch_flip`
 
 ## Issue 10 Eval / 负例旁路（不替代 machine_check）

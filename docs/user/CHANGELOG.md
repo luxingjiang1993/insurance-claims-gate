@@ -221,3 +221,4 @@
 
 - H1/H2 召回旁路双剖面（Issue 58 / G2）：`demo_seed_eval`（向量关）与 `pilot_cloud_embed`（向量开）并列报告；先剖面后数字；禁止无标签短路 1.00 冒充语义满分。`python scripts/run_recall_metrics_s2.py` 默认双剖面。
 - L2 Core Provider（Issue 59 / G3）：出款就绪回写与结案经可插拔 Provider（默认 InMemory + Recorded 契约夹具）；HTTP 人闸前置不变；**Integration-Ready**，禁止「已接核心」。
+- OCR Provider（Issue 60 / G3）：`extract` → 规范化文本 → 既有收纳路径；Stub + Recorded；威胁注入仍不得翻 latch / 签发人闸 / 单独出款就绪；**Integration-Ready**，禁止「生产 OCR 已上线」。

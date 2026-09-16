@@ -2,7 +2,7 @@
 
 > **Pilot · Phase 1 shipped (Issues 01–13) · Phase 2a W0 Dev Complete (14–22) · Phase 2a W1 Pilot Complete (23–28) · Phase 2a W2 Eval Ops Preview (29–33) · Phase 2b P-α Assist 证据地基 (34–44) · Phase 2b P-β Assist 可证伪质量 (45–52) · Phase 2b Q Missions Relay Honesty (53–56)**  
 > Last updated: 2026-09-16 · Product code: `本项目代码/claims-gate/`  
-> Status badge: **2b-Q closed** — P-α/P-β 与 Q（H8）DoD 已关闭；H1/H2 有数（S2 旁路）；H5 规则夹具过门；连接状态只读已上线；Missions A2/A3 中继诚实可演示。**诚实：** H4=`deferred`（薄切片 n&lt;10，禁止宣称 grounded）；质量门 **不**进默认绿；γ（rerank·MultiQuery·fan-out）**未上线**；≥300 金标运营 / 真连 L2 / Q-A7·A5 Production latch **未交付**；流 Q **无** Mission Control 作业台。W2 Eval Ops Preview 仍可用。
+> Status badge: **2b-Q closed** — P-α/P-β 与 Q（H8）DoD 已关闭；H1/H2 有数（S2 旁路）；H5 规则夹具过门；连接状态只读已上线；Missions A2/A3 中继诚实可演示；L2/OCR Provider 为 **Integration-Ready**（非 Deployed）。**诚实：** H4=`deferred`（薄切片 n&lt;10，禁止宣称 grounded）；质量门 **不**进默认绿；γ（rerank·MultiQuery·fan-out）**未上线**；≥300 金标运营 / 真连 L2·真 OCR / Q-A7·A5 Production latch **未交付**；流 Q **无** Mission Control 作业台。W2 Eval Ops Preview 仍可用。
 
 条款门禁是个人意外险（含附加意外医疗）理赔的裁决辅助产品：输出结构化草案、条款项级引用、一次补件清单与人闸令牌门；**不替代**持牌核赔终裁，**不触发**银企支付。
 
@@ -42,11 +42,11 @@
 - **Assist 可证伪质量（2b-P-β closed）：** H1/H2 冻结种子有数；三维 S2 + 夜间告警旁路；assist ≤4 步；κ 可报告；连接状态只读。验收见 [§3.12](#312-assist-可证伪质量-β-dod2b-p-β--issue-52)。**诚实：** H4=`deferred`；H5 为规则/夹具金标线（非 ≥300 运营）；γ **未上线**。
 - **Missions 中继诚实（2b-Q closed）：** 契约 JSON Schema 硬停（A2）；单特性真 patch+commit（A3 / `F-Q-DEMO-01`）；Validator 独立 profile + 零产品写（轻量 A4 预备）。验收见 [§3.13](#313-missions-relay-honesty-q-dod2b-q--issue-56)。**诚实：** **无** Mission Control 作业台；Q-A7 / A5 Production latch **Deferred**；不与流 P 共用完成旗。
 - **连接状态（2b-P-β · Issue 51）：** `GET /provider/connection-status` + 作业壳「连接状态」页；展示 LLM / Embedding / LangSmith 是否已配置、是否降级、当前模型名；**永不回显 Key**。见 [§3.11](#311-连接状态只读2b-p-β--issue-51)。
-- **尚未上线（勿按已交付操作）：** ≥300 人工金标双标运营；核赔作业 UI 全作业流；真连核心 L2 / 真 OCR；rerank / MultiQuery / fan-out / 往榜灌质量主指标（γ，未触发）；Q-A7 pause/resume / credential proxy（A5 Production latch）；Mission Control 生产作业台。
+- **尚未上线（勿按已交付操作）：** ≥300 人工金标双标运营；核赔作业 UI 全作业流；真连核心 L2 / 真 OCR（现有 Provider 仅为 Integration-Ready）；rerank / MultiQuery / fan-out / 往榜灌质量主指标（γ，未触发）；Q-A7 pause/resume / credential proxy（A5 Production latch）；Mission Control 生产作业台。
 - 裁决结果是 **草案**，不具对外最终效力；AI 辅助建议 **不是** 终裁。
 - `PAYOUT_READY` ≠ 已打款；支付仍走核心人工流程。
 - 禁止用「秒赔」叙事包装责任争议案。
-- OCR / 客户备注写入案件时会去掉首尾空白（全空白→空串）；仍只作可观察收纳，**不会**改写人闸 / `payout_ready`。
+- OCR 经 Provider（默认 Stub）规范化后再收纳；客户备注仍 strip 收纳；**不会**改写人闸 / `payout_ready`；响应可含 `ocr_integration_status=Integration-Ready`（≠ 生产 OCR 已上线）。
 
 术语定义以仓库根 [`CONTEXT.md`](../../CONTEXT.md) 为准。
 
@@ -84,6 +84,7 @@
 | SC-01 / SC-02 / SC-03 HTTP 黑盒 | Shipped | Solo Demo |
 | 人闸矩阵（金额档 / 通融 / 预赔 / 调查） | Shipped | 试点默认档 |
 | L2 出款就绪 / 结案（Integration-Ready） | Shipped | Provider：InMemory + Recorded；**非**已接核心 / 非 Deployed |
+| OCR Provider（Integration-Ready） | Shipped | Stub + Recorded；规范化文本再收纳；**非**生产 OCR 已上线 |
 | 轨 B 最小 RAG 起草 | Preview | 不挡轨 A |
 | Eval 负例旁路 / 合成抽检表 | Preview | 不冒充金标 |
 | 作业壳登录 + 案件只读浏览 | Preview（W0） | Issue 16 |
@@ -109,8 +110,9 @@
 | β DoD 验收（H1/H2 有数 + H4/H5） | Preview（2b-P-β closed） | Issue 52：`本项目代码/claims-gate/docs/acceptance/beta-dod.md`；H4=`deferred`；H5 夹具过门；γ 未上线 |
 | Q DoD 验收（H8 中继诚实） | Preview（2b-Q closed） | Issue 56：`本项目代码/claims-gate/docs/acceptance/q-relay-a2a3-dod.md`；A2/A3 可演示；**无** Mission Control 作业台；未宣称 A5 |
 | OCR/备注吸收 strip | Shipped（示范） | Issue 54：写入前去首尾空白；不改人闸/`payout_ready` |
+| OCR Provider（Stub+Recorded） | Shipped | Issue 60 / G3：`extract`→规范化文本→既有收纳；**Integration-Ready**；禁止「生产 OCR 已上线」 |
 | 核赔作业 UI 全作业流 | Deferred | 真连 L2 / 生产壳等后续 |
-| 真连核心 L2 / 真 OCR | Deferred | 有干系人后 |
+| 真连核心 L2 / 真 OCR | Deferred | 有干系人后；现有 Provider 契约 ≠ Deployed |
 | ≥300 人工金标运营 | Deferred | 机检入口已占位；W2 仅钩子，勿宣称达标 |
 | γ 加深（rerank 等） | Deferred（γ） | rerank / MultiQuery / fan-out / 灌榜仅触发；勿按已上线操作 |
 | Q-A7 / A5 Production latch | Deferred | pause/resume；credential proxy；未做不得称 Production latch |

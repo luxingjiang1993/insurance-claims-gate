@@ -5,6 +5,7 @@ SC-02 拒赔分态 REF-MISSIONS；效力栈减赔 / calc_steps REF-CASE-KB, REF-
 金额档/通融/预赔/调查冻决/峰值降级 REF-MISSIONS（limits 表驱动换域，阈值取 PRD §7）；
 Router 策略表 + ledger REF-COURSE-12, REF-CASE-HYBRID, REF-MISSIONS；
 L2 出款就绪/结案回写（Provider 接缝 InMemory/Recorded）REF-MISSIONS, REF-CASE-FC；SPEC-02C G3；
+OCR Provider（Stub/Recorded → 规范化文本 → absorb）REF-MISSIONS；SPEC-02C G3；
 Issue 14 SQLite 持久化 + 种子 RBAC 登录 REF-MISSIONS；
 Issue 19 AI 辅助建议降级/关键词/采纳再 evaluate REF-MISSIONS, REF-COURSE-03, REF-CASE-HYBRID, REF-RAG-CY；
 Issue 21 本案流水 + 本地 JSONL span（LangSmith 仅配置位）REF-MISSIONS；
@@ -47,7 +48,6 @@ from .l2_core_provider import (
 from .latch_matrix import is_fake_exgratia_clause_approve_citation, resolve_latch
 from .langsmith_trace import emit_langsmith_span
 from .local_trace import emit_span
-from .user_text import absorb_user_controlled_text
 from .models_domain import (
     ClaimCase,
     CoreMasterSnapshot,
@@ -56,7 +56,9 @@ from .models_domain import (
     LedgerEntry,
     SupplementItem,
 )
+from .ocr_provider import OcrExtractRequest, OcrProvider, StubOcrProvider
 from .sqlite_store import SqliteCaseStore
+from .user_text import absorb_user_controlled_text
 
 # 允许进入出款就绪的裁决类型（拒赔/补件/调查不得 PAYOUT_READY）
 _PAYOUT_ELIGIBLE_DECISIONS: frozenset[str] = frozenset(
@@ -174,6 +176,7 @@ class ClaimsService:
         kb: KnowledgeBase | None = None,
         store: SqliteCaseStore | None = None,
         l2_core: L2CoreProvider | None = None,
+        ocr: OcrProvider | None = None,
     ) -> None:
         self._kb = kb if kb is not None else KnowledgeBase(_DEFAULT_KB_ROOT)
         self._citation_validator: CitationValidator | None = None
@@ -182,6 +185,9 @@ class ClaimsService:
         self._l2_core: L2CoreProvider = (
             l2_core if l2_core is not None else InMemoryL2CoreProvider()
         )
+        # OCR Provider；默认 Stub。Ready ≠ 生产 OCR 已上线
+        self._ocr: OcrProvider = ocr if ocr is not None else StubOcrProvider()
+        self._last_ocr_integration_status: str | None = None
         # 银企/支付适配器调用计数：L2 回写路径禁止递增（Demo 可观察）
         self.payment_adapter_calls: int = 0
         # assist_invocation_id → disposition 快照；abstain 禁采纳（Issue 39）
@@ -193,6 +199,36 @@ class ClaimsService:
             self._seed()
             if store is not None:
                 store.save_all_cases(self._cases)
+
+    @property
+    def last_ocr_integration_status(self) -> str | None:
+        """最近一次 OCR Provider 抽取的 Integration 状态（作业面可观察）。"""
+        return self._last_ocr_integration_status
+
+    def _absorb_via_ocr_provider(
+        self,
+        case: ClaimCase,
+        *,
+        ocr_text: str | None = None,
+        customer_remark: str | None = None,
+        image_ids: list[str] | None = None,
+    ) -> None:
+        """经 OCR Provider 规范化后再进入 absorb；备注仍直接收纳。"""
+        normalized: str | None = None
+        result = None
+        if ocr_text is not None:
+            result = self._ocr.extract(OcrExtractRequest(raw_payload=ocr_text))
+            normalized = result.normalized_text
+        elif image_ids:
+            # 无预填文本时按首张图抽取；Stub 空串不覆盖案件已有 ocr_text
+            result = self._ocr.extract(OcrExtractRequest(image_id=image_ids[0]))
+            if result.normalized_text:
+                normalized = result.normalized_text
+        if result is not None:
+            self._last_ocr_integration_status = result.ocr_integration_status
+        absorb_user_controlled_text(
+            case, ocr_text=normalized, customer_remark=customer_remark
+        )
 
     def set_citation_validator(self, validator: CitationValidator) -> None:
         """注入条款落库校验（对外通知失败关闭）。"""
@@ -773,8 +809,8 @@ class ClaimsService:
     ) -> DecisionDraft:
         """材料齐全断言 → Router 表驱动补件 / 拒赔 / 减赔 / 通赔建议。"""
         case = self.get_claim(case_id)
-        # OCR/备注仅收纳；不得改写人闸矩阵输入
-        absorb_user_controlled_text(
+        # OCR 经 Provider 规范化后收纳；备注直接收纳；不得改写人闸矩阵输入
+        self._absorb_via_ocr_provider(
             case, ocr_text=ocr_text, customer_remark=customer_remark
         )
         if sensitivity_flags is not None:
@@ -1127,10 +1163,13 @@ class ClaimsService:
         ocr_text: str | None = None,
         customer_remark: str | None = None,
     ) -> ClaimCase:
-        """客户补传材料元数据；OCR/备注可观察收纳，不改人闸规则。"""
+        """客户补传材料元数据；OCR 经 Provider 规范化后收纳，不改人闸规则。"""
         case = self.get_claim(case_id)
-        absorb_user_controlled_text(
-            case, ocr_text=ocr_text, customer_remark=customer_remark
+        self._absorb_via_ocr_provider(
+            case,
+            ocr_text=ocr_text,
+            customer_remark=customer_remark,
+            image_ids=image_ids,
         )
         for code in material_codes:
             if code not in REQUIRED_MATERIALS:

@@ -1,0 +1,26 @@
+{
+  "integration_status": "Integration-Ready",
+  "note": "录制夹具；非真 OCR 供应商。禁止宣称生产 OCR 已上线 / Deployed。",
+  "by_image_id": {
+    "IMG-REC-001": {
+      "request": {
+        "image_id": "IMG-REC-001"
+      },
+      "response": {
+        "normalized_text": "发票金额捌万元整 诊断：软组织挫伤",
+        "ocr_ref": "REC-OCR-001"
+      }
+    }
+  },
+  "by_raw_payload": {
+    "  hello OCR  ": {
+      "request": {
+        "raw_payload": "  hello OCR  "
+      },
+      "response": {
+        "normalized_text": "hello OCR",
+        "ocr_ref": "REC-OCR-RAW-001"
+      }
+    }
+  }
+}
