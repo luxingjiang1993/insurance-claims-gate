@@ -215,7 +215,11 @@
 
 ---
 
-## Unreleased
+## Phase 2c — Live Honest Seams（2026-09）
+
+**Status:** Closed for 2c DoD（Issues 57–62；验收 `本项目代码/claims-gate/docs/acceptance/package-live-honest-seams.md`）。  
+**Scope:** G0 Live Pilot；G2 检索双剖面；G3 L2/OCR Provider（Integration-Ready）；G4 诚实文案同步。默认 `pytest -q` / S0 仍绿。  
+**Honest deferral：** H4=`deferred`；**不冲**面试条 9；**未**宣称 A5 / 已接核心 / 生产 OCR 已上线；γ / KB≥20 / 真连现网 **未交付**；Ready ≠ Deployed。
 
 ### Added
 
@@ -224,7 +228,22 @@
 - L2 Core Provider（Issue 59 / G3）：出款就绪回写与结案经可插拔 Provider（默认 InMemory + Recorded 契约夹具）；HTTP 人闸前置不变；**Integration-Ready**，禁止「已接核心」。
 - OCR Provider（Issue 60 / G3）：`extract` → 规范化文本 → 既有收纳路径；Stub + Recorded；威胁注入仍不得翻 latch / 签发人闸 / 单独出款就绪；**Integration-Ready**，禁止「生产 OCR 已上线」。
 - G4 诚实文案同步（Issue 61）：诚实表 / USER_GUIDE / demo 脚本 / S2 指标卡与 G0–G3 证据一致；对外「面试诚实 8 分档」+「Integration-Ready」；开场固定 H4 deferred；Ready ≠ Deployed；不宣称 grounded / 面试条 9。
+- 2c DoD 收口（Issue 62 / GitHub #49）：SPEC 本窗口 DoD 全勾；S0 `337 passed, 26 deselected`（2026-09-16）；验收摘要 `package-live-honest-seams.md`；SPEC Status=`closed`。手册 §3.14。
 
 ### Guarantees (user-visible)
 
+- 默认 `pytest -q`：无 LLM / 无 LangSmith / 无 cloud embedding Key 仍绿。
 - 可称「面试诚实 8 分档 / Integration-Ready」时，须同时标注 H4 deferred、Ready ≠ Deployed、未冲面试条 9、γ / A5 / ≥300 / 真连现网未交付。
+
+### Not in this wave
+
+- H4 grounded（须真双标 n≥10 + 忠实率/κ 达标）
+- 面试条 9 / grounded 宣称
+- γ：RRF / rerank / MultiQuery / fan-out（未触发）
+- KB≥20；真连保司现网；生产 OCR 已上线；A5 / Mission Control；≥300 金标运营
+
+---
+
+## Unreleased
+
+（空 — 2c 已折叠至上节。）

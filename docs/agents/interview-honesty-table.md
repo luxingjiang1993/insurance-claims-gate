@@ -23,4 +23,4 @@
 | ≥300 人工金标运营 | **延后** | Demo 检索种子 **不是** 金标 |
 | 真 OCR 供应商 | **延后** | OCR Provider：**Integration-Ready**（Stub+Recorded）；禁止「生产 OCR 已上线」 |
 
-**收口：** 权威在轨 A + 人闸；Assist 可证伪；中继到 A2/A3；Live + 双剖面 + Integration-Ready 可辩护；未宣称 A5 / grounded / 面试条 9 / 生产自动出款。Frontier 未关票 ≠「已冲 9 / 已做完」。
+**收口：** 权威在轨 A + 人闸；Assist 可证伪；中继到 A2/A3；**2c closed**（Live + 双剖面 + Integration-Ready）；未宣称 A5 / grounded / 面试条 9 / 生产自动出款。2c 关闭 ≠「已冲 9」；附录 H4 另开 SPEC。

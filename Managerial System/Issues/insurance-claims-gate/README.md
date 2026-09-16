@@ -18,14 +18,16 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 
 ## Frontier（可立即开工）
 
-**2c（当前）：** 57–61 resolved；**仅 62**（2c DoD 收口）可认领（Blocked by 57–61 已解阻）。详见 [`phase2c/`](./phase2c/)。SPEC Status=`ready-for-agent`（DoD 收口前）。  
-**本窗口不做：** G1/H4 grounded、KB≥20、A5、真连现网、γ 无条件项。
+**2c：** **closed**（57–62 resolved；DoD 2026-09-16）。验收：`本项目代码/claims-gate/docs/acceptance/package-live-honest-seams.md`。SPEC Status=`closed`。档位：面试诚实 8 分档 + Integration-Ready；**未**宣称 grounded / 面试条 9 / A5 / 已接核心；附录 H4 仍 deferred。  
+**本窗口不做（仍勿预切为已交付）：** G1/H4 grounded、KB≥20、A5、真连现网、γ 无条件项。
 
 **W0–W2：** 已关闭（14–33 resolved）。  
 **2b-P-α：** **closed**（34–44 resolved；α DoD 2026-09-16）。验收：`本项目代码/claims-gate/docs/acceptance/alpha-dod.md`。  
 **2b-P-β：** **closed**（45–52 resolved；β DoD 2026-09-16）。验收：`本项目代码/claims-gate/docs/acceptance/beta-dod.md`。  
 **2b-Q：** **closed**（53–56 resolved；Q DoD / H8 2026-09-16）。验收：`本项目代码/claims-gate/docs/acceptance/q-relay-a2a3-dod.md`。SPEC Status=`closed`。完成旗与 P 隔离（仅 H8）；**未**宣称 A5 / Production latch；Q-A7 Deferred。  
 γ 触发项与 ≥300 金标 / 真 L2 现网等：勿预切；勿仅凭扩面草案放松 I1–I8。
+
+**当前 Frontier：** 空（2c 已关）。后继仅附录 H4 / γ 触发 / 真连现网等另开 SPEC，不默认开工。
 
 ## Phase 1 任务图（01–13 · 均已 resolved）
 
@@ -152,9 +154,9 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 | 59 | G3 L2 Core Adapter + Recorded | — | resolved |
 | 60 | G3 OCR Provider + Recorded | — | resolved |
 | 61 | G4 诚实表 / 手册 / demo 同步 | 57–60 | resolved |
-| 62 | 2c DoD 收口 | 57–61 | ready-for-agent |
+| 62 | 2c DoD 收口 | 57–61 | resolved |
 
-详见 [`phase2c/`](./phase2c/)。已同步 GitHub `#44`–`#49`（标签：`ready-for-agent` · `phase-2c` · `wave:2c`）。
+详见 [`phase2c/`](./phase2c/)。**本波已关闭**（2026-09-16）。已同步 GitHub `#44`–`#49`（标签：`ready-for-agent` · `phase-2c` · `wave:2c`）。验收：`本项目代码/claims-gate/docs/acceptance/package-live-honest-seams.md`。
 
 ## GitHub Issues 映射
 
