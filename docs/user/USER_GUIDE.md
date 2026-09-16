@@ -20,6 +20,7 @@
 | H1/H2 召回旁路 | 冻结种子 Recall@K/MRR（S2） | [§3.6 H1/H2](#36-h1h2-召回旁路s2--issue-46) |
 | 三维质量旁路 | 检索 / 忠实 / 可用性（S2） | [§3.7 三维 S2](#37-三维-s2-质量旁路issue-47) |
 | 夜间 S2 告警 | 质量失败可观测（旁路） | [§3.8 夜间告警](#38-夜间-s2-质量门失败告警issue-48) |
+| Assist 四步预算 | 编排≤4；app-owned | [§3.9 四步预算](#39-assist-四步步数预算issue-49) |
 | Eval Ops 演示 | 作业壳「评测」跑榜 / 金标钩子（Preview） | [§3.3 Eval Ops](#33-eval-ops-previeww2评测台与门禁主路径区分) |
 | 核赔初审 | 材料受理 → 一次补件 / 进入初审 | [§5.1](#51-材料受理与一次补件-sc-01) |
 | 核赔员 | 除外拒赔草案 / 效力栈减赔 | [§5.2](#52-除外拒赔与文书分态-sc-02) · [§5.3](#53-批单效力栈减赔-sc-03) |
@@ -327,6 +328,19 @@ pytest -q tests/test_nightly_s2_alert.py
 
 告警产物默认：`artifacts/reports/nightly_s2_alert.json`（字段含 `alert_raised`、`failed_dimensions`、`blocks_track_a_gate=false`）。合门禁仍以轨 A `machine_check` 为准。
 
+### 3.9 Assist 四步步数预算（Issue 49）
+
+`Rewrote from: REF-CASE-DELIBERATIVE` · 验收：[`本项目代码/claims-gate/docs/acceptance/assist-four-step-budget.md`](../../本项目代码/claims-gate/docs/acceptance/assist-four-step-budget.md)
+
+Assist 编排外形收紧为 **≤4 步**：`retrieve → gate → draft → self-check`。响应可含 `orchestration_steps` / `orchestration_step_budget=4` / `orchestration_owner=app-owned`。架构由 **app 拥有**；实现可用图库，但 **不** 售卖 LangGraph / 第二套 Agent 平台。合门禁与权威仍归轨 A + 人闸。
+
+```bash
+cd 本项目代码/claims-gate
+pytest -q tests/test_assist_step_budget.py
+```
+
+观测 span 树可更细（retrieve→fuse→gate→llm→…）；本节约束的是编排预算外形。
+
 ---
 
 ## 4. Core concepts
@@ -340,7 +354,7 @@ pytest -q tests/test_nightly_s2_alert.py
 | **出款就绪** | 门禁态 `PAYOUT_READY`；仅人闸后可置位；不触发支付 |
 | **文书分态** | `DRAFT_EXPORT` 可草稿导出；`EXTERNAL_NOTIFY` 对外通知须人闸 |
 | **轨 A / 轨 B** | 轨 A = 确定性默认可回归；轨 B = LLM 可选，失败不挡轨 A |
-| **AI 辅助建议** | 显式点击才调用；产物非裁决草案；可看来源摘要（doc/条款项/版本与可采纳标注）；`abstain` 时可见拒答原因且禁用采纳（不自动发人闸令牌）；`draft` 且合法 citation 三联槽后方可采纳再 evaluate；UI 标明非终裁 |
+| **AI 辅助建议** | 显式点击才调用；产物非裁决草案；可看来源摘要（doc/条款项/版本与可采纳标注）；`abstain` 时可见拒答原因且禁用采纳（不自动发人闸令牌）；`draft` 且合法 citation 三联槽后方可采纳再 evaluate；编排外形≤4 步且 app-owned（非独立 Agent 平台）；UI 标明非终裁 |
 | **本案流水** | ledger + 人闸事件可回放；本地 JSONL 可配置；LangSmith Key 配置后含 `trace_id`；无 Key 不阻塞；不替代 `machine_check` |
 | **Eval Ops（评测台）** | 独立「评测」入口；跑次归因 + 排行榜；**分数 ≠ 合门禁**；金标 I/O 仅钩子，非 ≥300 运营 |
 

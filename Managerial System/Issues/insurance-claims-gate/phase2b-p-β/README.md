@@ -9,7 +9,7 @@
 | 46 | Recall 指标 S2 | 44, 36, 35 | resolved |
 | 47 | 三维 S2 | 44, 46, 42 | resolved |
 | 48 | 夜间 S2 告警 | 44, 47 | resolved |
-| 49 | 四步步数预算 | 44, 40 | ready-for-agent |
+| 49 | 四步步数预算 | 44, 40 | resolved |
 | 50 | κ / judge-human | 44, 38 | ready-for-agent |
 | 51 | 连接状态只读 | 44, 43 | ready-for-agent |
 | 52 | β DoD 收口 | 45–51 | ready-for-agent |

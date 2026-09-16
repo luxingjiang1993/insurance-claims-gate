@@ -4,9 +4,11 @@
 规则 vs RAG 冲突仍 fail-closed 进人闸；handbook_ops 不得单独支撑对外拒赔。
 混合检索仅挂本路径；evaluate 不得调用向量。
 检索与草稿槽经 AssistToolRing 白名单调度（H6）；不得写 latch/支付/evaluate 权威字段。
+编排步数预算≤4：retrieve→gate→draft→self-check（app-owned，P-A4）。
 
 完整方差预算 / 金标门槛数值化仍属 P2-4；本模块只做最小可跑。
-Rewrote from: REF-CASE-RECALL, REF-RAG-CY, REF-CASE-HYBRID, REF-MISSIONS, REF-CASE-FC
+Rewrote from: REF-CASE-RECALL, REF-RAG-CY, REF-CASE-HYBRID, REF-MISSIONS, REF-CASE-FC,
+REF-CASE-DELIBERATIVE
 """
 
 from __future__ import annotations
@@ -20,12 +22,18 @@ from missions.assist_disposition import (
     mark_citations_unadoptable_for_abstain,
     resolve_assist_disposition,
 )
-from missions.assist_tool_ring import AssistToolRing
+from missions.assist_step_budget import (
+    ASSIST_ORCHESTRATION_OWNER,
+    ASSIST_STEP_BUDGET,
+    AssistStepBudget,
+)
+from missions.assist_tool_ring import AssistToolRing, bind_kb_validate_citation
+from missions.rag import KnowledgeBase
 from missions.retrieval_profiles import RETRIEVAL_PROFILES
 
 from .config import TrackBConfig
 from .llm_client import LlmConfigError, chat_completion, resolve_api_key
-from .retrieval import retrieve_chunks
+from .retrieval import default_kb_root, retrieve_chunks
 
 # 辅助起草立场：仅启发式，不得替代轨 A 裁决
 DraftStance = Literal["pay", "deny", "reduce", "unclear"]
@@ -66,6 +74,10 @@ class DraftAssistResult:
     assist_disposition: Literal["draft", "abstain"] = "draft"
     abstain_reason: str | None = None
     human_latch_suggested: bool = False
+    # Issue 49 / P-A4：编排步数预算外形（app-owned）
+    orchestration_steps: list[str] = field(default_factory=list)
+    orchestration_step_budget: int = ASSIST_STEP_BUDGET
+    orchestration_owner: str = ASSIST_ORCHESTRATION_OWNER
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -88,6 +100,9 @@ class DraftAssistResult:
             "assist_disposition": self.assist_disposition,
             "abstain_reason": self.abstain_reason,
             "human_latch_suggested": self.human_latch_suggested,
+            "orchestration_steps": list(self.orchestration_steps),
+            "orchestration_step_budget": self.orchestration_step_budget,
+            "orchestration_owner": self.orchestration_owner,
             # 硬保证：assist 产物永不写出款就绪 / 人闸令牌
             "payout_ready": False,
             "human_latch_token": None,
@@ -187,11 +202,20 @@ def draft_assist(
     top_k: int = 3,
     cfg: TrackBConfig | None = None,
 ) -> DraftAssistResult:
-    """检索 → 辅助起草。默认 enable_llm=False（关键词确定性提名）。"""
+    """检索 → 辅助起草。默认 enable_llm=False（关键词确定性提名）。
+
+    编排外形强制≤4 步：retrieve→gate→draft→self-check（app-owned）。
+    """
     track_cfg = cfg or TrackBConfig()
-    # 经白名单工具环调度 retrieve（禁 latch/支付/evaluate 权威写）
+    budget = AssistStepBudget()
+    root = kb_root or default_kb_root()
+    kb = KnowledgeBase(root)
+
+    # 1) retrieve — 经白名单工具环（禁 latch/支付/evaluate 权威写）
+    budget.record("retrieve")
     ring = AssistToolRing(
         retrieve_fn=lambda **kw: _ring_retrieve(kb_root=kb_root, **kw),
+        validate_citation_fn=bind_kb_validate_citation(kb),
     )
     retrieved_payload = ring.invoke(
         "retrieve",
@@ -203,6 +227,33 @@ def draft_assist(
     )
     citations = list(retrieved_payload.get("citations") or [])
     retrieval_portrait = dict(retrieved_payload.get("retrieval") or {})
+
+    # 2) gate — 工具环 validate_citation（Decision 10 / P-A1）
+    budget.record("gate")
+    gated: list[dict[str, Any]] = []
+    for cite in citations:
+        gate_out = ring.invoke(
+            "validate_citation",
+            {
+                "doc_id": cite.get("doc_id", ""),
+                "clause_item": cite.get("clause_item", ""),
+                "doc_version": cite.get("doc_version", ""),
+                "quote": cite.get("quote", ""),
+            },
+        )
+        item = dict(cite)
+        if not gate_out.get("ok"):
+            item["adoptable"] = False
+            item["reject_reason"] = str(
+                gate_out.get("detail")
+                or gate_out.get("error_code")
+                or "citation_gate_failed"
+            )
+        gated.append(item)
+    citations = gated
+
+    # 3) draft — 立场启发 + 可选 LLM + draft_slots（disposition 前的建议体槽）
+    budget.record("draft")
     stance = _infer_stance(citations, query)
     llm_text, used_llm, degrade_reason = _maybe_llm_draft(
         query, citations, enable_llm=enable_llm
@@ -247,6 +298,32 @@ def draft_assist(
             f"向量检索降级: {retrieval_portrait.get('degrade_reason') or 'keyword_only'}"
         )
 
+    # draft_slots 落在 draft 步（Decision 10 白名单工具）；disposition 留给 self-check
+    slots = ring.invoke(
+        "draft_slots",
+        {
+            "query": query,
+            "draft_text": draft_text,
+            "suggested_stance": stance,
+            "citations": citations,
+            "notes": notes,
+            "retrieval_profile": retrieval_profile,
+            "assist_disposition": "draft",
+            "abstain_reason": None,
+            "human_latch_suggested": False,
+            "human_latch_required": human_latch,
+            "degraded": degraded,
+            "degrade_reason": degrade_reason if degraded else None,
+            "inference_track": track_cfg.inference_track,
+        },
+    )
+    citations = list(slots.get("citations") or citations)
+    draft_text = str(slots.get("draft_text") or draft_text)
+    notes = list(slots.get("notes") or notes)
+    human_latch = bool(slots.get("human_latch_required", human_latch))
+
+    # 4) self-check — disposition / 忠实拒答（可改写建议体，不再另开工具步）
+    budget.record("self-check")
     disposition, abstain_reason, latch_suggested = resolve_assist_disposition(
         query=query,
         conflict_route_id=conflict_route,
@@ -269,48 +346,32 @@ def draft_assist(
             f"原草稿摘录已收回（不可送交采纳）。\n---\n{draft_text}"
         )
 
-    # draft_slots：仅填建议体槽；硬钉无令牌 / 无出款就绪（H6）
-    slots = ring.invoke(
-        "draft_slots",
-        {
-            "query": query,
-            "draft_text": draft_text,
-            "suggested_stance": stance,
-            "citations": citations,
-            "notes": notes,
-            "retrieval_profile": retrieval_profile,
-            "assist_disposition": disposition,
-            "abstain_reason": abstain_reason,
-            "human_latch_suggested": latch_suggested,
-            "human_latch_required": human_latch,
-            "degraded": degraded,
-            "degrade_reason": degrade_reason if degraded else None,
-            "inference_track": track_cfg.inference_track,
-        },
-    )
+    budget.assert_complete()
+    orch = budget.to_dict()
 
     return DraftAssistResult(
         inference_track=track_cfg.inference_track,
         query=query,
         retrieval_profile=retrieval_profile,
-        citations=list(slots.get("citations") or citations),
-        draft_text=str(slots.get("draft_text") or draft_text),
+        citations=citations,
+        draft_text=draft_text,
         used_llm=used_llm,
         suggested_stance=stance,
-        human_latch_required=bool(slots.get("human_latch_required", human_latch)),
+        human_latch_required=human_latch,
         conflict_route_id=conflict_route,
         can_external_deny=can_external_deny,
         enable_llm=enable_llm,
-        notes=list(slots.get("notes") or notes),
+        notes=notes,
         assist_invocation_id=f"assist-{uuid.uuid4().hex[:16]}",
         degraded=degraded,
         degrade_reason=degrade_reason if degraded else None,
         retrieval=retrieval_portrait,
         assist_disposition=disposition,
         abstain_reason=abstain_reason,
-        human_latch_suggested=bool(
-            slots.get("human_latch_suggested", latch_suggested)
-        ),
+        human_latch_suggested=bool(latch_suggested),
+        orchestration_steps=list(orch["orchestration_steps"]),
+        orchestration_step_budget=int(orch["orchestration_step_budget"]),
+        orchestration_owner=str(orch["orchestration_owner"]),
     )
 
 

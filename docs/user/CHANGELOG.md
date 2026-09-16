@@ -161,6 +161,7 @@
 - 冻结集 Recall@K / MRR（Issue 46 / GitHub #33 · S2/nightly）：`python scripts/run_recall_metrics_s2.py`；`pytest -m assist_quality`；对照 H1 Recall@1≥0.95、H2 Recall@5≥0.70 或 MRR≥0.55；报告默认 `artifacts/reports/recall_metrics_s2.json`；**不**进默认 `pytest -q` / `machine_check`。验收见 `本项目代码/claims-gate/docs/acceptance/recall-metrics-s2.md`。`Rewrote from: REF-CASE-RECALL`。
 - 三维 S2 质量旁路（Issue 47 / GitHub #34）：`python scripts/run_three_dim_s2_quality.py`；检索 / 引用忠实 / 建议可用性一次拉通；主指标 `recall_metrics` + `rules_fixtures` + `rules_or_human`；**禁止** LLM 作唯一主指标；报告默认 `artifacts/reports/three_dim_s2_quality.json`；**不**红轨 A。验收见 `本项目代码/claims-gate/docs/acceptance/three-dim-s2-quality.md`。`Rewrote from: REF-CASE-OPENEVALS, REF-CASE-EVAL-ADVISOR`。
 - 夜间 S2 质量门失败告警（Issue 48 / GitHub #35 · 旁路）：`python scripts/run_nightly_s2_alert.py`；失败可观测（本地 JSON + 日志 WARNING）；**不强制邮件**；**不**红轨 A / **不**进默认 `pytest -q`。验收见 `本项目代码/claims-gate/docs/acceptance/nightly-s2-alert.md`；手册 §3.8。`Rewrote from: REF-MISSIONS`。
+- Assist 四步步数预算（Issue 49 / GitHub #36）：编排外形 `retrieve→gate→draft→self-check`（≤4）；响应可测 `orchestration_steps` / `orchestration_owner=app-owned`；未知/乱序/超步强制失败；口头不卖 LangGraph / 第二套 Agent 平台。验收见 `本项目代码/claims-gate/docs/acceptance/assist-four-step-budget.md`；手册 §3.9。`Rewrote from: REF-CASE-DELIBERATIVE`。
 
 ### Changed
 
