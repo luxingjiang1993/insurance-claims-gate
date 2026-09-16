@@ -41,9 +41,9 @@
 ## Answer
 
 - 产品：`absorb_user_controlled_text` 对 OCR/备注 `.strip()`（全空白→空串）；人闸/payout 字段不碰。测：`tests/test_user_text_strip.py`；既有 `test_threat_inject_ocr_remark.py` 仍绿。
-- Worker A3：`F-Q-DEMO-01` 在 worktree 内写真实 patch + `git_commit_paths`；handoff 非空 `git_commit` / `files_touched` ⊆ owns_paths；空 diff / null commit / 越权 → `BLOCKED`。硬禁 `owns_paths` → `OwnsPathError`；写锁争用 → `WriterLockError`。
+- Worker A3：`F-Q-DEMO-01` 在 worktree 内对 `user_text` 做 strip 变换 + `git_commit_paths`；handoff 非空 `git_commit` / `files_touched` ⊆ owns_paths；空 diff / null commit / 越权 → `BLOCKED`。硬禁 `owns_paths` → `OwnsPathError`；A3 额外强制允许上界（claims_api + 配对 test_*）；写锁争用 → `WriterLockError`。
 - 新增 `missions/git_util.py`、`missions/owns_paths.py`；测：`tests/test_patch_worker_demo.py`（临时本地 git）。脚手架 Worker 路径保持烟雾测（不绑架既有空回路）。
-- 默认 `pytest -q`：308 passed。未改 `track_llm_optional`。用户可见：`docs/user/CHANGELOG.md` Unreleased + `USER_GUIDE` OCR/备注 strip 一句。`Rewrote from: REF-MISSIONS`。
+- 默认 `pytest -q`：309 passed。未改 `track_llm_optional`。用户可见：`docs/user/CHANGELOG.md` Unreleased + `USER_GUIDE` OCR/备注 strip 一句。`Rewrote from: REF-MISSIONS`。
 
 ## Comments
 
