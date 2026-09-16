@@ -17,7 +17,7 @@ esolved
 | 40 | 工具环 ACL | 37 | resolved |
 | 41 | span 树 | 40 | ready-for-agent |
 | 42 | 忠实检查（规则） | 37, 38 | ready-for-agent |
-| 43 | Provider 文档 | — | ready-for-agent |
+| 43 | Provider 文档 | — | resolved |
 | 44 | α DoD 收口 | 34–43 | ready-for-agent |
 
 `	ext

@@ -15,6 +15,7 @@
 | 个人开发 / 验收 | 5 分钟跑通 SC-01/02/03 | [§3 Quickstart](#3-quickstart) |
 | 演示 / 核赔浏览 | 浏览器登录作业壳看案（可无 Key） | [§3.1 作业壳](#31-作业壳w0登录角色规则路径人闸文书ai-降级与本案流水preview) |
 | Pilot 验收 | 满配 + 关向量 + 关 LLM（套餐 L） | [§3.2 Pilot / 套餐 L](#32-pilot-completew1演示可无-key-vs-pilot-须-langsmith) |
+| 运维 / 换模 | Provider 清单、分 Key、换模检查单 | [§3.4 Provider](#34-provider-清单与密钥面2b-p-α--issue-43) |
 | Eval Ops 演示 | 作业壳「评测」跑榜 / 金标钩子（Preview） | [§3.3 Eval Ops](#33-eval-ops-previeww2评测台与门禁主路径区分) |
 | 核赔初审 | 材料受理 → 一次补件 / 进入初审 | [§5.1](#51-材料受理与一次补件-sc-01) |
 | 核赔员 | 除外拒赔草案 / 效力栈减赔 | [§5.2](#52-除外拒赔与文书分态-sc-02) · [§5.3](#53-批单效力栈减赔-sc-03) |
@@ -87,6 +88,7 @@
 | 金标导入/导出钩子 | Preview（W2） | Issue 32：`POST /eval/gold-labels/import`、`GET /eval/gold-labels/export`、`python -m missions.gold_label_io`；须关联 `case_id`；**不是** ≥300 金标运营，不得宣称已达标 |
 | 金标薄切片协议 | Preview（2b-P-α） | Issue 38：双标 + 第三人裁决（角色占位）；导入导出加深；当前 **H4=`deferred`**（n&lt;10），禁止宣称 grounded；禁止宣称 ≥300 |
 | Eval Ops 手册 + 分数≠合门禁文案 | Preview（W2） | Issue 33：本手册 §3.3 / §7.1a；默认 `pytest -q` 仍绿；评测失败不进 S0 必过；金标全量运营仍 Deferred |
+| Provider 清单 + `.env` 分区 | Preview（2b-P-α） | Issue 43：§3.4；密钥仅 `claims-gate/.env`；分 Key；OpenAI-compatible；换模检查单指针；**不含**连接状态 UI（β） |
 | 核赔作业 UI 全作业流 | Deferred | 真连 L2 / 生产壳等后续 |
 | 真连核心 L2 / 真 OCR | Deferred | 有干系人后 |
 | ≥300 人工金标运营 | Deferred | 机检入口已占位；W2 仅钩子，勿宣称达标 |
@@ -174,7 +176,7 @@ npm run dev
 
 **本案流水：** 详情页浏览 ledger / 人闸事件（含 `retrieval_profile`；有上报时含 `trace_id`）。可选 `.env`：`CLAIMS_GATE_LOCAL_TRACE=1` 导出 JSONL；`LANGCHAIN_TRACING_V2=true` + `LANGCHAIN_API_KEY` 后 evaluate/assist/latch 上报 LangSmith；无 Key 不阻塞规则路径。不替代 `machine_check`。
 
-可选：`VITE_CLAIMS_API_BASE`（默认 `http://127.0.0.1:8000`）。LLM / 本地 trace / LangSmith 见 `.env.example`。
+可选：`VITE_CLAIMS_API_BASE`（默认 `http://127.0.0.1:8000`）。LLM / Embedding / 本地 trace / LangSmith 见 [§3.4](#34-provider-清单与密钥面2b-p-α--issue-43) 与 `.env.example`。
 
 ### 3.2 Pilot Complete（W1）：演示可无 Key vs Pilot 须 LangSmith
 
@@ -193,7 +195,7 @@ Issues 23–28 · 波次名：**W1 / Pilot Complete**
 
 **默认 CI：** `pytest -q` 仍不要求 LangSmith / LLM / cloud embedding Key；S2 可选测带 `langsmith_integration` / `track_llm_optional` / `eval_bypass` 等标记。CI 重建索引请显式 `EMBEDDING_PROVIDER=local`（确定性哈希，**非语义**，不得宣称语义检索质量）。
 
-**Provider / Key 分区（Pilot）：** LLM 用 `OPENAI_API_KEY`（或 `CLAIMS_GATE_LLM_API_KEY`）；语义 embedding 用 `CLAIMS_GATE_EMBEDDING_API_KEY`（或 `EMBEDDING_API_KEY`）且推荐 `EMBEDDING_PROVIDER=cloud`。缺 embedding Key **不得**静默复用 LLM Key。切换 `EMBEDDING_PROVIDER`（尤其 local→cloud）后须先 `python scripts/rebuild_chroma_index.py` 再宣称语义检索，否则查询向量与索引不对齐。详见 `本项目代码/claims-gate/.env.example`。
+**Provider / Key：** 完整清单、分 Key 约定与换模检查单见 [§3.4](#34-provider-清单与密钥面2b-p-α--issue-43)；模板见 `本项目代码/claims-gate/.env.example`。
 
 ### 3.3 Eval Ops Preview（W2）：评测台与门禁主路径区分
 
@@ -227,6 +229,36 @@ Issues 23–28 · 波次名：**W1 / Pilot Complete**
 cd 本项目代码/claims-gate
 pytest -q
 ```
+
+### 3.4 Provider 清单与密钥面（2b-P-α · Issue 43）
+
+`Rewrote from: REF-MISSIONS` · P-CFG α（文档清单）；**不含**连接状态 UI（属 β）
+
+| 能力 | 契约 / Provider | 主要环境变量 | Pilot 参照默认 | 缺 Key / 关闭时 |
+|------|-----------------|--------------|----------------|-----------------|
+| **LLM**（AI 辅助建议） | OpenAI-compatible Chat Completions | `OPENAI_API_KEY`（或 `CLAIMS_GATE_LLM_API_KEY`）、`OPENAI_BASE_URL`、`OPENAI_MODEL` | `gpt-4o-mini`；`BASE_URL` 默认真官方 | assist **明确降级**（`used_llm=false`）；不挡轨 A |
+| **Embedding**（语义检索） | OpenAI-compatible `/embeddings`；或 `local` 确定性哈希 | `EMBEDDING_PROVIDER`、`CLAIMS_GATE_EMBEDDING_API_KEY`（或 `EMBEDDING_API_KEY`）、`EMBEDDING_BASE_URL`、`EMBEDDING_MODEL` | `cloud` + `text-embedding-3-small` | **不得**静默复用 LLM Key；CI 用 `local`（**非语义**） |
+| **LangSmith**（云 span） | LangSmith tracing | `LANGCHAIN_TRACING_V2`、`LANGCHAIN_API_KEY`（或 `LANGSMITH_*`）、`LANGCHAIN_PROJECT` | 关闭；满配 Pilot 须开 | 无 Key **不阻塞**规则路径；默认 pytest 不要求 |
+| **本地 trace**（JSONL 回放） | 本机文件 | `CLAIMS_GATE_LOCAL_TRACE`、`CLAIMS_GATE_LOCAL_TRACE_PATH` | 关闭 | 可选排障；不替代 `machine_check` |
+| **Chroma / 混合检索** | 本地持久目录 + 权重 | `CHROMA_PERSIST_DIR`、`KEYWORD_WEIGHT` / `VECTOR_WEIGHT`、`CLAIMS_GATE_VECTOR_ENABLED` | 权重 0.7 / 0.3 | 关向量 → 关键词降级；evaluate **零**向量依赖 |
+
+**密钥与边界（运维必读）：**
+
+1. **唯一写处：** 密钥只写在 `本项目代码/claims-gate/.env`（从 `.env.example` 复制）。作业壳仅 `VITE_CLAIMS_API_BASE`，**不得**持有 API Key；前端不可配置 Key。
+2. **分 Key：** LLM 与 Embedding 必须分开配置；一侧缺失时诚实降级，禁止静默互顶。
+3. **OpenAI-compatible：** 换国产/他厂端点 = 改 `OPENAI_*` / `EMBEDDING_*` 的 `BASE_URL` + `MODEL` + 对应 Key，不必另开换模大波。
+4. **重建索引：** 切换 `EMBEDDING_PROVIDER`（尤其 `local`→`cloud`）或换 embedding 模型后，须先 `python scripts/rebuild_chroma_index.py`，再宣称语义检索。
+5. **本波未交付：** 「连接状态」只读页/API（已配置？降级？模型名？无 Key 回显）属 **phase2b-p-β**，勿按已上线操作。
+
+**换模检查单（指针；不预切票）：**
+
+1. 改 `.env`（分 Key：`OPENAI_*` / `EMBEDDING_*`）。
+2. `EMBEDDING_PROVIDER=cloud` 时重建 Chroma。
+3. 在冻结 Demo 检索种子 + 金标薄切片上重测 H1–H5（旁路，不进默认绿）。
+4. 更新本表与（β 交付后）连接状态展示的模型名。
+5. 手册标明当前 Pilot 参照模型；**不得**因换模宣称合门禁 / `machine_check` 升级。
+
+分区模板：[`本项目代码/claims-gate/.env.example`](../../本项目代码/claims-gate/.env.example)（`[B] LLM` / `[C] Embedding` / `[F] 本地 trace` / `[G] LangSmith` 等）。
 
 ---
 

@@ -128,3 +128,4 @@
 ### Changed
 
 - Pilot 默认语义 embedding：`EMBEDDING_PROVIDER=cloud` + 独立 embedding Key；CI/rebuild 可用 `local` 哈希并标明**非语义**；缺 embedding Key 不得静默复用 `OPENAI_API_KEY`（Issue 34 / GitHub #21）。`Rewrote from: REF-MISSIONS`（加深现有 chroma_index）。
+- Provider 清单写入 USER_GUIDE §3.4 + `.env.example` 分区（`[B] LLM` / `[C] Embedding` / `[F] 本地 trace` / `[G] LangSmith` 等）；强调密钥仅 `claims-gate/.env`、分 Key、OpenAI-compatible、换模检查单指针；不含连接状态 UI（Issue 43 / GitHub #30）。`Rewrote from: REF-MISSIONS`。
