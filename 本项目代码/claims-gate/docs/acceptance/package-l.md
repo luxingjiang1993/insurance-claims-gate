@@ -106,3 +106,13 @@ pytest -q
 | **Eval Ops（W2）** | 排行榜 / 多人评测台 | **未上线**；勿用本清单勾选冒充 |
 
 用户手册：`docs/user/USER_GUIDE.md`（诚实边界与 §3.2）。
+
+---
+
+**脚注（套餐 L 的性质）：** 本文件是 **人工 Pilot 验收清单**（W1 / Pilot Complete）。路径勾选由验收人填写，**不**并入默认 `pytest -q`，**不**等于 `machine_check` 合门禁，也 **不**用评测榜分代替人闸。默认 CI 仍须无 LLM / 无 LangSmith 全绿；满配路径 A 是 Pilot 宣称条件，不是轨 A 地板。
+
+---
+
+## Phase 2c · G0 Live（套餐 L 之上）
+
+有 Key 真 Assist / 双 Key cloud 重建 / 连接双绿 / `requires_llm` 旁路：见 **[`live-pilot-g0.md`](./live-pilot-g0.md)**（Live Pilot；不宣称 H4 grounded / 面试条 9）。

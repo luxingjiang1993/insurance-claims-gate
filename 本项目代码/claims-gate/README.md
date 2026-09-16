@@ -9,6 +9,12 @@
 - 术语：`CONTEXT.md`
 - Agent 约定：`AGENTS.md`
 
+## 面试 / Pilot 入口
+
+作业与诚实边界以仓库根 **`docs/user/USER_GUIDE.md`** 为准（页眉：2b-Q closed；H4 deferred；无 L3 / 无 A5 宣称）。面试一页纸：`docs/agents/interview-one-pager.md`；已交付 vs 延后对照：`docs/agents/interview-honesty-table.md`。Pilot 人工验收是套餐 L（`docs/acceptance/package-l.md`）；Phase 2c Live 档见 **`docs/acceptance/live-pilot-g0.md`**（不宣称 grounded）。二者均**不是**默认 `pytest -q`。
+
+权威在轨 A + 人闸；Assist 可证伪；中继诚实到 A2/A3。不要把本 README 的 Issue 清单读成 grounded / 银企出款 / Mission Control。
+
 ## Issue 01 脚手架
 
 `Rewrote from: REF-MISSIONS`
@@ -191,6 +197,8 @@ python scripts/run_sc_demo.py
 python scripts/run_sc_demo.py --extras
 # 显式跑轨 B 最小 RAG（不并入默认合门禁）：
 pytest -m track_llm_optional -q
+# G0 Live：有 Key 时真 Assist / chat（缺 Key 跳过；不并入默认合门禁）：
+pytest -m requires_llm -q
 # 显式跑 eval 负例旁路（不替代 machine_check）：
 pytest -m eval_bypass -q
 python -m missions.eval_entry
@@ -328,6 +336,19 @@ pytest tests/langsmith_integration/test_openeval_experiment_real.py -m langsmith
 - CI / 无 Key rebuild：显式 `EMBEDDING_PROVIDER=local`（确定性哈希，**非语义**，不得宣称语义质量）
 - 重建入口：`python scripts/rebuild_chroma_index.py`（可重复执行）
 - 规则 evaluate 路径不依赖 Chroma（见 `tests/test_chroma_index_rebuild.py`）
+
+## Issue 57 / G0 Live Pilot（Phase 2c）
+
+`Rewrote from: REF-MISSIONS` · `spec_id: SPEC-02C-LIVE-HONEST-SEAMS`
+
+已落地（加深验收，非另起管道）：
+
+- `.env.example`：[B] LLM 与 [C] Embedding **分 Key**；`EMBEDDING_PROVIDER=cloud` 可重建
+- 连接状态双绿：`GET /provider/connection-status` / 作业壳「连接状态」（永不回显 Key）
+- 有 Key：`enable_llm` → structured draft；缺 Key → 明确降级（既有 S1 测）
+- Live 验收清单：`docs/acceptance/live-pilot-g0.md`（套餐 L 之上）
+- 旁路：`pytest -m requires_llm -q`（含真 Assist structured draft）；`pytest -m track_llm_optional -q`
+- 默认 `pytest -q` 无 Key 仍绿；**不宣称** H4 grounded / 面试条 9
 
 ## Issue 35 BM25 关键词腿（jieba）
 
