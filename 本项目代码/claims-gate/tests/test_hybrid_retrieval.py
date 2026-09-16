@@ -186,6 +186,33 @@ def test_vector_disabled_or_failure_degrades_to_keyword() -> None:
     assert "vector_error" in str(portrait_fail.get("degrade_reason") or "")
 
 
+def test_endorsement_priority_survives_fusion_score_sort() -> None:
+    """接缝：endorsement_priority 融合后仍先批单后主险（不得被 BM25 高分主险冲掉）。"""
+    from missions.track_llm_optional.hybrid_retrieval import (
+        HybridRetrievalConfig,
+        hybrid_retrieve,
+    )
+
+    citations, portrait = hybrid_retrieve(
+        "免赔额批单覆盖主险",
+        kb_root=KB_ROOT,
+        retrieval_profile="endorsement_priority",
+        top_k=5,
+        cfg=HybridRetrievalConfig(vector_enabled=False),
+        vector_searcher=None,
+    )
+    assert portrait.get("profile_type_order") is True
+    assert citations, "应召回批单与主险候选"
+    types_in_order = [str(c.get("doc_type") or "") for c in citations]
+    assert "endorsement" in types_in_order
+    assert "main_policy" in types_in_order
+    assert types_in_order.index("endorsement") < types_in_order.index("main_policy")
+    first = citations[0]
+    assert first.get("doc_type") in {"endorsement", "special_agreement"} or "END" in str(
+        first.get("doc_id") or ""
+    ).upper()
+
+
 def test_evaluate_modules_still_zero_chroma_dependency() -> None:
     """接缝（S0）：规则 evaluate 相关模块不得导入检索 / BM25 / chroma。"""
     forbidden = (

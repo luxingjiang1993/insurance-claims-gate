@@ -160,8 +160,10 @@
 
 - `missions/track_llm_optional/retrieval.py`：检索入口（复用保险 KB + `retrieval_profiles`，含 `endorsement_priority`）
 - `missions/track_llm_optional/pipeline.py`：`draft_assist` → 产物含 `inference_track=llm_optional`；默认 `enable_llm=False` 确定性假检索
+- `missions/track_llm_optional/hybrid_retrieval.py`：加权融合后仍按 `prefer_doc_types` / `endorsement_first`（`type_rank`）排序，与轨 A 一致；画像含 `profile_type_order=true`
 - 规则 vs RAG 冲突 → `human_latch_required` + `R-CONFLICT-RULES-RAG`；`handbook_ops` 不得单独支撑对外拒赔
 - 测试：`tests/track_llm_optional/test_min_rag_draft.py`（仅 `-m track_llm_optional`）；失败不阻断轨 A `pytest -q`
+- 默认合门禁回归：`tests/test_hybrid_retrieval.py::test_endorsement_priority_survives_fusion_score_sort`
 
 ## Issue 13 Solo Demo / SC 黑盒一键脚本
 

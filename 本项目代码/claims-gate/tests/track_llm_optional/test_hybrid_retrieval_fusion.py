@@ -84,3 +84,31 @@ def test_injected_vector_scores_affect_fusion_ranking() -> None:
     )
     assert portrait["mode"] == "hybrid"
     assert cites[0]["chunk_id"] == weak.chunk_id
+
+
+def test_endorsement_priority_beats_higher_main_policy_score() -> None:
+    """融合后 endorsement_priority 类型序优先于更高的主险融合分。"""
+    kb = KnowledgeBase(KB_ROOT)
+    main = next(c for c in kb.chunks if c.doc_type == "main_policy")
+    end = next(c for c in kb.chunks if c.doc_type == "endorsement")
+
+    class _BoostMain:
+        def search(self, query: str, *, top_k: int, where=None):  # noqa: ANN001
+            return [
+                {"chunk_id": main.chunk_id, "score": 1.0},
+                {"chunk_id": end.chunk_id, "score": 0.01},
+            ]
+
+    cites, portrait = hybrid_retrieve(
+        "免赔额批单覆盖主险",
+        kb_root=KB_ROOT,
+        retrieval_profile="endorsement_priority",
+        top_k=3,
+        cfg=HybridRetrievalConfig(
+            keyword_weight=0.1, vector_weight=0.9, vector_enabled=True
+        ),
+        vector_searcher=_BoostMain(),
+    )
+    assert portrait["mode"] == "hybrid"
+    assert portrait.get("profile_type_order") is True
+    assert cites[0]["doc_type"] == "endorsement"

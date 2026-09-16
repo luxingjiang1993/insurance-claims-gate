@@ -1,5 +1,8 @@
 """混合检索（仅 AI assist 路径）：硬过滤 / 条款号短路 / BM25 关键词腿 / 加权融合 / 三联门 / 向量降级。
 
+融合排序须保留 retrieval_profile 的 prefer_doc_types / endorsement_first（type_rank），
+与轨 A rag.retrieve 一致；不得因向量加权把批单冲到主险之后。
+
 Rewrote from: REF-CASE-RECALL, REF-CASE-KB, REF-RAG-CY, REF-CASE-HYBRID, REF-MISSIONS
 """
 
@@ -183,6 +186,23 @@ def _citation_from_chunk(
     }
 
 
+def _profile_type_rank(chunk: Any, profile: str) -> int:
+    """与轨 A rag.retrieve 一致：prefer_doc_types 序 + endorsement_first。
+
+    type_rank 越小越优先；endorsement_priority 下批单须先于主险。
+    """
+    profile_cfg = RETRIEVAL_PROFILES.get(profile) or {}
+    prefer_types = list(profile_cfg.get("prefer_doc_types") or [])
+    endorsement_first = bool(profile_cfg.get("endorsement_first"))
+    if prefer_types and chunk.doc_type in prefer_types:
+        type_rank = prefer_types.index(chunk.doc_type)
+    else:
+        type_rank = len(prefer_types) + 10
+    if endorsement_first and chunk.doc_type == "endorsement":
+        type_rank = 0
+    return type_rank
+
+
 def _keyword_score_chunks(
     query: str,
     chunks: list[Any],
@@ -237,15 +257,12 @@ def _keyword_score_chunks(
             # 条款号短路：精确命中加分，且优先于 profile 类型序（否则手册/批单会被主险淹没）
             score = min(1.0, score + 0.55)
         if prefer_types and chunk.doc_type in prefer_types:
-            type_rank = prefer_types.index(chunk.doc_type)
-            score = min(1.0, score + 0.05 * (len(prefer_types) - type_rank))
-        else:
-            type_rank = len(prefer_types) + 10
+            prefer_idx = prefer_types.index(chunk.doc_type)
+            score = min(1.0, score + 0.05 * (len(prefer_types) - prefer_idx))
         if endorsement_first and chunk.doc_type == "endorsement":
             score = min(1.0, score + 0.08)
-            type_rank = 0
-        if exact_clause:
-            type_rank = -1
+        # 条款号精确命中优先于类型序；否则与融合腿共用 _profile_type_rank
+        type_rank = -1 if exact_clause else _profile_type_rank(chunk, profile)
         if score > 0:
             scored.append((score, type_rank, chunk))
     scored.sort(key=lambda x: (x[1], -x[0]))
@@ -321,6 +338,7 @@ def hybrid_retrieve(
         "vector_weight": config.vector_weight,
         "keyword_leg": "bm25",
         "clause_short_circuit": False,
+        "profile_type_order": True,
         "embedding_model": None,
         "chroma_collection": None,
     }
@@ -371,7 +389,8 @@ def hybrid_retrieve(
         portrait["degrade_reason"] = "vector_disabled"
 
     all_ids = set(kw_norm) | set(vec_norm)
-    fused: list[tuple[float, str]] = []
+    # (score, type_rank, chunk_id)：融合分之后仍按 profile 类型序（与轨 A 一致）
+    fused: list[tuple[float, int, str]] = []
     for cid in all_ids:
         if cid not in pool_by_id:
             continue
@@ -383,13 +402,14 @@ def hybrid_retrieve(
         else:
             score = kw_norm.get(cid, 0.0)
         if score > 0:
-            fused.append((score, cid))
-    fused.sort(key=lambda x: -x[0])
+            type_rank = _profile_type_rank(pool_by_id[cid], retrieval_profile)
+            fused.append((score, type_rank, cid))
+    fused.sort(key=lambda x: (x[1], -x[0]))
 
     nominations = [
         _citation_from_chunk(
             pool_by_id[cid], score=score, retrieval_profile=retrieval_profile
         )
-        for score, cid in fused[:top_k]
+        for score, _type_rank, cid in fused[:top_k]
     ]
     return apply_citation_gate(kb, nominations), portrait

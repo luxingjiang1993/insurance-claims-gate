@@ -50,3 +50,4 @@
 
 - 2026-09-13：current-phase-remaining 切票；吃清单一 `REF-RAG-CY`。
 - 2026-09-14：实现完成；`draft_assist` + 隔离测试；Rewrote from: REF-RAG-CY, REF-MISSIONS, REF-CASE-HYBRID。
+- 2026-09-16：修复 hybrid 融合只按分数排序冲掉 `endorsement_priority` 的问题；融合后保留 `type_rank`（与轨 A `rag.retrieve` 一致）；旁路测 `test_endorsement_priority_profile_preserved` + 默认合门禁 `test_endorsement_priority_survives_fusion_score_sort`。
