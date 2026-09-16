@@ -1,0 +1,98 @@
+{
+  "schema": "claims-gate-citation-faithfulness-fixtures-v1",
+  "dataset_id": "citation-faithfulness-alpha-fixtures",
+  "primary_metric": "rules_fixtures",
+  "llm_judge_as_primary": false,
+  "docs_note": "α 规则/夹具忠实检查；非 LLM-as-judge 主指标；绑金标薄切片子集见 gold_thin_slice_subset；n 不足则 H4=deferred；禁止宣称 grounded",
+  "rewrote_from": "REF-CASE-OPENEVALS",
+  "support_registry": [
+    {
+      "claim_key": "运动医疗通赔",
+      "allowed_citations": [
+        {
+          "doc_id": "PA-ACC-MAIN",
+          "clause_item": "ART-3-COVER"
+        }
+      ]
+    },
+    {
+      "claim_key": "疾病除外拒赔",
+      "allowed_citations": [
+        {
+          "doc_id": "PA-ACC-MAIN",
+          "clause_item": "ART-5-EXCL"
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "fx-faithful-entity-overlap",
+      "assertion": "运动医疗费用属于主险保障范围，可通赔",
+      "citation": {
+        "doc_id": "PA-ACC-MAIN",
+        "clause_item": "ART-3-COVER",
+        "doc_version": "2024.1",
+        "quote": "运动医疗费用属于主险保障范围，保险人按约定给付"
+      },
+      "expected_faithful": true,
+      "rule": "entity_overlap"
+    },
+    {
+      "id": "fx-unfaithful-stance-conflict",
+      "assertion": "运动医疗已全额通赔",
+      "citation": {
+        "doc_id": "PA-ACC-MAIN",
+        "clause_item": "ART-5-EXCL",
+        "doc_version": "2024.1",
+        "quote": "因疾病导致的伤害属于责任免除，保险人不承担给付责任"
+      },
+      "expected_faithful": false,
+      "rule": "stance_conflict"
+    },
+    {
+      "id": "fx-unfaithful-missing-entity",
+      "assertion": "骨折手术费可通赔",
+      "citation": {
+        "doc_id": "PA-ACC-MAIN",
+        "clause_item": "ART-3-COVER",
+        "doc_version": "2024.1",
+        "quote": "保险人按约定给付意外伤害医疗费用"
+      },
+      "expected_faithful": false,
+      "rule": "entity_overlap",
+      "required_entities": ["骨折"]
+    },
+    {
+      "id": "fx-faithful-registry",
+      "assertion": "疾病除外拒赔依据主险条款",
+      "claim_key": "疾病除外拒赔",
+      "citation": {
+        "doc_id": "PA-ACC-MAIN",
+        "clause_item": "ART-5-EXCL",
+        "doc_version": "2024.1",
+        "quote": "疾病导致的伤害属于责任免除"
+      },
+      "expected_faithful": true,
+      "rule": "support_registry"
+    },
+    {
+      "id": "fx-unfaithful-registry",
+      "assertion": "运动医疗通赔",
+      "claim_key": "运动医疗通赔",
+      "citation": {
+        "doc_id": "PA-ACC-MAIN",
+        "clause_item": "ART-5-EXCL",
+        "doc_version": "2024.1",
+        "quote": "责任免除：疾病"
+      },
+      "expected_faithful": false,
+      "rule": "support_registry"
+    }
+  ],
+  "gold_thin_slice_subset": {
+    "source": "artifacts/gold_thin_slice/gold_thin_slice.v1.example.json",
+    "bound_case_ids": ["CLM-SC01-001"],
+    "note": "P-E3 边界：样例 n=1 < 10 → H4 deferred；禁止宣称 grounded"
+  }
+}

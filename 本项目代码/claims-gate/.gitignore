@@ -7,6 +7,8 @@ artifacts/*
 !artifacts/demo_retrieval_seeds/**
 !artifacts/gold_thin_slice/
 !artifacts/gold_thin_slice/**
+!artifacts/citation_faithfulness/
+!artifacts/citation_faithfulness/**
 data/
 *.sqlite
 .pytest_cache/

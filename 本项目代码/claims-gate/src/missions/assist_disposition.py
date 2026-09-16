@@ -1,12 +1,14 @@
 """辅助拒答 disposition：draft|abstain 与原因枚举。
 
-α 规则/启发式；完整引用忠实检查见 Issue 42。
-Rewrote from: REF-MISSIONS（rules↔RAG 冲突加深）
+α 规则/启发式；引用忠实检查委托 Issue 42 `citation_faithfulness`。
+Rewrote from: REF-MISSIONS（rules↔RAG 冲突加深）；忠实规则加深 REF-CASE-OPENEVALS
 """
 
 from __future__ import annotations
 
 from typing import Any, Literal
+
+from missions.citation_faithfulness import is_citation_unfaithful_for_assist
 
 AssistDisposition = Literal["draft", "abstain"]
 AbstainReason = Literal[
@@ -19,8 +21,6 @@ AbstainReason = Literal[
 # 最高检索分低于此阈值 → low_confidence（无强命中）
 _LOW_CONFIDENCE_MAX_SCORE = 0.25
 
-_PAY_CLAIM_HINTS = ("通赔", "全额通赔", "给付", "可赔", "同意赔付")
-_DENY_OR_DED_HINTS = ("免赔", "除外", "责任免除", "不承担", "拒赔", "剔除")
 _LOW_CONF_QUERY_HINTS = ("玄学", "没有对应条文", "库里好像没有", "随便写")
 
 
@@ -43,23 +43,8 @@ def _query_asks_external_deny(query: str) -> bool:
 
 
 def _is_citation_unfaithful(query: str, citations: list[dict[str, Any]]) -> bool:
-    """α 最小忠实启发式：用免赔/除外条文支撑通赔断言 → 不忠实。
-
-    完整规则/夹具忠实检查属 Issue 42；此处仅覆盖预登记负例外形。
-    """
-    asks_pay = any(h in query for h in _PAY_CLAIM_HINTS)
-    asks_cite_deny = any(h in query for h in _DENY_OR_DED_HINTS)
-    if asks_pay and asks_cite_deny:
-        return True
-    if not asks_pay or not citations:
-        return False
-    blob = "\n".join(
-        str(c.get("quote") or "") + " " + str(c.get("clause_item") or "")
-        for c in citations
-    )
-    denyish = sum(1 for h in _DENY_OR_DED_HINTS if h in blob)
-    payish = sum(1 for h in _PAY_CLAIM_HINTS if h in blob)
-    return denyish > 0 and payish == 0
+    """委托票 42 规则引擎：用免赔/除外条文支撑通赔断言 → 不忠实。"""
+    return is_citation_unfaithful_for_assist(query, citations)
 
 
 def _is_low_confidence(query: str, citations: list[dict[str, Any]]) -> bool:
