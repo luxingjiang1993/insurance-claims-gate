@@ -6,7 +6,7 @@
 | NN | 标题 | Blocked by | Status |
 |----|------|------------|--------|
 | 45 | 条款项切块 | 44, 34 | resolved |
-| 46 | Recall 指标 S2 | 44, 36, 35 | ready-for-agent |
+| 46 | Recall 指标 S2 | 44, 36, 35 | resolved |
 | 47 | 三维 S2 | 44, 46, 42 | ready-for-agent |
 | 48 | 夜间 S2 告警 | 44, 47 | ready-for-agent |
 | 49 | 四步步数预算 | 44, 40 | ready-for-agent |

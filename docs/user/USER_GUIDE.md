@@ -2,7 +2,7 @@
 
 > **Pilot · Phase 1 shipped (Issues 01–13) · Phase 2a W0 Dev Complete (14–22) · Phase 2a W1 Pilot Complete (23–28) · Phase 2a W2 Eval Ops Preview (29–33) · Phase 2b P-α Assist 证据地基 (34–44)**  
 > Last updated: 2026-09-16 · Product code: `本项目代码/claims-gate/`  
-> Status badge: **2b-P-α / Assist 证据地基（closed）** — citation 三联门、拒答 disposition、BM25、Demo 检索种子、Provider 清单已交付；默认 `pytest -q` 仍绿。**诚实：** H4=`deferred`（薄切片 n&lt;10，禁止宣称 grounded）；H1/H2 召回有数 / 连接状态 UI / γ（rerank·MultiQuery·fan-out）**未上线**；≥300 金标运营 / 真连 L2 仍延后。W2 Eval Ops Preview 仍可用。
+> Status badge: **2b-P-α / Assist 证据地基（closed）** — citation 三联门、拒答 disposition、BM25、Demo 检索种子、Provider 清单已交付；默认 `pytest -q` 仍绿。**诚实：** H4=`deferred`（薄切片 n&lt;10，禁止宣称 grounded）；H1/H2 召回有数已以 **S2/nightly 旁路**交付（不进默认绿）；连接状态 UI / γ（rerank·MultiQuery·fan-out）**未上线**；≥300 金标运营 / 真连 L2 仍延后。W2 Eval Ops Preview 仍可用。
 
 条款门禁是个人意外险（含附加意外医疗）理赔的裁决辅助产品：输出结构化草案、条款项级引用、一次补件清单与人闸令牌门；**不替代**持牌核赔终裁，**不触发**银企支付。
 
@@ -17,6 +17,7 @@
 | Pilot 验收 | 满配 + 关向量 + 关 LLM（套餐 L） | [§3.2 Pilot / 套餐 L](#32-pilot-completew1演示可无-key-vs-pilot-须-langsmith) |
 | 运维 / 换模 | Provider 清单、分 Key、换模检查单 | [§3.4 Provider](#34-provider-清单与密钥面2b-p-α--issue-43) |
 | α DoD / H 演示 | H3/H6/H7 可复现；H1 种子存在 | [§3.5 α DoD](#35-assist-证据地基-α-dod2b-p-α--issue-44) |
+| H1/H2 召回旁路 | 冻结种子 Recall@K/MRR（S2） | [§3.6 H1/H2](#36-h1h2-召回旁路s2--issue-46) |
 | Eval Ops 演示 | 作业壳「评测」跑榜 / 金标钩子（Preview） | [§3.3 Eval Ops](#33-eval-ops-previeww2评测台与门禁主路径区分) |
 | 核赔初审 | 材料受理 → 一次补件 / 进入初审 | [§5.1](#51-材料受理与一次补件-sc-01) |
 | 核赔员 | 除外拒赔草案 / 效力栈减赔 | [§5.2](#52-除外拒赔与文书分态-sc-02) · [§5.3](#53-批单效力栈减赔-sc-03) |
@@ -30,8 +31,8 @@
 - **演示可无 Key（W0 地板仍成立）：** 登录 + 三角色 RBAC + SC 规则路径 + 人闸 + 文书分态 + AI 无 Key 降级 + 本地 trace。默认 `pytest -q` **不要求** LLM Key、LangSmith 与 cloud embedding Key。
 - **Pilot 须 LangSmith 等（W1 / Pilot Complete）：** 满配验收须配置 LLM Key、独立 embedding Key（`EMBEDDING_PROVIDER=cloud`）、LangSmith（`LANGCHAIN_TRACING_V2` + Key）、可重建 Chroma 索引；混合检索挂 assist、来源摘要、真 span、OpenEval 实验历史对比按套餐 L 验收。详见 [§3.2](#32-pilot-completew1演示可无-key-vs-pilot-须-langsmith)。勿当生产终裁 UI；评测分 **不**替代 `machine_check`。
 - **Eval Ops Preview（W2）：** 作业壳独立「评测」入口、排行榜、多人跑次归因、金标导入/导出钩子已交付。操作见 [§3.3](#33-eval-ops-previeww2评测台与门禁主路径区分) 与 [§7.1a](#71a-评测跑次排行榜与金标-io-钩子w2-eval-ops-preview--issues-29–33)。**硬边界：** 排行榜 / 评测分数 ≠ `machine_check` 通过；合规主缝仍是轨 A `machine_check`；故意失败的评测跑次 **不**进入默认 `pytest -q` / S0 必过；**不得**宣称 ≥300 金标运营已达标。
-- **Assist 证据地基（2b-P-α closed）：** citation Schema 三联门 + 非法不可采纳（H3）；`assist_disposition` 拒答；BM25 关键词腿；Demo 检索种子 40 条冻结（非金标）；工具环白名单（H6）；默认无 LLM 轨 A 绿（H7）。验收见 [§3.5](#35-assist-证据地基-α-dod2b-p-α--issue-44)。**诚实：** H4=`deferred`；β 召回有数 / 连接状态 / γ **未上线**。
-- **尚未上线（勿按已交付操作）：** ≥300 人工金标双标运营；核赔作业 UI 全作业流；真连核心 L2 / 真 OCR；H1/H2 召回门槛有数；连接状态只读页；rerank / MultiQuery / fan-out / 往榜灌质量主指标（γ，未触发）。
+- **Assist 证据地基（2b-P-α closed）：** citation Schema 三联门 + 非法不可采纳（H3）；`assist_disposition` 拒答；BM25 关键词腿；Demo 检索种子 40 条冻结（非金标）；工具环白名单（H6）；默认无 LLM 轨 A 绿（H7）。验收见 [§3.5](#35-assist-证据地基-α-dod2b-p-α--issue-44)。**诚实：** H4=`deferred`；H1/H2 召回有数见 [§3.6](#36-h1h2-召回旁路s2--issue-46)（S2 旁路）；连接状态 / γ **未上线**。
+- **尚未上线（勿按已交付操作）：** ≥300 人工金标双标运营；核赔作业 UI 全作业流；真连核心 L2 / 真 OCR；连接状态只读页；rerank / MultiQuery / fan-out / 往榜灌质量主指标（γ，未触发）。
 - 裁决结果是 **草案**，不具对外最终效力；AI 辅助建议 **不是** 终裁。
 - `PAYOUT_READY` ≠ 已打款；支付仍走核心人工流程。
 - 禁止用「秒赔」叙事包装责任争议案。
@@ -280,7 +281,21 @@ pytest -q                                              # H7 / S0
 pytest -q tests/test_demo_retrieval_seeds.py           # H1 种子结构
 ```
 
-**本波未交付 / 勿宣称：** H1/H2 召回门槛有数（β）；H4 grounded（当前 `deferred`）；连接状态 UI（β）；rerank / MultiQuery / fan-out / 往榜灌质量主指标（γ，未触发）。
+**本波未交付 / 勿宣称：** H4 grounded（当前 `deferred`）；连接状态 UI（β）；rerank / MultiQuery / fan-out / 往榜灌质量主指标（γ，未触发）。H1/H2 召回有数见 [§3.6](#36-h1h2-召回旁路s2--issue-46)（S2 旁路，不进默认绿）。
+
+### 3.6 H1/H2 召回旁路（S2 · Issue 46）
+
+`Rewrote from: REF-CASE-RECALL` · 验收：[`本项目代码/claims-gate/docs/acceptance/recall-metrics-s2.md`](../../本项目代码/claims-gate/docs/acceptance/recall-metrics-s2.md)
+
+在冻结 Demo 检索种子上复现 Recall@K / MRR，并对照门槛：**H1** 条款号子集 Recall@1 ≥ 0.95；**H2** 语义难例 Recall@5 ≥ 0.70 **或** MRR ≥ 0.55。失败只影响质量旁路退出码，**不**红轨 A / **不**进 `machine_check`。
+
+```bash
+cd 本项目代码/claims-gate
+python scripts/run_recall_metrics_s2.py
+pytest -m assist_quality -q tests/test_recall_eval_runner.py
+```
+
+报告默认写入 `artifacts/reports/recall_metrics_s2.json`。默认 `pytest -q` 排除 `assist_quality`。
 
 ---
 

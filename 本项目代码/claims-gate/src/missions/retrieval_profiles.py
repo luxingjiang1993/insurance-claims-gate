@@ -31,4 +31,18 @@ RETRIEVAL_PROFILES: dict[str, dict[str, Any]] = {
         "endorsement_first": False,
         "external_deny_alone": False,
     },
+    # 仅 S2/nightly 冻结种子评测；不得作默认 assist 作业 profile
+    "demo_seed_eval": {
+        "id": "demo_seed_eval",
+        "description": "Demo 检索种子 H1/H2：覆盖主险/批单/附加险/手册",
+        "prefer_doc_types": [
+            "main_policy",
+            "rider",
+            "endorsement",
+            "special_agreement",
+            "handbook",
+        ],
+        "version_mode": "current_effective",
+        "endorsement_first": False,
+    },
 }

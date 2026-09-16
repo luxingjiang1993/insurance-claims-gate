@@ -226,9 +226,15 @@ def _keyword_score_chunks(
     scored: list[tuple[float, int, Any]] = []
     for idx, chunk in enumerate(chunks):
         score = norm_scores[idx]
-        if clause_hint and (
-            chunk.clause_id == clause_hint or chunk.clause_item == clause_hint
-        ):
+        exact_clause = bool(
+            clause_hint
+            and (
+                chunk.clause_id == clause_hint
+                or chunk.clause_item == clause_hint
+            )
+        )
+        if exact_clause:
+            # 条款号短路：精确命中加分，且优先于 profile 类型序（否则手册/批单会被主险淹没）
             score = min(1.0, score + 0.55)
         if prefer_types and chunk.doc_type in prefer_types:
             type_rank = prefer_types.index(chunk.doc_type)
@@ -238,6 +244,8 @@ def _keyword_score_chunks(
         if endorsement_first and chunk.doc_type == "endorsement":
             score = min(1.0, score + 0.08)
             type_rank = 0
+        if exact_clause:
+            type_rank = -1
         if score > 0:
             scored.append((score, type_rank, chunk))
     scored.sort(key=lambda x: (x[1], -x[0]))

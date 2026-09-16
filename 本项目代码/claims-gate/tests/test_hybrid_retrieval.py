@@ -92,6 +92,26 @@ def test_clause_item_query_short_circuits_keyword() -> None:
     assert citations[0].get("clause_item") == "ART-5-EXCL"
 
 
+def test_clause_short_circuit_exact_hit_beats_prefer_doc_type_order() -> None:
+    """接缝（S0）：条款号精确命中优先于 prefer_doc_types 类型序（手册/批单不被主险淹没）。"""
+    from missions.track_llm_optional.hybrid_retrieval import (
+        HybridRetrievalConfig,
+        hybrid_retrieve,
+    )
+
+    cfg = HybridRetrievalConfig(vector_enabled=False)
+    citations, portrait = hybrid_retrieve(
+        "材料受理状态依据 POL-CLAIM-001",
+        kb_root=KB_ROOT,
+        retrieval_profile="demo_seed_eval",
+        top_k=3,
+        cfg=cfg,
+        vector_searcher=None,
+    )
+    assert portrait["clause_short_circuit"] is True
+    assert citations[0].get("clause_item") == "POL-CLAIM-001"
+
+
 def test_nominations_marked_adoptable_via_citation_gate() -> None:
     """接缝：过三联门标 adoptable=True；伪造提名标不可采纳。"""
     from missions.track_llm_optional.hybrid_retrieval import (

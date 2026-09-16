@@ -156,6 +156,10 @@
 
 ## Unreleased
 
+### Added
+
+- 冻结集 Recall@K / MRR（Issue 46 / GitHub #33 · S2/nightly）：`python scripts/run_recall_metrics_s2.py`；`pytest -m assist_quality`；对照 H1 Recall@1≥0.95、H2 Recall@5≥0.70 或 MRR≥0.55；报告默认 `artifacts/reports/recall_metrics_s2.json`；**不**进默认 `pytest -q` / `machine_check`。验收见 `本项目代码/claims-gate/docs/acceptance/recall-metrics-s2.md`。`Rewrote from: REF-CASE-RECALL`。
+
 ### Changed
 
 - 条款项级切块 + 父条款回填（Issue 45 / GitHub #32）：默认一 `clause_item` 一块；过长按段落切并回填父 id；人改 KB 源 markdown 后仍用 `python scripts/rebuild_chroma_index.py` 重建；citation 仍 `doc_id`+`clause_item`+`doc_version` 三联门。`Rewrote from: RAGFlow 模板切块协议；REF-CASE-KB`。
