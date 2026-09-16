@@ -1,7 +1,8 @@
 """混合检索（仅 AI assist 路径）：硬过滤 / 条款号短路 / BM25 关键词腿 / 加权融合 / 三联门 / 向量降级。
 
-融合排序须保留 retrieval_profile 的 prefer_doc_types / endorsement_first（type_rank），
-与轨 A rag.retrieve 一致；不得因向量加权把批单冲到主险之后。
+当 retrieval_profile.endorsement_first 为真时，融合排序须保留 prefer_doc_types /
+endorsement_first（type_rank），与轨 A rag.retrieve 一致；不得因向量加权把批单冲到主险之后。
+一般评测画像（如 demo_seed_eval）仍按融合分排序，避免类型序淹没相关条款。
 
 Rewrote from: REF-CASE-RECALL, REF-CASE-KB, REF-RAG-CY, REF-CASE-HYBRID, REF-MISSIONS
 """
@@ -327,6 +328,8 @@ def hybrid_retrieve(
     kb = KnowledgeBase(root)
     pool = _hard_filter_chunks(kb, retrieval_profile=retrieval_profile)
     pool_by_id = {c.chunk_id: c for c in pool}
+    profile_cfg = RETRIEVAL_PROFILES.get(retrieval_profile) or {}
+    endorsement_first = bool(profile_cfg.get("endorsement_first"))
 
     portrait: dict[str, Any] = {
         "mode": "keyword",
@@ -338,7 +341,8 @@ def hybrid_retrieve(
         "vector_weight": config.vector_weight,
         "keyword_leg": "bm25",
         "clause_short_circuit": False,
-        "profile_type_order": True,
+        # 仅 endorsement_first 画像在融合腿强制类型序；其余按融合分
+        "profile_type_order": endorsement_first,
         "embedding_model": None,
         "chroma_collection": None,
     }
@@ -389,7 +393,7 @@ def hybrid_retrieve(
         portrait["degrade_reason"] = "vector_disabled"
 
     all_ids = set(kw_norm) | set(vec_norm)
-    # (score, type_rank, chunk_id)：融合分之后仍按 profile 类型序（与轨 A 一致）
+    # (score, type_rank, chunk_id)
     fused: list[tuple[float, int, str]] = []
     for cid in all_ids:
         if cid not in pool_by_id:
@@ -404,7 +408,12 @@ def hybrid_retrieve(
         if score > 0:
             type_rank = _profile_type_rank(pool_by_id[cid], retrieval_profile)
             fused.append((score, type_rank, cid))
-    fused.sort(key=lambda x: (x[1], -x[0]))
+    if endorsement_first:
+        # 效力栈画像：先批单/特约再主险（与轨 A 一致）；同类型内按融合分
+        fused.sort(key=lambda x: (x[1], -x[0]))
+    else:
+        # 一般 / 评测画像：按融合分；类型序仅作同分破并列
+        fused.sort(key=lambda x: (-x[0], x[1]))
 
     nominations = [
         _citation_from_chunk(
