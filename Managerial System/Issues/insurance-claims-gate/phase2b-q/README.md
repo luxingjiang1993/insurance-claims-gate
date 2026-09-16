@@ -9,7 +9,7 @@ Deferred：Q-A7（pause/resume / credential proxy）不切票。
 | NN | 标题 | Blocked by | Status |
 |----|------|------------|--------|
 | 53 | Q-A2 Schema-bound Orchestrator | 44 | resolved |
-| 54 | Q-A3 Patch Worker + F-Q-DEMO-01 | 53 | ready-for-agent |
+| 54 | Q-A3 Patch Worker + F-Q-DEMO-01 | 53 | resolved |
 | 55 | Q-A6 Validator 独立 profile | 54 | ready-for-agent |
 | 56 | Q DoD 收口（H8） | 53, 54, 55 | ready-for-agent |
 
@@ -19,4 +19,4 @@ Deferred：Q-A7（pause/resume / credential proxy）不切票。
                      └── 56 Q DoD
 ```
 
-Frontier：54（53 已 resolved）。实现只写入 `本项目代码/claims-gate/`。
+Frontier：55（54 已 resolved）。实现只写入 `本项目代码/claims-gate/`。

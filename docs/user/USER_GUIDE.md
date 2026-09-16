@@ -611,6 +611,8 @@ POST /claims/{case_id}/l2/close
 | POST | `/claims/{id}/assist/adopt` | 采纳：须合法 citation 三联槽，再 evaluate |
 | POST | `/kb/citations/validate` | citation 落库门 |
 
+可选请求字段 `ocr_text` / `customer_remark`（evaluate / materials 等）：写入案件前去掉首尾空白（全空白→空串）；仅可观察收纳，**不**改人闸 / `payout_ready`。
+
 ### 7.1a 评测跑次、排行榜与金标 I/O 钩子（W2 Eval Ops Preview · Issues 29–33）
 
 旁路 API，**不**替代 `machine_check` / 人闸。须 Bearer 登录（W0 种子用户）。  
