@@ -19,45 +19,30 @@ from .models import (
     MissionState,
     RoleName,
 )
-from .owns_paths import find_hard_banned
+from .owns_paths import find_hard_banned, find_outside_allow_envelope
 from .rag import KnowledgeBase
 from .store import ArtifactStore
 
-# F-Q-DEMO-01 目标产物：OCR/备注吸收 strip（与产品交付对齐）
-FQ_DEMO_01_USER_TEXT = '''\
-"""用户可控文本（OCR / 客户备注）吸收：可观察收纳，永不改写人闸规则。
-
-Rewrote from: REF-MISSIONS（transfer 用户字段不得改限额）；REF-CASE-HYBRID
-"""
-
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .models_domain import ClaimCase
-
-
-def absorb_user_controlled_text(
-    case: "ClaimCase",
-    *,
-    ocr_text: str | None = None,
-    customer_remark: str | None = None,
-) -> None:
-    """将 OCR/备注写入案件可观察字段（首尾空白 strip；全空白→空串）。
-
-    硬约束：不得从这些文本解析或改写 human_latch_required、payout_ready、
-    sensitivity_flags、金额档或任何人闸矩阵输入。
-    """
-    # F-Q-DEMO-01：写入前 strip；全空白 → 空串；不改人闸/payout 字段
-    if ocr_text is not None:
-        case.ocr_text = str(ocr_text).strip()
-    if customer_remark is not None:
-        case.customer_remark = str(customer_remark).strip()
-'''
-
 FQ_DEMO_01_ID = "F-Q-DEMO-01"
 FQ_DEMO_01_USER_TEXT_REL = "src/claims_api/user_text.py"
+
+
+def apply_fq_demo_01_strip_transform(source: str) -> str:
+    """在 absorb 赋值处补上 .strip()；已具备则原样返回（空 diff）。"""
+    out = source
+    for lhs, rhs in (
+        ("case.ocr_text = str(ocr_text)", "case.ocr_text = str(ocr_text).strip()"),
+        (
+            "case.customer_remark = str(customer_remark)",
+            "case.customer_remark = str(customer_remark).strip()",
+        ),
+    ):
+        if rhs in out:
+            continue
+        if lhs not in out:
+            continue
+        out = out.replace(lhs, rhs, 1)
+    return out
 
 
 class WriterLockError(RuntimeError):
@@ -92,6 +77,12 @@ class Worker:
         banned = find_hard_banned(feature.owns_paths)
         if banned:
             raise OwnsPathError(f"owns_paths 含硬禁路径: {banned}")
+
+        # A3 示范特性：额外强制允许上界（脚手架既有 owns_paths 可含 missions 烟雾面）
+        if feature.feature_id == FQ_DEMO_01_ID:
+            outside = find_outside_allow_envelope(feature.owns_paths)
+            if outside:
+                raise OwnsPathError(f"owns_paths 超出允许上界: {outside}")
 
         state.current_role = RoleName.WORKER
         state.current_feature_id = feature.feature_id
@@ -180,6 +171,19 @@ class Worker:
                 reason=f"files_touched 含硬禁路径: {banned_touched}",
             )
 
+        outside_touched = find_outside_allow_envelope(files_touched)
+        if outside_touched:
+            return self._block_feature(
+                state,
+                feature,
+                citations=citations,
+                broadcast=broadcast,
+                commands=commands,
+                files_touched=files_touched,
+                git_commit=None,
+                reason=f"files_touched 超出允许上界: {outside_touched}",
+            )
+
         git_hash = git_commit_paths(
             self.project_root,
             files_touched,
@@ -247,9 +251,10 @@ class Worker:
             raise OwnsPathError(f"F-Q-DEMO-01 未拥有路径: {target}")
 
         path = self.project_root / target
-        path.parent.mkdir(parents=True, exist_ok=True)
-        old = path.read_text(encoding="utf-8") if path.exists() else ""
-        new = FQ_DEMO_01_USER_TEXT
+        if not path.exists():
+            raise OwnsPathError(f"F-Q-DEMO-01 目标不存在: {target}")
+        old = path.read_text(encoding="utf-8")
+        new = apply_fq_demo_01_strip_transform(old)
         if old == new:
             return []
         path.write_text(new, encoding="utf-8")

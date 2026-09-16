@@ -20,10 +20,10 @@ from missions.models import (
 from missions.rag import KnowledgeBase
 from missions.store import ArtifactStore
 from missions.worker import (
-    FQ_DEMO_01_USER_TEXT,
     OwnsPathError,
     Worker,
     WriterLockError,
+    apply_fq_demo_01_strip_transform,
 )
 
 # 工作树内「未 strip」起点（与产品已交付 strip 形成可检视 diff）
@@ -54,8 +54,8 @@ def absorb_user_controlled_text(
         case.customer_remark = str(customer_remark)
 '''
 
-# 已与 Worker 目标产物字节级一致 → 空 diff
-_USER_TEXT_WITH_STRIP = FQ_DEMO_01_USER_TEXT
+# 已 strip → 变换无变更 → 空 diff
+_USER_TEXT_WITH_STRIP = apply_fq_demo_01_strip_transform(_USER_TEXT_NO_STRIP)
 
 F_Q_DEMO_OWNS = (
     "src/claims_api/user_text.py",
@@ -179,6 +179,22 @@ def test_hard_banned_owns_paths_must_not_done(tmp_path: Path) -> None:
     state = _state("m-ban")
 
     with pytest.raises(OwnsPathError):
+        worker.run_feature(state, feature)
+    assert feature.status != FeatureStatus.DONE
+
+
+def test_outside_allow_envelope_must_not_done(tmp_path: Path) -> None:
+    """非硬禁但超出允许上界（如 missions/store）→ 不得 DONE。"""
+    root = _init_local_worktree(tmp_path, user_text=_USER_TEXT_NO_STRIP)
+    worker = _worker(root, tmp_path / "artifacts")
+    feature = _demo_feature()
+    feature.owns_paths = [
+        "src/claims_api/user_text.py",
+        "src/missions/store.py",
+    ]
+    state = _state("m-outside")
+
+    with pytest.raises(OwnsPathError, match="允许上界"):
         worker.run_feature(state, feature)
     assert feature.status != FeatureStatus.DONE
 
