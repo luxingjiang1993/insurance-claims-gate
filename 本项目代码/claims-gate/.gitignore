@@ -9,6 +9,8 @@ artifacts/*
 !artifacts/gold_thin_slice/**
 !artifacts/citation_faithfulness/
 !artifacts/citation_faithfulness/**
+!artifacts/suggestion_usability/
+!artifacts/suggestion_usability/**
 data/
 *.sqlite
 .pytest_cache/

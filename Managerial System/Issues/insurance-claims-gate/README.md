@@ -119,7 +119,7 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 |----|------|------------|--------|
 | 45 | 条款项切块 | 44, 34 | resolved |
 | 46 | Recall 指标 S2 | 44, 36, 35 | ready-for-agent |
-| 47 | 三维 S2 | 44, 46, 42 | ready-for-agent |
+| 47 | 三维 S2 | 44, 46, 42 | resolved |
 | 48 | 夜间 S2 告警 | 44, 47 | ready-for-agent |
 | 49 | 四步步数预算 | 44, 40 | ready-for-agent |
 | 50 | κ / judge-human | 44, 38 | ready-for-agent |

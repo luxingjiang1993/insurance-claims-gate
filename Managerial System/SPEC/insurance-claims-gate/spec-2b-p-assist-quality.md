@@ -60,7 +60,7 @@ Phase 2a 已能演示双轨与评测台外形，但核赔员点「AI 辅助」�
 
 - [x] 条款项级切块 + 父条款回填；人可改 chunk 后重建；citation 仍三联门  
 - [x] 在冻结 Demo 检索种子上跑 Recall@K / MRR（S2/nightly）；对照 H1/H2 门槛  
-- [ ] 三维 S2：检索 / 引用忠实 / 建议可用性；LLM 打分不得当唯一主指标  
+- [x] 三维 S2：检索 / 引用忠实 / 建议可用性；LLM 打分不得当唯一主指标  
 - [ ] 夜间 S2 质量门失败可告警且不红轨 A；手册写清旁路  
 - [ ] assist 步数≤4 外形（retrieve→gate→draft→self-check）；架构 app-owned  
 - [ ] Judge–human agreement / κ 实填（绑金标薄切片）；合成样例不得冒充  

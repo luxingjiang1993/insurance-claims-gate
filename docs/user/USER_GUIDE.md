@@ -18,6 +18,7 @@
 | 运维 / 换模 | Provider 清单、分 Key、换模检查单 | [§3.4 Provider](#34-provider-清单与密钥面2b-p-α--issue-43) |
 | α DoD / H 演示 | H3/H6/H7 可复现；H1 种子存在 | [§3.5 α DoD](#35-assist-证据地基-α-dod2b-p-α--issue-44) |
 | H1/H2 召回旁路 | 冻结种子 Recall@K/MRR（S2） | [§3.6 H1/H2](#36-h1h2-召回旁路s2--issue-46) |
+| 三维质量旁路 | 检索 / 忠实 / 可用性（S2） | [§3.7 三维 S2](#37-三维-s2-质量旁路issue-47) |
 | Eval Ops 演示 | 作业壳「评测」跑榜 / 金标钩子（Preview） | [§3.3 Eval Ops](#33-eval-ops-previeww2评测台与门禁主路径区分) |
 | 核赔初审 | 材料受理 → 一次补件 / 进入初审 | [§5.1](#51-材料受理与一次补件-sc-01) |
 | 核赔员 | 除外拒赔草案 / 效力栈减赔 | [§5.2](#52-除外拒赔与文书分态-sc-02) · [§5.3](#53-批单效力栈减赔-sc-03) |
@@ -296,6 +297,20 @@ pytest -m assist_quality -q tests/test_recall_eval_runner.py
 ```
 
 报告默认写入 `artifacts/reports/recall_metrics_s2.json`。默认 `pytest -q` 排除 `assist_quality`。
+
+### 3.7 三维 S2 质量旁路（Issue 47）
+
+`Rewrote from: REF-CASE-OPENEVALS, REF-CASE-EVAL-ADVISOR` · 验收：[`本项目代码/claims-gate/docs/acceptance/three-dim-s2-quality.md`](../../本项目代码/claims-gate/docs/acceptance/three-dim-s2-quality.md)
+
+一次拉通三维旁路：**检索**（H1/H2）· **引用忠实**（规则/夹具）· **建议可用性**（规则或人工·H5）。主指标不得以 LLM 打分为唯一依据。失败只影响旁路退出码，**不**红轨 A。
+
+```bash
+cd 本项目代码/claims-gate
+python scripts/run_three_dim_s2_quality.py
+pytest -m assist_quality -q tests/test_three_dim_s2_quality.py
+```
+
+报告默认：`artifacts/reports/three_dim_s2_quality.json`。可用性夹具：`artifacts/suggestion_usability/fixtures.v1.json`。
 
 ---
 
