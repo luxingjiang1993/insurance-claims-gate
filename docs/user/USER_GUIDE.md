@@ -1,8 +1,8 @@
 # Claims Gate User Guide
 
-> **Pilot · Phase 1 shipped (Issues 01–13) · Phase 2a W0 Dev Complete (14–22) · Phase 2a W1 Pilot Complete (23–28) · Phase 2a W2 Eval Ops Preview (29–33) · Phase 2b P-α Assist 证据地基 (34–44) · Phase 2b P-β Assist 可证伪质量 (45–52) · Phase 2b Q Missions Relay Honesty (53–56)**  
+> **Pilot · Phase 1 shipped (Issues 01–13) · Phase 2a W0–W2 (14–33) · Phase 2b P-α/P-β + Q (34–56) · Phase 2c Live Honest Seams (57–61 · G0/G2/G3 + G4 文案)**  
 > Last updated: 2026-09-16 · Product code: `本项目代码/claims-gate/`  
-> Status badge: **2b-Q closed** — P-α/P-β 与 Q（H8）DoD 已关闭；H1/H2 有数（S2 旁路）；H5 规则夹具过门；连接状态只读已上线；Missions A2/A3 中继诚实可演示；L2/OCR Provider 为 **Integration-Ready**（非 Deployed）。**诚实：** H4=`deferred`（薄切片 n&lt;10，禁止宣称 grounded）；质量门 **不**进默认绿；γ（rerank·MultiQuery·fan-out）**未上线**；≥300 金标运营 / 真连 L2·真 OCR / Q-A7·A5 Production latch **未交付**；流 Q **无** Mission Control 作业台。W2 Eval Ops Preview 仍可用。
+> Status badge: **面试诚实 8 分档** · 副标题 **Integration-Ready**（**Ready ≠ Deployed**）— 2c G0 Live 可演示；G2 双剖面（先剖面后数字）；G3 L2/OCR Provider 契约绿。**诚实：** H4=`deferred`（禁止宣称 grounded / 不冲面试条 9）；质量门 **不**进默认绿；γ **未上线**；≥300 金标 / 真连现网 L2·真 OCR / Q-A7·A5 **未交付**；流 Q **无** Mission Control 作业台。2b-Q 与 W2 Eval Ops Preview 仍可用。
 
 条款门禁是个人意外险（含附加意外医疗）理赔的裁决辅助产品：输出结构化草案、条款项级引用、一次补件清单与人闸令牌门；**不替代**持牌核赔终裁，**不触发**银企支付。
 
@@ -20,6 +20,7 @@
 | α DoD / H 演示 | H3/H6/H7 可复现；H1 种子存在 | [§3.5 α DoD](#35-assist-证据地基-α-dod2b-p-α--issue-44) |
 | β DoD / H 有数 | H1/H2 有数；H4 deferred；H5 夹具线 | [§3.12 β DoD](#312-assist-可证伪质量-β-dod2b-p-β--issue-52) |
 | Q DoD / H8 | Schema 硬停 + 真 commit；非作业台 | [§3.13 Q DoD](#313-missions-relay-honesty-q-dod2b-q--issue-56) |
+| 2c Live / 诚实 8 | Live 路径 + 双剖面 + Ready≠Deployed | [§3.14 2c](#314-live-honest-seams-2c--issues-5761) |
 | H1/H2 召回旁路 | 冻结种子 Recall@K/MRR（S2） | [§3.6 H1/H2](#36-h1h2-召回旁路s2--issue-46) |
 | 三维质量旁路 | 检索 / 忠实 / 可用性（S2） | [§3.7 三维 S2](#37-三维-s2-质量旁路issue-47) |
 | 夜间 S2 告警 | 质量失败可观测（旁路） | [§3.8 夜间告警](#38-夜间-s2-质量门失败告警issue-48) |
@@ -41,8 +42,9 @@
 - **Assist 证据地基（2b-P-α closed）：** citation Schema 三联门 + 非法不可采纳（H3）；`assist_disposition` 拒答；BM25 关键词腿；Demo 检索种子 40 条冻结（非金标）；工具环白名单（H6）；默认无 LLM 轨 A 绿（H7）。验收见 [§3.5](#35-assist-证据地基-α-dod2b-p-α--issue-44)。**诚实：** H4=`deferred`（κ 协议已可报告，见 [§3.10](#310-judgehuman-κissue-50)，仍禁止宣称 grounded）；H1/H2 召回有数见 [§3.6](#36-h1h2-召回旁路s2--issue-46)（S2 旁路）；γ **未上线**。
 - **Assist 可证伪质量（2b-P-β closed）：** H1/H2 冻结种子有数；三维 S2 + 夜间告警旁路；assist ≤4 步；κ 可报告；连接状态只读。验收见 [§3.12](#312-assist-可证伪质量-β-dod2b-p-β--issue-52)。**诚实：** H4=`deferred`；H5 为规则/夹具金标线（非 ≥300 运营）；γ **未上线**。
 - **Missions 中继诚实（2b-Q closed）：** 契约 JSON Schema 硬停（A2）；单特性真 patch+commit（A3 / `F-Q-DEMO-01`）；Validator 独立 profile + 零产品写（轻量 A4 预备）。验收见 [§3.13](#313-missions-relay-honesty-q-dod2b-q--issue-56)。**诚实：** **无** Mission Control 作业台；Q-A7 / A5 Production latch **Deferred**；不与流 P 共用完成旗。
+- **Live Honest Seams（2c · 面试诚实 8 分档）：** G0 Live（双 Key + cloud 重建 + 有 Key 真 Assist / 缺 Key 降级）；G2 检索双剖面（**先剖面后数字**）；G3 L2/OCR **Integration-Ready**（契约+Recorded，**Ready ≠ Deployed**）。验收见 [§3.14](#314-live-honest-seams-2c--issues-5761)。**诚实：** H4=`deferred`；**不冲**面试条 9；禁止「已接核心 / 生产 OCR 已上线」。
 - **连接状态（2b-P-β · Issue 51）：** `GET /provider/connection-status` + 作业壳「连接状态」页；展示 LLM / Embedding / LangSmith 是否已配置、是否降级、当前模型名；**永不回显 Key**。见 [§3.11](#311-连接状态只读2b-p-β--issue-51)。
-- **尚未上线（勿按已交付操作）：** ≥300 人工金标双标运营；核赔作业 UI 全作业流；真连核心 L2 / 真 OCR（现有 Provider 仅为 Integration-Ready）；rerank / MultiQuery / fan-out / 往榜灌质量主指标（γ，未触发）；Q-A7 pause/resume / credential proxy（A5 Production latch）；Mission Control 生产作业台。
+- **尚未上线（勿按已交付操作）：** ≥300 人工金标双标运营；核赔作业 UI 全作业流；真连核心 L2 / 真 OCR（现有 Provider 仅为 Integration-Ready，≠ Deployed）；rerank / MultiQuery / fan-out / 往榜灌质量主指标（γ，未触发）；Q-A7 pause/resume / credential proxy（A5 Production latch）；Mission Control 生产作业台；H4 grounded / 面试条 9。
 - 裁决结果是 **草案**，不具对外最终效力；AI 辅助建议 **不是** 终裁。
 - `PAYOUT_READY` ≠ 已打款；支付仍走核心人工流程。
 - 禁止用「秒赔」叙事包装责任争议案。
@@ -109,10 +111,13 @@
 | α DoD 验收（H3/H6/H7 + H1 种子） | Preview（2b-P-α closed） | Issue 44：`本项目代码/claims-gate/docs/acceptance/alpha-dod.md`；H4 仍 deferred |
 | β DoD 验收（H1/H2 有数 + H4/H5） | Preview（2b-P-β closed） | Issue 52：`本项目代码/claims-gate/docs/acceptance/beta-dod.md`；H4=`deferred`；H5 夹具过门；γ 未上线 |
 | Q DoD 验收（H8 中继诚实） | Preview（2b-Q closed） | Issue 56：`本项目代码/claims-gate/docs/acceptance/q-relay-a2a3-dod.md`；A2/A3 可演示；**无** Mission Control 作业台；未宣称 A5 |
+| G0 Live Pilot | Preview（2c） | Issue 57：`本项目代码/claims-gate/docs/acceptance/live-pilot-g0.md`；双 Key + cloud 重建 + 真 Assist；默认无 Key 仍绿 |
+| 检索双剖面（S2） | Preview（2c） | Issue 58：`demo_seed_eval` ∥ `pilot_cloud_embed`；先剖面后数字；见 §3.6 |
+| L2 Core Provider（Integration-Ready） | Shipped | Issue 59 / G3：InMemory + Recorded；**Ready ≠ Deployed**；禁止「已接核心」 |
 | OCR/备注吸收 strip | Shipped（示范） | Issue 54：写入前去首尾空白；不改人闸/`payout_ready` |
 | OCR Provider（Stub+Recorded） | Shipped | Issue 60 / G3：`extract`→规范化文本→既有收纳；**Integration-Ready**；禁止「生产 OCR 已上线」 |
 | 核赔作业 UI 全作业流 | Deferred | 真连 L2 / 生产壳等后续 |
-| 真连核心 L2 / 真 OCR | Deferred | 有干系人后；现有 Provider 契约 ≠ Deployed |
+| 真连核心 L2 / 真 OCR | Deferred | 有干系人后；现有 Provider 契约 = Ready ≠ Deployed |
 | ≥300 人工金标运营 | Deferred | 机检入口已占位；W2 仅钩子，勿宣称达标 |
 | γ 加深（rerank 等） | Deferred（γ） | rerank / MultiQuery / fan-out / 灌榜仅触发；勿按已上线操作 |
 | Q-A7 / A5 Production latch | Deferred | pause/resume；credential proxy；未做不得称 Production latch |
@@ -446,6 +451,31 @@ pytest -q
 **用户可观察面：** OCR / 客户备注写入前 strip（全空白→空串）；**不会**改写人闸 / `payout_ready`。  
 **本波未交付 / 勿宣称：** Mission Control 作业台；Q-A7 pause/resume / credential proxy；A5 / Production latch；用 Assist 质量分宣称 A3。
 
+### 3.14 Live Honest Seams（2c · Issues 57–61）
+
+`Rewrote from: SPEC-02C-LIVE-HONEST-SEAMS` · 档位：**面试诚实 8 分档** · 副标题 **Integration-Ready**（**Ready ≠ Deployed**）
+
+本窗口交付 Live 可演示路径、检索诚实双剖面、L2/OCR 可插拔接缝，并同步诚实表 / 本手册 / demo 脚本。**不做** G1/H4 过线；**不宣称** grounded / 面试条 9 / A5 / 已接核心。
+
+| 工项 | 你能做什么 | 验收指针 |
+|------|------------|----------|
+| **G0 Live** | 双 Key 分区；`EMBEDDING_PROVIDER=cloud` 重建；有 Key 真 Assist 起草；缺 Key 明确降级；连接状态双绿且无 Key 回显 | [`live-pilot-g0.md`](../../本项目代码/claims-gate/docs/acceptance/live-pilot-g0.md) |
+| **G2 双剖面** | 并列 `demo_seed_eval`（向量关）与 `pilot_cloud_embed`（向量开）；**先剖面后数字** | [§3.6](#36-h1h2-召回旁路s2--issue-46)；`python scripts/run_recall_metrics_s2.py` |
+| **G3 L2/OCR** | 出款就绪/结案经 L2 Provider；OCR `extract`→规范化文本；InMemory/Stub + Recorded | 成熟度表 L2/OCR 行；威胁注入不翻 latch |
+| **G4 文案** | 诚实表 / 手册 / demo / S2 卡与证据一致；开场含 H4 deferred | `docs/agents/interview-honesty-table.md` |
+
+**快速复现（无 Key 地板仍绿）：**
+
+```bash
+cd 本项目代码/claims-gate
+pytest -q
+python scripts/run_recall_metrics_s2.py   # 双剖面；旁路，不进默认绿
+```
+
+**Live（有 Key）补充：** 按 `live-pilot-g0.md` 勾 L0–L3；有 Key 环境可跑 `pytest -m requires_llm -q`。演示脚本 Live 分支见 `docs/agents/interview-demo-script.md`。
+
+**本窗口未交付 / 勿宣称：** H4 grounded；面试条 9；γ（rerank / MultiQuery / fan-out）；真连保司现网；生产 OCR 已上线；A5 / Mission Control；≥300 金标运营。
+
 ---
 
 ## 4. Core concepts
@@ -730,6 +760,6 @@ OpenAPI：启动服务后访问 `/docs`（FastAPI 自动生成）。
 | 字段 | 值 |
 |------|----|
 | doc_id | `USER-GUIDE-CLAIMS-GATE` |
-| phase_covered | Phase 1（01–13）+ Phase 2a W0–W2（14–33）+ Phase 2b P-α（34–44 closed）+ Phase 2b P-β（45–52 closed）+ Phase 2b Q（53–56 closed） |
-| next_update_trigger | Q-A7 / Production latch / 金标全量运营 / 真连 L2 / 生产壳交付，或用户可见 API/作业流变更合入 |
+| phase_covered | Phase 1（01–13）+ Phase 2a W0–W2（14–33）+ Phase 2b P-α（34–44 closed）+ Phase 2b P-β（45–52 closed）+ Phase 2b Q（53–56 closed）+ Phase 2c Live Honest Seams（57–61 · G0/G2/G3 + G4 文案；62 DoD 收口另票） |
+| next_update_trigger | 2c DoD 关闭（Issue 62）/ Q-A7 / Production latch / 金标全量运营 / 真连 L2 Deployed / 生产壳交付，或用户可见 API/作业流变更合入 |
 | owner | 产品 Owner（人类）；agents 按 `MAINTENANCE.md` 代写修订 |

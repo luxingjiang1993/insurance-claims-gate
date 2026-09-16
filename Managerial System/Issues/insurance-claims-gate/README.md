@@ -18,7 +18,7 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 
 ## Frontier（可立即开工）
 
-**2c（当前）：** 57、59、60 无阻塞，可并行认领；58 Blocked by 57；61 Blocked by 57–60；62 Blocked by 57–61。详见 [`phase2c/`](./phase2c/)。SPEC Status=`ready-for-agent`。  
+**2c（当前）：** 57–61 resolved；**仅 62**（2c DoD 收口）可认领（Blocked by 57–61 已解阻）。详见 [`phase2c/`](./phase2c/)。SPEC Status=`ready-for-agent`（DoD 收口前）。  
 **本窗口不做：** G1/H4 grounded、KB≥20、A5、真连现网、γ 无条件项。
 
 **W0–W2：** 已关闭（14–33 resolved）。  
@@ -149,9 +149,9 @@ Phase 1 门禁清单（历史）：`docs/agents/current-phase-remaining.md`。
 |----|------|------------|--------|
 | 57 | G0 Live Pilot 路径 + Live 验收 | — | resolved |
 | 58 | G2 检索双剖面 | 57 | resolved |
-| 59 | G3 L2 Core Adapter + Recorded | — | ready-for-agent |
-| 60 | G3 OCR Provider + Recorded | — | ready-for-agent |
-| 61 | G4 诚实表 / 手册 / demo 同步 | 57–60 | ready-for-agent |
+| 59 | G3 L2 Core Adapter + Recorded | — | resolved |
+| 60 | G3 OCR Provider + Recorded | — | resolved |
+| 61 | G4 诚实表 / 手册 / demo 同步 | 57–60 | resolved |
 | 62 | 2c DoD 收口 | 57–61 | ready-for-agent |
 
 详见 [`phase2c/`](./phase2c/)。已同步 GitHub `#44`–`#49`（标签：`ready-for-agent` · `phase-2c` · `wave:2c`）。

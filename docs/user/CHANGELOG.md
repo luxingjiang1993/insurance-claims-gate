@@ -219,6 +219,12 @@
 
 ### Added
 
+- G0 Live Pilot（Issue 57）：双 Key 分区 + `EMBEDDING_PROVIDER=cloud` 重建；有 Key 真 Assist；缺 Key 明确降级；Live 验收清单 `docs/acceptance/live-pilot-g0.md`；连接状态双绿且无 Key 回显；默认 `pytest -q` 无 Key 仍绿。
 - H1/H2 召回旁路双剖面（Issue 58 / G2）：`demo_seed_eval`（向量关）与 `pilot_cloud_embed`（向量开）并列报告；先剖面后数字；禁止无标签短路 1.00 冒充语义满分。`python scripts/run_recall_metrics_s2.py` 默认双剖面。
 - L2 Core Provider（Issue 59 / G3）：出款就绪回写与结案经可插拔 Provider（默认 InMemory + Recorded 契约夹具）；HTTP 人闸前置不变；**Integration-Ready**，禁止「已接核心」。
 - OCR Provider（Issue 60 / G3）：`extract` → 规范化文本 → 既有收纳路径；Stub + Recorded；威胁注入仍不得翻 latch / 签发人闸 / 单独出款就绪；**Integration-Ready**，禁止「生产 OCR 已上线」。
+- G4 诚实文案同步（Issue 61）：诚实表 / USER_GUIDE / demo 脚本 / S2 指标卡与 G0–G3 证据一致；对外「面试诚实 8 分档」+「Integration-Ready」；开场固定 H4 deferred；Ready ≠ Deployed；不宣称 grounded / 面试条 9。
+
+### Guarantees (user-visible)
+
+- 可称「面试诚实 8 分档 / Integration-Ready」时，须同时标注 H4 deferred、Ready ≠ Deployed、未冲面试条 9、γ / A5 / ≥300 / 真连现网未交付。
